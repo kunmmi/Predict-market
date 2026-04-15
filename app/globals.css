@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-100 text-slate-900 antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  table {
+    @apply w-full text-sm;
+  }
+
+  thead tr {
+    @apply border-b border-slate-200;
+  }
+
+  thead th {
+    @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  tbody tr {
+    @apply border-b border-slate-100 transition-colors hover:bg-slate-50;
+  }
+
+  tbody td {
+    @apply px-4 py-3 align-middle text-slate-700;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply min-h-screen;
+  }
+
+  .app-container {
+    @apply mx-auto w-full max-w-7xl px-4 py-8 sm:px-6;
+  }
+
+  .surface-panel {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl;
+  }
+
+  .page-subtitle {
+    @apply mt-1 text-sm text-slate-600;
+  }
+
+  .animate-fade-up {
+    animation: fadeUp 420ms ease-out both;
+  }
+
+  .stagger-1 {
+    animation-delay: 70ms;
+  }
+
+  .stagger-2 {
+    animation-delay: 140ms;
+  }
+
+  .stagger-3 {
+    animation-delay: 210ms;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up {
+    animation: none;
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /c/elemental-work log --oneline -20)",
+      "Bash(npx tsc:*)",
+      "mcp__mcp-registry__search_mcp_registry",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(where ngrok:*)",
+      "Bash(ngrok http:*)",
+      "Bash(ngrok config:*)",
+      "Bash(npx localtunnel:*)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://good-clubs-read.loca.lt/api/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 5 \"https://funny-garlics-give.loca.lt/api/health\")",
+      "Bash(where cloudflared:*)",
+      "Bash(winget list:*)",
+      "Bash(winget install:*)",
+      "Bash(curl -L \"https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe\" -o \"C:/elemental-work/cloudflared.exe\")",
+      "Bash(\"C:/elemental-work/cloudflared.exe\" tunnel:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" --max-time 5 \"https://expenses-manner-exterior-probe.trycloudflare.com/api/health\")",
+      "Bash(xargs ls:*)",
+      "Bash(npx tsx -e ':*)",
+      "Bash(node -e ':*)",
+      "Bash(curl -s --max-time 5 \"https://birth-including-broad-press.trycloudflare.com\" -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s --max-time 8 \"https://birth-including-broad-press.trycloudflare.com/api/webhooks/tatum\" -o /dev/null -w \"%{http_code}\")",
+      "Bash(cloudflared --version)"
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+# Crypto Prediction Market MVP
+
+Before changing code, read these source-of-truth files:
+- docs/BLUEPRINT.md — product scope, flows, and requirements
+- docs/SCHEMA.sql — database schema (PostgreSQL/Supabase)
+- docs/CURSOR_RULES.md — stack, naming, validation, security, and no-feature-drift rules
+
+Rules:
+- Do not invent features outside the blueprint.
+- Do not change database structure unless explicitly told.
+- Do not skip validation; do not use placeholder logic where the schema defines real logic.
+- Implement in small steps; after each step, state what was added, what files changed, and what remains.
