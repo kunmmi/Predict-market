@@ -24,7 +24,8 @@
       "Bash(node -e ':*)",
       "Bash(curl -s --max-time 5 \"https://birth-including-broad-press.trycloudflare.com\" -o /dev/null -w \"%{http_code}\")",
       "Bash(curl -s --max-time 8 \"https://birth-including-broad-press.trycloudflare.com/api/webhooks/tatum\" -o /dev/null -w \"%{http_code}\")",
-      "Bash(cloudflared --version)"
+      "Bash(cloudflared --version)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
