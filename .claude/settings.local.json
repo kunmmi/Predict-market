@@ -25,7 +25,19 @@
       "Bash(curl -s --max-time 5 \"https://birth-including-broad-press.trycloudflare.com\" -o /dev/null -w \"%{http_code}\")",
       "Bash(curl -s --max-time 8 \"https://birth-including-broad-press.trycloudflare.com/api/webhooks/tatum\" -o /dev/null -w \"%{http_code}\")",
       "Bash(cloudflared --version)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Bash(gh pr create --title 'Mobile responsiveness, network picker, and Chinese i18n' --body ':*)",
+      "Bash(where gh:*)",
+      "Bash(refreshenv)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
+      "Bash(gh --version)",
+      "Bash(where.exe gh:*)",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Users/kunmi!/AppData/Local/Programs/**)",
+      "Bash(cmd /c \"where gh\")",
+      "Bash(cmd /c \"gh --version\")",
+      "Bash(cmd /c \"git config --global credential.helper\")",
+      "Bash(cmd /c \"git config --list\")"
     ]
   }
 }
