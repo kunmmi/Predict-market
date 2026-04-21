@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { requireAdminForApi } from "@/lib/auth/require-admin-api";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { sendDepositApprovedEmail } from "@/lib/services/email-notifications";
 
 const approveSchema = z.object({
   amountReceived: z
@@ -63,6 +64,23 @@ export async function POST(
         { success: false, message: error.message },
         { status: 400 },
       );
+    }
+
+    // Fetch user details for the email notification (non-blocking)
+    const { data: deposit } = await supabase
+      .from("deposits")
+      .select("amount_received, asset_symbol, profiles(email, full_name)")
+      .eq("id", params.id)
+      .maybeSingle();
+
+    if (deposit) {
+      const profile = Array.isArray(deposit.profiles) ? deposit.profiles[0] : deposit.profiles;
+      sendDepositApprovedEmail({
+        toEmail: profile?.email ?? "",
+        toName: profile?.full_name ?? null,
+        amount: Number(deposit.amount_received ?? parsed.data.amountReceived),
+        assetSymbol: deposit.asset_symbol,
+      }).catch(() => {});
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

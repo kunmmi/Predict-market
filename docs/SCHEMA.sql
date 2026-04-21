@@ -1021,7 +1021,7 @@ begin
     raise exception 'market is not tradeable';
   end if;
 
-  v_total_debit := p_amount + coalesce(p_fee_amount, 0);
+  v_total_debit := p_amount;
   v_units := p_amount / p_price;
 
   perform public.debit_wallet(

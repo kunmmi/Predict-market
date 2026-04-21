@@ -1,62 +1,72 @@
 import { NextResponse } from "next/server";
 
-import { signupSchema } from "@/lib/validations/auth";
+import { signupSchema, signupUsernameSchema } from "@/lib/validations/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { validatePromoCode, linkReferral } from "@/lib/services/referral";
+
+/** Virtual email domain used for username-only accounts. Never exposed to users. */
+const USERNAME_EMAIL_DOMAIN = "elemental.local";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => undefined);
   if (body === undefined) {
-    return NextResponse.json(
-      { success: false, message: "Malformed JSON body." },
-      { status: 400 },
-    );
+    return NextResponse.json({ success: false, message: "Malformed JSON body." }, { status: 400 });
   }
 
-  const parsed = signupSchema.safeParse(body);
+  const mode = body?.mode === "username" ? "username" : "email";
 
-  if (!parsed.success) {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Invalid signup input.",
-        errors: parsed.error.flatten(),
-      },
-      { status: 400 },
-    );
+  // ---------------------------------------------------------------------------
+  // Parse and validate input based on signup mode
+  // ---------------------------------------------------------------------------
+  let email: string;
+  let password: string;
+  let fullName: string | undefined;
+  let promoCode: string | undefined;
+
+  if (mode === "username") {
+    const parsed = signupUsernameSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, message: parsed.error.errors[0]?.message ?? "Invalid input.", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+    // Generate a deterministic virtual email from the username
+    email = `${parsed.data.username.toLowerCase()}@${USERNAME_EMAIL_DOMAIN}`;
+    password = parsed.data.password;
+    fullName = parsed.data.username; // store username as display name
+    promoCode = parsed.data.promoCode;
+  } else {
+    const parsed = signupSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, message: "Invalid signup input.", errors: parsed.error.flatten() },
+        { status: 400 },
+      );
+    }
+    email = parsed.data.email;
+    password = parsed.data.password;
+    fullName = parsed.data.fullName;
+    promoCode = parsed.data.promoCode;
   }
 
-  const { email, password, fullName, promoCode } = parsed.data;
-
   // ---------------------------------------------------------------------------
-  // If a promo code was provided, validate it before creating the user.
-  // This gives the user immediate feedback on a bad code without creating
-  // an orphaned account.
+  // Validate promo code before creating the user
   // ---------------------------------------------------------------------------
-
   let validatedPromoCode: { promoterId: string; promoCode: string } | null = null;
 
   if (promoCode) {
     const validation = await validatePromoCode(promoCode);
-
     if (!validation.valid) {
-      return NextResponse.json(
-        { success: false, message: validation.message },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, message: validation.message }, { status: 400 });
     }
-
-    validatedPromoCode = {
-      promoterId: validation.promoterId,
-      promoCode: validation.promoCode,
-    };
+    validatedPromoCode = { promoterId: validation.promoterId, promoCode: validation.promoCode };
   }
 
   // ---------------------------------------------------------------------------
-  // Create the auth user. The on_auth_user_created DB trigger will
-  // automatically create the profile and wallet.
+  // Create the auth user in Supabase
+  // The on_auth_user_created DB trigger creates the profile and wallet.
   // ---------------------------------------------------------------------------
-
   const supabase = createSupabaseServerClient();
   const { data: signUpData, error } = await supabase.auth.signUp({
     email,
@@ -70,35 +80,26 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json(
-      { success: false, message: error.message },
-      { status: 400 },
-    );
+    // Make username conflict errors readable
+    if (error.message.toLowerCase().includes("already registered")) {
+      return NextResponse.json(
+        { success: false, message: mode === "username" ? "That username is already taken." : "An account with this email already exists." },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json({ success: false, message: error.message }, { status: 400 });
   }
 
   // ---------------------------------------------------------------------------
-  // If a valid promo code was provided, link the referral.
-  //
-  // This is intentionally non-blocking: if referral linkage fails (e.g.
-  // service role key not configured, or a transient DB error), the signup
-  // still succeeds. The user ends up without a referral, which is better
-  // than a failed signup.
+  // Link referral (non-blocking)
   // ---------------------------------------------------------------------------
-
   if (validatedPromoCode && signUpData.user) {
     try {
-      await linkReferral(
-        signUpData.user.id,
-        validatedPromoCode.promoterId,
-        validatedPromoCode.promoCode,
-      );
+      await linkReferral(signUpData.user.id, validatedPromoCode.promoterId, validatedPromoCode.promoCode);
     } catch (referralError) {
-      // Log server-side; do not surface to the user.
       console.error("[signup] referral linkage failed:", referralError);
     }
   }
 
-  // Note: depending on Supabase email confirmation settings, the user may
-  // not be fully signed-in yet.
   return NextResponse.json({ success: true }, { status: 200 });
 }

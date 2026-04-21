@@ -4,18 +4,16 @@ import { requireUserForApi } from "@/lib/auth/require-user-for-api";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { tradePlaceSchema } from "@/lib/validations/trade";
+import { sendCommissionEarnedEmail } from "@/lib/services/email-notifications";
 
 /**
  * POST /api/trades
  * Places a trade by calling the place_trade RPC.
  *
- * Fee note: The place_trade RPC has a known double-debit issue when fee_amount > 0
- * (it debits amount+fee as trade_debit, then also fee_amount as fee_debit).
- * For MVP we pass fee_amount to the RPC so commission is generated correctly.
- * The total debit from the RPC will be: amount + fee_amount (trade_debit) + fee_amount (fee_debit).
- * To avoid this, callers should pass the fee as part of the validation
- * but the RPC p_fee_amount is passed as 0 so only amount is debited once.
- * Commission tracking is thus disabled at RPC level in this MVP.
+ * Fee note: The place_trade RPC debits `amount` as trade_debit and then
+ * separately debits `fee_amount` as fee_debit. Commissions are generated
+ * automatically inside the RPC when fee_amount > 0 and the user was referred
+ * by an active promoter.
  */
 export async function POST(request: Request) {
   let profileId: string;
@@ -45,7 +43,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { market_id, side, amount, price } = parsed.data;
+  const { market_id, side, amount, price, fee_amount } = parsed.data;
 
   // Use the admin client (service role) for the RPC call so that
   // place_trade can SELECT...FOR UPDATE on markets and INSERT into trades/positions
@@ -53,15 +51,16 @@ export async function POST(request: Request) {
   // Authentication is already verified above — profileId is the authenticated user's ID.
   const supabaseAdmin = createSupabaseAdminClient();
 
-  // Call place_trade RPC — pass fee_amount as 0 to avoid double-debit bug
-  // The fee is shown to the user in the UI but not debited at RPC level in MVP.
+  // Pass the actual fee amount so the RPC records it correctly and generates
+  // promoter commissions. The RPC debits `amount` as trade_debit and
+  // `fee_amount` separately as fee_debit — no double-debit.
   const { data, error } = await supabaseAdmin.rpc("place_trade", {
     p_profile_id: profileId,
     p_market_id: market_id,
     p_side: side,
     p_amount: parseFloat(amount),
     p_price: parseFloat(price),
-    p_fee_amount: 0,
+    p_fee_amount: parseFloat(fee_amount),
   });
 
   if (error) {
@@ -69,6 +68,39 @@ export async function POST(request: Request) {
       { success: false, message: error.message ?? "Trade failed." },
       { status: 400 },
     );
+  }
+
+  // Notify the promoter if a commission was generated (non-blocking)
+  if (data && parseFloat(fee_amount) > 0) {
+    void (async () => {
+      try {
+        const { data: commission } = await supabaseAdmin
+          .from("commissions")
+          .select("commission_amount, promoters(profiles(email, full_name))")
+          .eq("trade_id", data)
+          .maybeSingle();
+
+        if (!commission) return;
+        const promoter = Array.isArray(commission.promoters)
+          ? commission.promoters[0]
+          : commission.promoters;
+        const profile = promoter
+          ? Array.isArray(promoter.profiles)
+            ? promoter.profiles[0]
+            : promoter.profiles
+          : null;
+        if (!profile?.email) return;
+
+        await sendCommissionEarnedEmail({
+          toEmail: profile.email,
+          toName: profile.full_name ?? null,
+          commissionAmount: Number(commission.commission_amount),
+          tradeAmount: parseFloat(parsed.data.amount),
+        });
+      } catch {
+        // non-blocking — email failure must never affect the response
+      }
+    })();
   }
 
   return NextResponse.json({ success: true, tradeId: data }, { status: 201 });

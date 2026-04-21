@@ -37,7 +37,14 @@
       "Bash(cmd /c \"where gh\")",
       "Bash(cmd /c \"gh --version\")",
       "Bash(cmd /c \"git config --global credential.helper\")",
-      "Bash(cmd /c \"git config --list\")"
+      "Bash(cmd /c \"git config --list\")",
+      "Bash(gh pr create --title 'Mobile responsiveness, network picker, and Chinese i18n' --base main --head feature/mobile-responsive-network-picker --body ':*)",
+      "Bash(cmd /c \"gh pr create --title \\\\\"Mobile responsiveness, network picker, and Chinese i18n\\\\\" --base main --head feature/mobile-responsive-network-picker --body \\\\\"## Summary - Mobile navigation hamburger menu - Responsive tables on all pages - Network chain picker \\(ETH/BSC/SOL\\) on deposit and withdraw - Chinese i18n for market titles - Loading animation - Responsive title sizing\\\\\"\")",
+      "Bash(powershell -Command \"cd 'C:\\\\elemental-work'; gh pr create --title 'Mobile responsiveness, network picker, and Chinese i18n' --base main --head feature/mobile-responsive-network-picker\")",
+      "Bash(powershell -Command ':*)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "WebFetch(domain:predict-market-xi.vercel.app)",
+      "Bash(npx playwright *)"
     ]
   }
 }

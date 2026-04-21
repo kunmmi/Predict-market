@@ -16,7 +16,7 @@ import { getSafeNextPath } from "@/lib/helpers/safe-next-path";
 import { loginSchema } from "@/lib/validations/auth";
 import type { Locale, T } from "@/lib/i18n/translations";
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = { identifier: string; password: string };
 type Props = { locale: Locale; t: T["auth"] };
 
 export function LoginForm({ locale, t }: Props) {
@@ -26,7 +26,7 @@ export function LoginForm({ locale, t }: Props) {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { identifier: "", password: "" },
   });
 
   async function onSubmit(values: LoginFormValues) {
@@ -34,7 +34,7 @@ export function LoginForm({ locale, t }: Props) {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify({ identifier: values.identifier, password: values.password }),
     });
     const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null;
     if (!res.ok || !json?.success) { setErrorMessage(json?.message ?? "Login failed."); return; }
@@ -66,15 +66,20 @@ export function LoginForm({ locale, t }: Props) {
           <CardContent>
             <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="email">{t.email}</label>
-                <Input id="email" type="email" autoComplete="email" {...form.register("email")} />
-                {form.formState.errors.email?.message && (
-                  <p className="text-sm text-red-600">{form.formState.errors.email.message}</p>
+                <label className="text-sm font-medium text-slate-700" htmlFor="identifier">{t.email_or_username}</label>
+                <Input id="identifier" type="text" autoComplete="username" {...form.register("identifier")} />
+                {form.formState.errors.identifier?.message && (
+                  <p className="text-sm text-red-600">{form.formState.errors.identifier.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="password">{t.password}</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-slate-700" htmlFor="password">{t.password}</label>
+                  <Link href="/forgot-password" className="text-xs text-slate-500 underline underline-offset-4 hover:text-yellow-600">
+                    {t.forgot_password}
+                  </Link>
+                </div>
                 <Input id="password" type="password" autoComplete="current-password" {...form.register("password")} />
                 {form.formState.errors.password?.message && (
                   <p className="text-sm text-red-600">{form.formState.errors.password.message}</p>

@@ -58,7 +58,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, t }: Prop
       ? (amountNum / priceNum).toFixed(4)
       : null;
   const fee = isValidAmount ? (amountNum * FEE_RATE).toFixed(4) : null;
-  const totalDebit = isValidAmount ? amountNum.toFixed(4) : null;
+  const totalDebit = isValidAmount ? (amountNum + amountNum * FEE_RATE).toFixed(4) : null;
 
   const availableBalance =
     wallet != null ? parseFloat(wallet.availableBalance) : null;

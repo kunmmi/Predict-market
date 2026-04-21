@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireAdminForApi } from "@/lib/auth/require-admin-api";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { marketSettleSchema } from "@/lib/validations/settlement";
+import { sendMarketSettledEmails } from "@/lib/services/email-notifications";
 
 type Params = { params: { id: string } };
 
@@ -53,6 +54,35 @@ export async function POST(request: Request, { params }: Params) {
       { status: 400 },
     );
   }
+
+  // Notify all users who had an open position in this market (non-blocking)
+  void (async () => {
+    try {
+      const { data: market } = await supabase
+        .from("markets")
+        .select("title")
+        .eq("id", params.id)
+        .maybeSingle();
+
+      if (!market) return;
+
+      const { data: positions } = await supabase
+        .from("positions")
+        .select("profiles(email, full_name)")
+        .eq("market_id", params.id);
+
+      if (!positions?.length) return;
+
+      const users = positions.flatMap((p) => {
+        const profile = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles;
+        return profile?.email ? [{ email: profile.email, name: profile.full_name ?? null }] : [];
+      });
+
+      await sendMarketSettledEmails({ users, marketTitle: market.title, outcome: resolution });
+    } catch {
+      // non-blocking — email failure must never affect the response
+    }
+  })();
 
   return NextResponse.json({ success: true }, { status: 200 });
 }

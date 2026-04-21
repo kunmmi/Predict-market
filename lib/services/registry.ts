@@ -27,11 +27,13 @@
 
 import { runtime } from "../config/runtime";
 import type { AnalyticsProvider } from "./providers/analytics";
+import type { EmailProvider } from "./providers/email";
 // import type { PaymentProvider } from './providers/payment';   // Phase 9+
-// import type { EmailProvider } from './providers/email';       // When notifications land
 // import type { StorageProvider } from './providers/storage';   // When uploads land
 
 import { NoopAnalytics } from "./adapters/analytics/noop";
+import { NodemailerGmailProvider } from "./adapters/email/nodemailer";
+import { ResendProvider } from "./adapters/email/resend";
 // CN example (implement before activating):
 // import { BaiduAnalytics } from './adapters/analytics/baidu';
 // Global example (implement before activating):
@@ -78,17 +80,23 @@ function createAnalyticsProvider(): AnalyticsProvider {
 
 // ---------------------------------------------------------------------------
 // Email provider
-// Uncomment when transactional notifications are needed.
 // ---------------------------------------------------------------------------
 
-// function createEmailProvider(): EmailProvider {
-//   if (runtime.region === 'cn') {
-//     return new AliMailProvider(...);
-//   }
-//   if (runtime.emailProvider === 'resend') return new ResendProvider(...);
-//   if (runtime.emailProvider === 'sendgrid') return new SendGridProvider(...);
-//   return new NoopEmail();
-// }
+function createEmailProvider(): EmailProvider {
+  if (runtime.emailProvider === "resend") {
+    return new ResendProvider();
+  }
+  if (runtime.emailProvider === "nodemailer") {
+    return new NodemailerGmailProvider();
+  }
+  // Noop fallback — swallows all sends silently when no provider is configured.
+  return {
+    sendEmail: async () => {
+      console.warn("[email] No email provider configured. Set EMAIL_PROVIDER=resend.");
+      return { id: "noop" };
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Storage provider
@@ -110,7 +118,7 @@ function createAnalyticsProvider(): AnalyticsProvider {
 
 export const providers = {
   analytics: createAnalyticsProvider(),
+  email: createEmailProvider(),
   // payment: createPaymentProvider(),   // Uncomment at Phase 9
-  // email: createEmailProvider(),        // Uncomment when notifications land
   // storage: createStorageProvider(),    // Uncomment when uploads land
 } as const;
