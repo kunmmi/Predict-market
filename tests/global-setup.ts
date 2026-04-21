@@ -15,6 +15,109 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.test"), override: true })
 
 export const TEST_ADMIN_EMAIL = "testadmin@example.com";
 export const TEST_ADMIN_PASSWORD = "AdminTest123!";
+export const TEST_SHARED_PASSWORD = "TestPass123!";
+export const TEST_SETTLEMENT_EMAIL = "testsettlement@example.com";
+export const TEST_PROMOTER_EMAIL = "testpromoter@example.com";
+export const TEST_REFERRED_EMAIL = "testreferred@example.com";
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableNetworkError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return message.includes("fetch failed") || message.includes("timeout") || message.includes("network");
+}
+
+async function withRetries<T>(fn: () => Promise<T>, attempts = 4, delayMs = 1000): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableNetworkError(error) || attempt === attempts - 1) {
+        throw error;
+      }
+      await sleep(delayMs * (attempt + 1));
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Global setup failed.");
+}
+
+async function ensureAuthUser(
+  admin: ReturnType<typeof createClient>,
+  email: string,
+  password: string,
+  user_metadata: Record<string, unknown>,
+) {
+  const { data: created, error: createError } = await withRetries(() =>
+    admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata,
+    }),
+  );
+
+  let userId = created?.user?.id ?? null;
+
+  if (createError) {
+    const isExisting =
+      createError.message.toLowerCase().includes("already registered") ||
+      createError.message.toLowerCase().includes("already been registered") ||
+      createError.message.toLowerCase().includes("already exists") ||
+      createError.message.toLowerCase().includes("user already");
+
+    if (!isExisting) {
+      throw createError;
+    }
+
+    const { data: list } = await withRetries(() => admin.auth.admin.listUsers({ perPage: 1000 }));
+    const existing = list?.users?.find((u) => u.email === email);
+
+    if (!existing) {
+      throw new Error(`Existing auth user not found for ${email}.`);
+    }
+
+    userId = existing.id;
+
+    const { error: updateError } = await withRetries(() =>
+      admin.auth.admin.updateUserById(userId!, {
+        password,
+        email_confirm: true,
+        user_metadata,
+      }),
+    );
+
+    if (updateError) {
+      throw updateError;
+    }
+  }
+
+  if (!userId) {
+    throw new Error(`Failed to provision auth user for ${email}.`);
+  }
+
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("auth_user_id", userId)
+      .maybeSingle();
+
+    if (profile?.id) {
+      return userId;
+    }
+
+    await sleep(500);
+  }
+
+  throw new Error(`Profile row not ready for ${email}.`);
+}
 
 async function globalSetup(_config: FullConfig) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -33,12 +136,14 @@ async function globalSetup(_config: FullConfig) {
   });
 
   // Try to create the user fresh
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: TEST_ADMIN_EMAIL,
-    password: TEST_ADMIN_PASSWORD,
-    email_confirm: true,
-    user_metadata: { role: "admin", full_name: "Test Admin" },
-  });
+  const { data: created, error: createError } = await withRetries(() =>
+    admin.auth.admin.createUser({
+      email: TEST_ADMIN_EMAIL,
+      password: TEST_ADMIN_PASSWORD,
+      email_confirm: true,
+      user_metadata: { role: "admin", full_name: "Test Admin" },
+    }),
+  );
 
   let userId: string | null = created?.user?.id ?? null;
 
@@ -56,7 +161,7 @@ async function globalSetup(_config: FullConfig) {
 
     // Account already exists — find it and sync the password so every run
     // starts with the known password regardless of previous state.
-    const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const { data: list } = await withRetries(() => admin.auth.admin.listUsers({ perPage: 1000 }));
     const existing = list?.users?.find((u) => u.email === TEST_ADMIN_EMAIL);
 
     if (!existing) {
@@ -67,10 +172,12 @@ async function globalSetup(_config: FullConfig) {
     userId = existing.id;
 
     // Reset password + ensure confirmed
-    const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
-      password: TEST_ADMIN_PASSWORD,
-      email_confirm: true,
-    });
+    const { error: updateError } = await withRetries(() =>
+      admin.auth.admin.updateUserById(userId, {
+        password: TEST_ADMIN_PASSWORD,
+        email_confirm: true,
+      }),
+    );
 
     if (updateError) {
       console.warn("[global-setup] Could not sync admin password:", updateError.message);
@@ -93,6 +200,23 @@ async function globalSetup(_config: FullConfig) {
     console.warn("[global-setup] Could not set admin role:", profileError.message);
   } else {
     console.log(`[global-setup] Admin role confirmed for ${TEST_ADMIN_EMAIL}`);
+  }
+
+  try {
+    await ensureAuthUser(admin, TEST_SETTLEMENT_EMAIL, TEST_SHARED_PASSWORD, {
+      role: "user",
+      full_name: "Settlement Test User",
+    });
+    await ensureAuthUser(admin, TEST_PROMOTER_EMAIL, TEST_SHARED_PASSWORD, {
+      role: "user",
+      full_name: "Promoter Test User",
+    });
+    await ensureAuthUser(admin, TEST_REFERRED_EMAIL, TEST_SHARED_PASSWORD, {
+      role: "user",
+      full_name: "Referred Test User",
+    });
+  } catch (error) {
+    console.warn("[global-setup] Could not provision shared test users:", error);
   }
 }
 

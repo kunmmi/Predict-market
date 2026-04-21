@@ -4,6 +4,9 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 config({ path: ".env.test", override: true });
 
+const baseURL = process.env.TEST_BASE_URL ?? "http://localhost:3000";
+const isRemoteRun = !/localhost|127\.0\.0\.1/i.test(baseURL);
+
 /**
  * Playwright E2E test configuration.
  *
@@ -23,12 +26,13 @@ config({ path: ".env.test", override: true });
 export default defineConfig({
   globalSetup: require.resolve("./tests/global-setup"),
   testDir: "./tests",
-  timeout: 60_000,
+  timeout: isRemoteRun ? 120_000 : 60_000,
   retries: 1,
+  workers: isRemoteRun ? 1 : undefined,
   reporter: [["list"], ["html", { open: "never" }]],
 
   use: {
-    baseURL: process.env.TEST_BASE_URL ?? "http://localhost:3000",
+    baseURL,
     headless: true,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",

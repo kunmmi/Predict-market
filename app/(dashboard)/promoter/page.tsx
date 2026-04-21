@@ -56,7 +56,10 @@ export default async function PromoterDashboardPage() {
         <h1 className="page-title">{t.title}</h1>
         <p className="page-subtitle">
           {t.promo_code}{" "}
-          <code className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+          <code
+            data-testid="promo-code"
+            className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700"
+          >
             {summary.promoCode}
           </code>
         </p>

@@ -109,8 +109,11 @@ function ActionPanel({
 
       {mode === "approve" && (
         <div className="space-y-1">
-          <label className="text-xs text-slate-600">Amount received *</label>
+          <label htmlFor="deposit-amount-received" className="text-xs text-slate-600">
+            Amount received *
+          </label>
           <input
+            id="deposit-amount-received"
             type="text"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -121,8 +124,11 @@ function ActionPanel({
       )}
 
       <div className="space-y-1">
-        <label className="text-xs text-slate-600">Admin notes (optional)</label>
+        <label htmlFor="deposit-admin-notes" className="text-xs text-slate-600">
+          Admin notes (optional)
+        </label>
         <textarea
+          id="deposit-admin-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
