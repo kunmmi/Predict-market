@@ -16,6 +16,7 @@ test.describe("Market settlement", () => {
     await userPage.getByLabel(/email/i).fill(userEmail);
     await userPage.getByLabel(/password/i).fill(password);
     await userPage.getByRole("button", { name: /create account/i }).click();
+    await expect(userPage).toHaveURL(/dashboard/);
 
     // Fund user wallet
     await userPage.goto("/wallet/deposit");

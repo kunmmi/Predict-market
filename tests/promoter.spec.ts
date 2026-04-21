@@ -23,7 +23,7 @@ test.describe("Promoter and referral flow", () => {
     // Register as promoter
     await page.goto("/promoter/register");
     await page.getByLabel(/display name/i).fill(`Promoter ${uid()}`);
-    await page.getByRole("button", { name: /register|become/i }).click();
+    await page.getByRole("button", { name: /create promoter|register|become/i }).click();
 
     // Should see the promoter dashboard with a promo code
     await expect(page).toHaveURL(/promoter/);
@@ -46,9 +46,10 @@ test.describe("Promoter and referral flow", () => {
     await promoterPage.getByLabel(/email/i).fill(promoterEmail);
     await promoterPage.getByLabel(/password/i).fill(password);
     await promoterPage.getByRole("button", { name: /create account/i }).click();
+    await expect(promoterPage).toHaveURL(/dashboard/);
     await promoterPage.goto("/promoter/register");
     await promoterPage.getByLabel(/display name/i).fill(`Promo ${uid()}`);
-    await promoterPage.getByRole("button", { name: /register|become/i }).click();
+    await promoterPage.getByRole("button", { name: /create promoter|register|become/i }).click();
 
     // Grab the promo code from the dashboard
     await promoterPage.goto("/promoter");
@@ -94,9 +95,10 @@ test.describe("Promoter and referral flow", () => {
     await promoterPage.getByLabel(/email/i).fill(promoterEmail);
     await promoterPage.getByLabel(/password/i).fill(password);
     await promoterPage.getByRole("button", { name: /create account/i }).click();
+    await expect(promoterPage).toHaveURL(/dashboard/);
     await promoterPage.goto("/promoter/register");
     await promoterPage.getByLabel(/display name/i).fill(`Promo ${uid()}`);
-    await promoterPage.getByRole("button", { name: /register|become/i }).click();
+    await promoterPage.getByRole("button", { name: /create promoter|register|become/i }).click();
     await promoterPage.goto("/promoter");
     const promoCodeEl = promoterPage.locator("text=/[A-Z0-9]{8,}/").first();
     const promoCode = await promoCodeEl.textContent();
@@ -110,6 +112,7 @@ test.describe("Promoter and referral flow", () => {
     await userPage.getByLabel(/password/i).fill(password);
     await userPage.getByPlaceholder(/promo/i).fill(promoCode!.trim());
     await userPage.getByRole("button", { name: /create account/i }).click();
+    await expect(userPage).toHaveURL(/dashboard/);
 
     // Fund referred user wallet
     await userPage.goto("/wallet/deposit");

@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { config } from "dotenv";
 
-config({ path: ".env.test" });
+config({ path: ".env.local" });
+config({ path: ".env.test", override: true });
 
 /**
  * Playwright E2E test configuration.
@@ -20,6 +21,7 @@ config({ path: ".env.test" });
  *   TEST_USER_PASSWORD  — regular test user password
  */
 export default defineConfig({
+  globalSetup: require.resolve("./tests/global-setup"),
   testDir: "./tests",
   timeout: 60_000,
   retries: 1,
