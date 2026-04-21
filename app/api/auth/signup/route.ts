@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { signupSchema, signupUsernameSchema } from "@/lib/validations/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validatePromoCode, linkReferral } from "@/lib/services/referral";
 
 /** Virtual email domain used for username-only accounts. Never exposed to users. */
@@ -17,14 +18,18 @@ export async function POST(request: Request) {
 
   // ---------------------------------------------------------------------------
   // Parse and validate input based on signup mode
+  // Strip `mode` from the body before schema validation — both schemas are
+  // `.strict()` and would reject any unknown key including `mode` itself.
   // ---------------------------------------------------------------------------
+  const { mode: _mode, ...parseable } = body as Record<string, unknown>;
+
   let email: string;
   let password: string;
   let fullName: string | undefined;
   let promoCode: string | undefined;
 
   if (mode === "username") {
-    const parsed = signupUsernameSchema.safeParse(body);
+    const parsed = signupUsernameSchema.safeParse(parseable);
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, message: parsed.error.errors[0]?.message ?? "Invalid input.", errors: parsed.error.flatten() },
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
     fullName = parsed.data.username; // store username as display name
     promoCode = parsed.data.promoCode;
   } else {
-    const parsed = signupSchema.safeParse(body);
+    const parsed = signupSchema.safeParse(parseable);
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, message: "Invalid signup input.", errors: parsed.error.flatten() },
@@ -64,38 +69,58 @@ export async function POST(request: Request) {
   }
 
   // ---------------------------------------------------------------------------
-  // Create the auth user in Supabase
-  // The on_auth_user_created DB trigger creates the profile and wallet.
+  // Create the auth user via the admin client.
+  // Using admin.createUser with email_confirm: true bypasses the email
+  // confirmation step entirely, so the user can sign in immediately.
+  // The on_auth_user_created DB trigger still fires and creates the profile
+  // and wallet automatically.
   // ---------------------------------------------------------------------------
-  const supabase = createSupabaseServerClient();
-  const { data: signUpData, error } = await supabase.auth.signUp({
+  const adminClient = createSupabaseAdminClient();
+  const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: {
-        role: "user",
-        ...(fullName ? { full_name: fullName } : {}),
-      },
+    email_confirm: true,
+    user_metadata: {
+      role: "user",
+      ...(fullName ? { full_name: fullName } : {}),
     },
   });
 
-  if (error) {
-    // Make username conflict errors readable
-    if (error.message.toLowerCase().includes("already registered")) {
+  if (createError) {
+    // Detect duplicate email/username and surface a readable message
+    const msg = createError.message.toLowerCase();
+    if (msg.includes("already registered") || msg.includes("already been registered") || msg.includes("already exists")) {
       return NextResponse.json(
-        { success: false, message: mode === "username" ? "That username is already taken." : "An account with this email already exists." },
+        {
+          success: false,
+          message: mode === "username"
+            ? "That username is already taken."
+            : "An account with this email already exists.",
+        },
         { status: 400 },
       );
     }
-    return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    return NextResponse.json({ success: false, message: createError.message }, { status: 400 });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sign in immediately so the session cookie is set and the user lands
+  // on /dashboard without being bounced back to /login by middleware.
+  // ---------------------------------------------------------------------------
+  const supabase = createSupabaseServerClient();
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+  if (signInError) {
+    // Account was created but sign-in failed (should be rare).
+    // Still a success from the user's perspective — they can log in manually.
+    console.error("[signup] auto sign-in failed after account creation:", signInError.message);
   }
 
   // ---------------------------------------------------------------------------
   // Link referral (non-blocking)
   // ---------------------------------------------------------------------------
-  if (validatedPromoCode && signUpData.user) {
+  if (validatedPromoCode && createData.user) {
     try {
-      await linkReferral(signUpData.user.id, validatedPromoCode.promoterId, validatedPromoCode.promoCode);
+      await linkReferral(createData.user.id, validatedPromoCode.promoterId, validatedPromoCode.promoCode);
     } catch (referralError) {
       console.error("[signup] referral linkage failed:", referralError);
     }

@@ -40,8 +40,20 @@ test("sign up with username then redirect to dashboard", async ({ page }) => {
 // ---------------------------------------------------------------------------
 
 test("login with email", async ({ page }) => {
-  if (!ADMIN_EMAIL) test.skip();
-  await loginAs(page, ADMIN_EMAIL, ADMIN_PASSWORD);
+  const email = `test+${uid()}@example.com`;
+  const password = "TestPass123!";
+
+  // Sign up first
+  await page.goto("/signup");
+  await page.getByRole("button", { name: /email/i }).first().click();
+  await page.getByLabel(/email/i).fill(email);
+  await page.getByLabel(/password/i).fill(password);
+  await page.getByRole("button", { name: /create account/i }).click();
+  await expect(page).toHaveURL(/dashboard/);
+
+  // Log out then log back in
+  await logout(page);
+  await loginAs(page, email, password);
   await expect(page).toHaveURL(/dashboard/);
 });
 
