@@ -66,7 +66,7 @@ test.describe("Promoter and referral flow", () => {
     await userPage.getByRole("button", { name: /email/i }).first().click();
     await userPage.getByLabel(/email/i).fill(`referred+${uid()}@example.com`);
     await userPage.getByLabel(/password/i).fill(password);
-    await userPage.getByPlaceholder(/promo/i).fill(promoCode!.trim());
+    await userPage.getByLabel(/promo code/i).fill(promoCode!.trim());
     await userPage.getByRole("button", { name: /create account/i }).click();
     await expect(userPage).toHaveURL(/dashboard/);
 
@@ -110,7 +110,7 @@ test.describe("Promoter and referral flow", () => {
     await userPage.getByRole("button", { name: /email/i }).first().click();
     await userPage.getByLabel(/email/i).fill(referredEmail);
     await userPage.getByLabel(/password/i).fill(password);
-    await userPage.getByPlaceholder(/promo/i).fill(promoCode!.trim());
+    await userPage.getByLabel(/promo code/i).fill(promoCode!.trim());
     await userPage.getByRole("button", { name: /create account/i }).click();
     await expect(userPage).toHaveURL(/dashboard/);
 

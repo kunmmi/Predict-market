@@ -32,6 +32,12 @@ export default defineConfig({
     headless: true,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
+    actionTimeout: 30_000,
+  },
+
+  expect: {
+    // Server Actions can take a few seconds to redirect — give them time
+    timeout: 15_000,
   },
 
   projects: [

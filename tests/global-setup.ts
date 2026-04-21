@@ -1,20 +1,19 @@
 /**
  * Playwright global setup — runs once before the entire test suite.
  *
- * Creates a dedicated test-admin account in Supabase so the admin-dependent
- * tests (deposit approval, settlement, commissions) have working credentials
- * without depending on the developer's personal Google-OAuth account.
+ * Creates (or re-syncs) a dedicated test-admin account in Supabase so the
+ * admin-dependent tests have working credentials on every run.
  */
 import * as path from "path";
 import * as dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import type { FullConfig } from "@playwright/test";
 
-// Load env files — order matters: .env.test overrides .env.local overrides .env
+// Load .env.local first (Supabase keys), then .env.test overrides (URLs, credentials)
 dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 dotenv.config({ path: path.resolve(__dirname, "../.env.test"), override: true });
 
-export const TEST_ADMIN_EMAIL = "testadmin@elemental.test";
+export const TEST_ADMIN_EMAIL = "testadmin@example.com";
 export const TEST_ADMIN_PASSWORD = "AdminTest123!";
 
 async function globalSetup(_config: FullConfig) {
@@ -23,55 +22,77 @@ async function globalSetup(_config: FullConfig) {
 
   if (!supabaseUrl || !serviceRoleKey) {
     console.warn(
-      "[global-setup] NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found." +
-        " Admin-dependent tests will be skipped.",
+      "[global-setup] NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found — " +
+        "admin-dependent tests will likely fail.",
     );
     return;
   }
 
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Attempt to create the test-admin account. If it already exists, Supabase
-  // returns an error which we silently ignore — the account is ready to use.
-  const { data, error } = await adminClient.auth.admin.createUser({
+  // Try to create the user fresh
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
     email: TEST_ADMIN_EMAIL,
     password: TEST_ADMIN_PASSWORD,
     email_confirm: true,
-    user_metadata: {
-      role: "admin",
-      full_name: "Test Admin",
-    },
+    user_metadata: { role: "admin", full_name: "Test Admin" },
   });
 
-  if (error) {
-    const msg = error.message.toLowerCase();
-    const alreadyExists =
-      msg.includes("already registered") ||
-      msg.includes("already been registered") ||
-      msg.includes("already exists") ||
-      msg.includes("user already");
-    if (alreadyExists) {
-      console.log(`[global-setup] Test admin already exists (${TEST_ADMIN_EMAIL}), ready.`);
-    } else {
-      console.error("[global-setup] Failed to create test admin:", error.message);
+  let userId: string | null = created?.user?.id ?? null;
+
+  if (createError) {
+    const isExisting =
+      createError.message.toLowerCase().includes("already registered") ||
+      createError.message.toLowerCase().includes("already been registered") ||
+      createError.message.toLowerCase().includes("already exists") ||
+      createError.message.toLowerCase().includes("user already");
+
+    if (!isExisting) {
+      console.error("[global-setup] Could not create test admin:", createError.message);
+      return;
     }
-    return;
+
+    // Account already exists — find it and sync the password so every run
+    // starts with the known password regardless of previous state.
+    const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const existing = list?.users?.find((u) => u.email === TEST_ADMIN_EMAIL);
+
+    if (!existing) {
+      console.error("[global-setup] Admin listed as existing but could not locate user.");
+      return;
+    }
+
+    userId = existing.id;
+
+    // Reset password + ensure confirmed
+    const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
+      password: TEST_ADMIN_PASSWORD,
+      email_confirm: true,
+    });
+
+    if (updateError) {
+      console.warn("[global-setup] Could not sync admin password:", updateError.message);
+    } else {
+      console.log(`[global-setup] Test admin synced (${TEST_ADMIN_EMAIL})`);
+    }
+  } else {
+    console.log(`[global-setup] Test admin created: ${TEST_ADMIN_EMAIL}`);
   }
 
-  // Belt-and-suspenders: ensure the profiles row has role = 'admin'.
-  // The DB trigger should do this automatically via raw_user_meta_data, but
-  // we do it explicitly in case the trigger ran before metadata was set.
-  const { error: profileError } = await adminClient
+  if (!userId) return;
+
+  // Ensure the profiles row has role = 'admin'
+  const { error: profileError } = await admin
     .from("profiles")
     .update({ role: "admin" })
-    .eq("auth_user_id", data.user.id);
+    .eq("auth_user_id", userId);
 
   if (profileError) {
-    console.warn("[global-setup] Could not force admin role in profiles:", profileError.message);
+    console.warn("[global-setup] Could not set admin role:", profileError.message);
   } else {
-    console.log(`[global-setup] Test admin created and confirmed: ${TEST_ADMIN_EMAIL}`);
+    console.log(`[global-setup] Admin role confirmed for ${TEST_ADMIN_EMAIL}`);
   }
 }
 
