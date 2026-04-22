@@ -16,7 +16,7 @@ import type { DepositStatus } from "@/types/enums";
 import type { Locale, T } from "@/lib/i18n/translations";
 
 type FormValues = z.infer<typeof depositCreateSchema>;
-const ASSETS = ["BTC", "USDT", "USDC", "BNB", "SOL"] as const;
+const ASSETS = ["USDT"] as const;
 
 type DepositRow = {
   id: string;
@@ -101,19 +101,9 @@ type AddressConfig = Record<string, { address: string | null; networkLabel: stri
 
 type NetworkOption = { label: string; value: string; sub: string };
 const NETWORK_OPTIONS: Record<string, NetworkOption[]> = {
-  BTC:  [{ label: "Bitcoin",  value: "Bitcoin",                  sub: "Native" }],
-  USDT: [
-    { label: "ETH", value: "Ethereum (ERC-20)",        sub: "ERC-20" },
-    { label: "BSC", value: "BNB Smart Chain (BEP-20)", sub: "BEP-20" },
-    { label: "SOL", value: "Solana (SPL)",              sub: "SPL" },
-  ],
-  USDC: [
-    { label: "ETH", value: "Ethereum (ERC-20)",        sub: "ERC-20" },
-    { label: "BSC", value: "BNB Smart Chain (BEP-20)", sub: "BEP-20" },
-    { label: "SOL", value: "Solana (SPL)",              sub: "SPL" },
-  ],
-  BNB:  [{ label: "BSC",     value: "BNB Smart Chain (BEP-20)", sub: "BEP-20" }],
-  SOL:  [{ label: "Solana",  value: "Solana",                    sub: "Native" }],
+  // Only BNB Smart Chain (BEP-20) is supported for now.
+  // Other chains will be added as deposit volume grows.
+  USDT: [{ label: "BSC", value: "BNB Smart Chain (BEP-20)", sub: "BEP-20" }],
 };
 
 function NetworkPicker({
@@ -162,7 +152,7 @@ function DepositForm({ onSuccess, t, locale }: { onSuccess: (hadAddress: boolean
     resolver: zodResolver(depositCreateSchema),
     defaultValues: {
       asset_symbol: "USDT",
-      network_name: NETWORK_OPTIONS["USDT"][0].value,
+      network_name: "BNB Smart Chain (BEP-20)",
       amount_expected: "",
       tx_hash: "",
       deposit_address: "",

@@ -18,15 +18,18 @@ export type AssetAddressConfig = {
 };
 
 export const ASSET_ADDRESS_CONFIG: Record<DepositAssetSymbol, AssetAddressConfig> = {
+  // Active: USDT on BNB Smart Chain (BEP-20) — single chain for launch.
+  // Other chains are configured below but not shown in the UI yet.
+  USDT: {
+    address: process.env.DEPOSIT_ADDRESS_BSC ?? null,
+    tatumChain: "BSC",
+    networkLabel: "BNB Smart Chain (BEP-20)",
+  },
+  // Not yet active in the UI — kept for future expansion.
   BTC: {
     address: process.env.DEPOSIT_ADDRESS_BTC ?? null,
     tatumChain: "BTC",
     networkLabel: "Bitcoin",
-  },
-  USDT: {
-    address: process.env.DEPOSIT_ADDRESS_ETH ?? null,
-    tatumChain: "ETH",
-    networkLabel: "Ethereum (ERC-20)",
   },
   USDC: {
     address: process.env.DEPOSIT_ADDRESS_ETH ?? null,

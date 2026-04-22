@@ -50,13 +50,15 @@ type AddressEntry = {
   type: "INCOMING_NATIVE_TX" | "INCOMING_FUNGIBLE_TX";
 };
 
+// Only BSC USDT (BEP-20) is active for launch.
+// To add more chains later, uncomment the relevant lines below.
 const ALL_ENTRIES: AddressEntry[] = [
-  { chain: "BTC", address: process.env.DEPOSIT_ADDRESS_BTC ?? "", label: "Bitcoin (native)", type: "INCOMING_NATIVE_TX" },
-  { chain: "ETH", address: process.env.DEPOSIT_ADDRESS_ETH ?? "", label: "Ethereum (native ETH)", type: "INCOMING_NATIVE_TX" },
-  { chain: "ETH", address: process.env.DEPOSIT_ADDRESS_ETH ?? "", label: "Ethereum (USDT/USDC ERC-20)", type: "INCOMING_FUNGIBLE_TX" },
-  { chain: "BSC", address: process.env.DEPOSIT_ADDRESS_BSC ?? "", label: "BSC (native BNB)", type: "INCOMING_NATIVE_TX" },
-  { chain: "BSC", address: process.env.DEPOSIT_ADDRESS_BSC ?? "", label: "BSC (BEP-20 tokens)", type: "INCOMING_FUNGIBLE_TX" },
-  { chain: "SOL", address: process.env.DEPOSIT_ADDRESS_SOL ?? "", label: "Solana (native SOL)", type: "INCOMING_NATIVE_TX" },
+  { chain: "BSC", address: process.env.DEPOSIT_ADDRESS_BSC ?? "", label: "BSC (USDT BEP-20)", type: "INCOMING_FUNGIBLE_TX" },
+  // { chain: "BSC", address: process.env.DEPOSIT_ADDRESS_BSC ?? "", label: "BSC (native BNB)", type: "INCOMING_NATIVE_TX" },
+  // { chain: "ETH", address: process.env.DEPOSIT_ADDRESS_ETH ?? "", label: "Ethereum (native ETH)", type: "INCOMING_NATIVE_TX" },
+  // { chain: "ETH", address: process.env.DEPOSIT_ADDRESS_ETH ?? "", label: "Ethereum (USDT/USDC ERC-20)", type: "INCOMING_FUNGIBLE_TX" },
+  // { chain: "BTC", address: process.env.DEPOSIT_ADDRESS_BTC ?? "", label: "Bitcoin (native)", type: "INCOMING_NATIVE_TX" },
+  // { chain: "SOL", address: process.env.DEPOSIT_ADDRESS_SOL ?? "", label: "Solana (native SOL)", type: "INCOMING_NATIVE_TX" },
 ];
 
 const entries = ALL_ENTRIES.filter((e) => e.address.length > 0);
