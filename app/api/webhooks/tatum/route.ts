@@ -76,10 +76,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
   }
 
-  // Return 200 immediately so Tatum does not retry while we process
-  void processWebhook(payload).catch((err: unknown) => {
+  // Process synchronously before responding.
+  // Tatum allows up to 30 s for a response and our processing is fast (a few
+  // DB round-trips), so awaiting here is reliable.  Fire-and-forget is NOT
+  // safe on Vercel serverless — the function freezes immediately after the
+  // Response is returned, killing any pending async work.
+  try {
+    await processWebhook(payload);
+  } catch (err: unknown) {
     console.error("[tatum-webhook] Unhandled error:", err);
-  });
+  }
 
   return NextResponse.json({ success: true }, { status: 200 });
 }
