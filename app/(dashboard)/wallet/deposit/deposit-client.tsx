@@ -30,6 +30,49 @@ type DepositRow = {
   createdAt: string;
 };
 
+function VerifyButton({ depositId, onVerified }: { depositId: string; onVerified: () => void }) {
+  const [state, setState] = React.useState<"idle" | "loading" | "error">("idle");
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+  async function handleVerify() {
+    setState("loading");
+    setErrorMsg(null);
+    try {
+      const res = await fetch("/api/deposits/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deposit_id: depositId }),
+      });
+      const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null;
+      if (res.ok && json?.success) {
+        onVerified();
+      } else {
+        setErrorMsg(json?.message ?? "Verification failed.");
+        setState("error");
+      }
+    } catch {
+      setErrorMsg("Network error. Please try again.");
+      setState("error");
+    }
+  }
+
+  return (
+    <div className="space-y-1">
+      <button
+        type="button"
+        onClick={handleVerify}
+        disabled={state === "loading"}
+        className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition-colors"
+      >
+        {state === "loading" ? "Verifying…" : "Verify payment"}
+      </button>
+      {state === "error" && errorMsg && (
+        <p className="text-xs text-red-600">{errorMsg}</p>
+      )}
+    </div>
+  );
+}
+
 function StatusBadge({ status, t }: { status: DepositStatus; t: T["deposit"] }) {
   const map: Record<DepositStatus, { label: string; className: string }> = {
     pending:   { label: t.status_pending,   className: "bg-yellow-100 text-yellow-800" },
@@ -329,7 +372,7 @@ function DepositForm({ onSuccess, t, locale }: { onSuccess: (hadAddress: boolean
   );
 }
 
-function DepositHistory({ deposits, t }: { deposits: DepositRow[]; t: T["deposit"] }) {
+function DepositHistory({ deposits, t, onRefresh }: { deposits: DepositRow[]; t: T["deposit"]; onRefresh: () => void }) {
   if (deposits.length === 0) {
     return <p className="py-6 text-center text-sm text-slate-500">{t.no_requests}</p>;
   }
@@ -363,7 +406,12 @@ function DepositHistory({ deposits, t }: { deposits: DepositRow[]; t: T["deposit
                     : "—"}
               </td>
               <td className="px-3 py-3 sm:px-4">
-                <StatusBadge status={d.status} t={t} />
+                <div className="space-y-1">
+                  <StatusBadge status={d.status} t={t} />
+                  {d.status === "pending" && d.txHash && (
+                    <VerifyButton depositId={d.id} onVerified={onRefresh} />
+                  )}
+                </div>
               </td>
               <td className="hidden px-3 py-3 text-slate-500 md:table-cell sm:px-4">{d.adminNotes ?? "—"}</td>
             </tr>
@@ -424,7 +472,7 @@ export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Loca
               {t.loading}
             </CardContent>
           ) : (
-            <DepositHistory deposits={deposits} t={t} />
+            <DepositHistory deposits={deposits} t={t} onRefresh={loadDeposits} />
           )}
         </Card>
       </div>
