@@ -72,7 +72,31 @@ export async function POST(request: Request) {
     );
   }
 
-  // 2. Verify on-chain
+  // 2. Check this tx hash hasn't already been used in any other approved deposit
+  // Prevents: (a) double-spend — same hash on two deposits for the same user
+  //           (b) hash theft — attacker copies a public tx hash to their own deposit
+  const { data: alreadyUsed } = await supabase
+    .from("deposits")
+    .select("id, profile_id")
+    .eq("tx_hash", txHash)
+    .eq("status", "approved")
+    .neq("id", depositId)
+    .maybeSingle();
+
+  if (alreadyUsed) {
+    const isOwnDeposit = (alreadyUsed.profile_id as string) === profileId;
+    return NextResponse.json(
+      {
+        success: false,
+        message: isOwnDeposit
+          ? "This transaction has already been used to credit one of your deposits."
+          : "This transaction hash has already been claimed. If you believe this is an error, contact support.",
+      },
+      { status: 409 },
+    );
+  }
+
+  // 4. Verify on-chain
   const platformAddress = (deposit.deposit_address as string | null) ??
     ASSET_ADDRESS_CONFIG["USDT"].address ?? "";
 
@@ -84,7 +108,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: msg }, { status: 422 });
   }
 
-  // 3. Approve the deposit
+  // 5. Approve the deposit
   const { error: rpcError } = await supabase.rpc("approve_deposit", {
     p_deposit_id: depositId,
     p_admin_profile_id: systemAdminId,

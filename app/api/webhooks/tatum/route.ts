@@ -132,7 +132,20 @@ async function processWebhook(payload: TatumWebhookPayload): Promise<void> {
     return;
   }
 
-  // Step 3: Find matching pending deposit
+  // Step 3: Guard against tx hash reuse — reject if already approved elsewhere
+  const { data: alreadyApproved } = await supabase
+    .from("deposits")
+    .select("id")
+    .eq("tx_hash", payload.txId)
+    .eq("status", "approved")
+    .maybeSingle();
+
+  if (alreadyApproved) {
+    await updateLog(supabase, logId, "skipped", `tx_hash ${payload.txId} already used in deposit ${alreadyApproved.id as string}`);
+    return;
+  }
+
+  // Step 4: Find matching pending deposit
   const deposit = await findMatchingDeposit(supabase, payload);
 
   if (!deposit) {
@@ -140,13 +153,13 @@ async function processWebhook(payload: TatumWebhookPayload): Promise<void> {
     return;
   }
 
-  // Step 4: Update log — match found
+  // Step 5: Update log — match found
   await supabase
     .from("tatum_webhook_logs")
     .update({ processing_status: "matched", matched_deposit_id: deposit.id })
     .eq("id", logId);
 
-  // Step 5: Call approve_deposit RPC
+  // Step 6: Call approve_deposit RPC
   const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
   if (!systemAdminId) {
     await updateLog(supabase, logId, "error", "SYSTEM_ADMIN_PROFILE_ID env var not set");
@@ -169,7 +182,7 @@ async function processWebhook(payload: TatumWebhookPayload): Promise<void> {
     return;
   }
 
-  // Step 6: Done
+  // Step 7: Done
   await updateLog(supabase, logId, "approved");
   console.log(`[tatum-webhook] Auto-approved deposit ${deposit.id} for txId ${payload.txId}`);
 }
