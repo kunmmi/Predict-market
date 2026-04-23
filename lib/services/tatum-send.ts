@@ -127,12 +127,21 @@ async function sendBep20(
   token: "USDT" | "USDC",
 ): Promise<string> {
   const contract = TOKEN_CONTRACTS.BSC[token];
-  const { txId } = await tatumPost("/bsc/bep20/transaction", {
-    fromPrivateKey: getEnv("WALLET_PRIVATE_KEY_ETH"), // same key — ETH & BSC share address
+  // Use 8 significant decimal places — Tatum chokes on 18-digit strings
+  const amountStr = parseFloat(amount.toFixed(8)).toString();
+  console.log("[tatum-send] sendBep20 request:", {
     to: toAddress,
-    amount: amount.toFixed(contract.decimals),
+    amount: amountStr,
     contractAddress: contract.address,
     digits: contract.decimals,
+  });
+  const { txId } = await tatumPost("/bsc/bep20/transaction", {
+    fromPrivateKey: getEnv("WALLET_PRIVATE_KEY_ETH"),
+    to: toAddress,
+    amount: amountStr,
+    contractAddress: contract.address,
+    digits: contract.decimals,
+    feeCurrency: "BSC",
   });
   return txId;
 }
