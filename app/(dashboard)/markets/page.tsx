@@ -6,9 +6,11 @@ import { getActiveMarkets } from "@/lib/services/market-data";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
+import { sideLabel, statusLabel } from "@/lib/i18n/labels";
+import type { Locale } from "@/lib/i18n/translations";
 import { Card } from "@/components/ui/card";
 
-function ProbabilityBar({ yesPrice }: { yesPrice: string | null }) {
+function ProbabilityBar({ yesPrice, locale }: { yesPrice: string | null; locale: Locale }) {
   const yes = yesPrice != null ? Math.min(100, Math.max(0, parseFloat(yesPrice) * 100)) : 50;
   const no = 100 - yes;
   return (
@@ -18,8 +20,8 @@ function ProbabilityBar({ yesPrice }: { yesPrice: string | null }) {
         <div className="bg-red-400 transition-all" style={{ width: `${no}%` }} />
       </div>
       <div className="flex justify-between text-xs text-slate-400">
-        <span>{yes.toFixed(0)}% YES</span>
-        <span>{no.toFixed(0)}% NO</span>
+        <span>{yes.toFixed(0)}% {sideLabel("yes", locale)}</span>
+        <span>{no.toFixed(0)}% {sideLabel("no", locale)}</span>
       </div>
     </div>
   );
@@ -62,7 +64,7 @@ export default async function MarketsPage() {
                         : "bg-slate-100 text-slate-600"
                     }`}
                   >
-                    {market.status.charAt(0).toUpperCase() + market.status.slice(1)}
+                    {statusLabel(market.status, locale)}
                   </span>
                 </div>
 
@@ -88,7 +90,7 @@ export default async function MarketsPage() {
                 </div>
 
                 {/* Probability bar */}
-                <ProbabilityBar yesPrice={market.yesPrice} />
+                <ProbabilityBar yesPrice={market.yesPrice} locale={locale} />
 
                 {/* Close date */}
                 <div className="mt-3 flex items-center gap-1 text-xs text-slate-400">

@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { T } from "@/lib/i18n/translations";
+import type { Locale, T } from "@/lib/i18n/translations";
+import { sideLabel } from "@/lib/i18n/labels";
 
 type TradeSide = "yes" | "no";
 
@@ -19,12 +20,13 @@ type Props = {
   yesPrice: string | null;
   noPrice: string | null;
   marketStatus: string;
+  locale: Locale;
   t: T["trade"];
 };
 
 const FEE_RATE = 0.02; // 2%
 
-export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, t }: Props) {
+export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t }: Props) {
   const [side, setSide] = useState<TradeSide>("yes");
   const [amount, setAmount] = useState("");
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -156,7 +158,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, t }: Prop
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  YES {yesPrice != null ? `@ $${parseFloat(yesPrice).toFixed(2)}` : ""}
+                  {sideLabel("yes", locale)} {yesPrice != null ? `@ $${parseFloat(yesPrice).toFixed(2)}` : ""}
                 </button>
                 <button
                   type="button"
@@ -167,7 +169,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, t }: Prop
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  NO {noPrice != null ? `@ $${parseFloat(noPrice).toFixed(2)}` : ""}
+                  {sideLabel("no", locale)} {noPrice != null ? `@ $${parseFloat(noPrice).toFixed(2)}` : ""}
                 </button>
               </div>
             </div>
@@ -230,7 +232,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, t }: Prop
             >
               {loading
                 ? t.placing
-                : `${side.toUpperCase()} — $${isValidAmount ? amountNum.toFixed(2) : "0.00"}`}
+                : `${sideLabel(side, locale)} — $${isValidAmount ? amountNum.toFixed(2) : "0.00"}`}
             </Button>
           </form>
         )}

@@ -7,6 +7,7 @@ import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
+import { statusLabel } from "@/lib/i18n/labels";
 import { TradeForm } from "./trade-form";
 
 type Props = {
@@ -69,7 +70,7 @@ export default async function MarketDetailPage({ params }: Props) {
                   : "bg-slate-100 text-slate-600"
             }`}
           >
-            {market.status.charAt(0).toUpperCase() + market.status.slice(1)}
+            {statusLabel(market.status, locale)}
           </span>
           {market.resolutionOutcome !== "unresolved" && (
             <span
@@ -173,6 +174,7 @@ export default async function MarketDetailPage({ params }: Props) {
         yesPrice={market.latestYesPrice}
         noPrice={market.latestNoPrice}
         marketStatus={market.status}
+        locale={locale}
         t={t.trade}
       />
 

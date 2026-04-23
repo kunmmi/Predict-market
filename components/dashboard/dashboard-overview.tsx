@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/helpers/cn";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import type { Locale, T } from "@/lib/i18n/translations";
+import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import type {
   DashboardData,
   DashboardDeposit,
@@ -22,9 +23,6 @@ function depositStatusVariant(
   return "secondary";
 }
 
-function capitalize(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 
 function formatWhen(iso: string, locale: Locale): string {
   try {
@@ -159,7 +157,7 @@ function RecentTradesSection({
                       : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {trade.side.toUpperCase()}
+                  {sideLabel(trade.side, locale)}
                 </span>
               </td>
               <td className="py-2.5 pr-3 text-right tabular-nums text-slate-700">${formatDecimal(trade.amount)}</td>
@@ -213,7 +211,7 @@ function RecentDepositsSection({
               <td className="hidden py-2.5 pr-3 text-xs text-slate-400 sm:table-cell">{formatWhen(d.createdAt, locale)}</td>
               <td className="py-2.5 pr-3 font-medium text-slate-800">{d.assetSymbol}</td>
               <td className="py-2.5 pr-3">
-                <Badge variant={depositStatusVariant(d.status)}>{capitalize(d.status)}</Badge>
+                <Badge variant={depositStatusVariant(d.status)}>{statusLabel(d.status, locale)}</Badge>
               </td>
               <td className="py-2.5 text-right tabular-nums text-slate-700">
                 {d.amountReceived != null

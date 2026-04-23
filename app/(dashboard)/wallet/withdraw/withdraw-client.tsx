@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import type { WithdrawalSummary } from "@/lib/services/withdrawal-data";
 import type { Locale, T } from "@/lib/i18n/translations";
+import { statusLabel } from "@/lib/i18n/labels";
 
 const ASSETS = ["BTC", "USDT", "USDC", "BNB", "SOL"] as const;
 type Asset = (typeof ASSETS)[number];
@@ -66,7 +67,7 @@ function NetworkPicker({
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, locale }: { status: string; locale: Locale }) {
   const map: Record<string, string> = {
     pending: "bg-yellow-100 text-yellow-800",
     approved: "bg-green-100 text-green-800",
@@ -77,7 +78,7 @@ function StatusBadge({ status }: { status: string }) {
     <span
       className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${map[status] ?? "bg-slate-100 text-slate-600"}`}
     >
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {statusLabel(status, locale)}
     </span>
   );
 }
@@ -365,7 +366,7 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
                         {w.txHash ? <span title={w.txHash}>{w.txHash}</span> : "—"}
                       </td>
                       <td className="px-3 py-3 sm:px-4">
-                        <StatusBadge status={w.status} />
+                        <StatusBadge status={w.status} locale={locale} />
                       </td>
                     </tr>
                   ))}

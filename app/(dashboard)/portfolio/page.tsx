@@ -6,6 +6,7 @@ import { getPortfolioData } from "@/lib/services/portfolio-data";
 import { getWalletData } from "@/lib/services/wallet-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
+import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 
@@ -189,13 +190,13 @@ export default async function PortfolioPage() {
                           {locale === "zh" && pos.marketTitleZh ? pos.marketTitleZh : pos.marketTitle}
                         </td>
                         <td className="hidden py-3 pr-3 text-slate-500 sm:table-cell">
-                          {parseFloat(pos.yesUnits) > 0 && `${formatDecimal(pos.yesUnits, 4)} YES`}
+                          {parseFloat(pos.yesUnits) > 0 && `${formatDecimal(pos.yesUnits, 4)} ${sideLabel("yes", locale)}`}
                           {parseFloat(pos.yesUnits) > 0 && parseFloat(pos.noUnits) > 0 && " / "}
-                          {parseFloat(pos.noUnits) > 0 && `${formatDecimal(pos.noUnits, 4)} NO`}
+                          {parseFloat(pos.noUnits) > 0 && `${formatDecimal(pos.noUnits, 4)} ${sideLabel("no", locale)}`}
                         </td>
                         <td className="py-3 pr-3">
                           <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${pos.status === "settled" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
-                            {pos.status.charAt(0).toUpperCase() + pos.status.slice(1)}
+                            {statusLabel(pos.status, locale)}
                           </span>
                         </td>
                         <td className={`py-3 text-right font-mono font-semibold tabular-nums ${pnl > 0 ? "text-green-600" : pnl < 0 ? "text-red-600" : "text-slate-500"}`}>
@@ -257,7 +258,7 @@ export default async function PortfolioPage() {
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {trade.side.toUpperCase()}
+                          {sideLabel(trade.side, locale)}
                         </span>
                       </td>
                       <td className="py-3 pr-3 text-right font-mono tabular-nums text-slate-700">

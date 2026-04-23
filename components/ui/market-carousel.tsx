@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import type { Locale, T } from "@/lib/i18n/translations";
+import { sideLabel } from "@/lib/i18n/labels";
 
 export type CarouselMarket = {
   id: string;
@@ -139,13 +140,13 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
             href={tradeHref}
             className="rounded-lg bg-emerald-500 px-3 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-emerald-400"
           >
-            YES ↑
+            {sideLabel("yes", locale)} ↑
           </Link>
           <Link
             href={tradeHref}
             className="rounded-lg bg-red-500 px-3 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-red-400"
           >
-            NO ↓
+            {sideLabel("no", locale)} ↓
           </Link>
         </div>
       </div>
