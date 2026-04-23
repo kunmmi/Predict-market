@@ -44,7 +44,27 @@
       "Bash(powershell -Command ':*)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "WebFetch(domain:predict-market-xi.vercel.app)",
-      "Bash(npx playwright *)"
+      "Bash(npx playwright *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(ping -n 91 127.0.0.1)",
+      "Bash(node -e ' *)",
+      "Bash(git commit -m 'fix: await webhook processing synchronously to avoid Vercel freeze, add webhook E2E tests *)",
+      "Bash(gh secret *)",
+      "Bash(npx vercel *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(git commit -m 'feat: limit deposits to USDT on BSC only for launch *)",
+      "Bash(wmic logicaldisk *)",
+      "Bash(node node_modules/.bin/tsx scripts/setup-tatum-subscriptions.ts)",
+      "Bash(node node_modules/tsx/dist/cli.mjs scripts/setup-tatum-subscriptions.ts)",
+      "Bash(Select-String -Path \"C:\\\\elemental-work\\\\.env.local\" -Pattern \"NEXT_PUBLIC_APP_URL|DEPOSIT_ADDRESS_BSC|TATUM_API_KEY\")",
+      "Bash(Select-Object -ExpandProperty Line)",
+      "Bash(vercel ls *)",
+      "Bash(node node_modules/tsx/dist/cli.mjs scripts/set-admin-role.ts)",
+      "Bash(curl -s -X POST https://predict-market-xi.vercel.app/api/webhooks/tatum -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(xargs grep *)",
+      "Bash(git commit *)"
     ]
   }
 }

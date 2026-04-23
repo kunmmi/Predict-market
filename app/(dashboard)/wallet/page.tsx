@@ -50,14 +50,14 @@ export default async function WalletPage() {
   };
 
   const colorMap: Partial<Record<WalletTxType, string>> = {
-    deposit: "bg-blue-100 text-blue-700",
+    deposit: "bg-yellow-100 text-yellow-800",
     withdrawal: "bg-orange-100 text-orange-700",
-    trade_debit: "bg-violet-100 text-violet-700",
-    trade_credit: "bg-violet-100 text-violet-700",
+    trade_debit: "bg-slate-200 text-slate-700",
+    trade_credit: "bg-slate-200 text-slate-700",
     fee_debit: "bg-slate-100 text-slate-600",
     settlement_credit: "bg-green-100 text-green-700",
     settlement_debit: "bg-orange-100 text-orange-700",
-    commission_credit: "bg-teal-100 text-teal-700",
+    commission_credit: "bg-amber-100 text-amber-800",
     adjustment_credit: "bg-slate-100 text-slate-600",
     adjustment_debit: "bg-slate-100 text-slate-600",
   };
@@ -101,8 +101,8 @@ export default async function WalletPage() {
                   </p>
                   <p className="mt-0.5 text-xs text-slate-400">{t.usd_equivalent}</p>
                 </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
-                  <DollarSign className="h-4 w-4 text-slate-600" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-100">
+                  <DollarSign className="h-4 w-4 text-yellow-800" />
                 </div>
               </div>
             </CardContent>
