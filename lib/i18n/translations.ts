@@ -524,7 +524,7 @@ export const translations = {
       submitting: "提交中...",
       copy: "复制",
       copied: "已复制！",
-      auto_confirmed: "自动确认 — 链上检测到交易后自动到账。若几分钟内未更新，请点击待处理充值上的"验证付款"按钮。",
+      auto_confirmed: "自动确认 — 链上检测到交易后自动到账。若几分钟内未更新，请点击待处理充值上的「验证付款」按钮。",
       loading_address: "加载充值地址中...",
       success_title: "充值请求已提交。",
       success_auto: "链上确认后您的钱包将自动到账。",

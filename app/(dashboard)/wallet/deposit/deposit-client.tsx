@@ -30,7 +30,11 @@ type DepositRow = {
   createdAt: string;
 };
 
-function VerifyButton({ depositId, onVerified }: { depositId: string; onVerified: () => void }) {
+function VerifyPaymentCard({ deposit, onVerified, locale }: {
+  deposit: DepositRow;
+  onVerified: () => void;
+  locale: Locale;
+}) {
   const [state, setState] = React.useState<"idle" | "loading" | "error">("idle");
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
 
@@ -41,13 +45,13 @@ function VerifyButton({ depositId, onVerified }: { depositId: string; onVerified
       const res = await fetch("/api/deposits/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deposit_id: depositId }),
+        body: JSON.stringify({ deposit_id: deposit.id }),
       });
       const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null;
       if (res.ok && json?.success) {
         onVerified();
       } else {
-        setErrorMsg(json?.message ?? "Verification failed.");
+        setErrorMsg(json?.message ?? "Verification failed. Please try again.");
         setState("error");
       }
     } catch {
@@ -57,17 +61,34 @@ function VerifyButton({ depositId, onVerified }: { depositId: string; onVerified
   }
 
   return (
-    <div className="space-y-1">
+    <div className="rounded-xl border-2 border-green-300 bg-green-50 p-5 space-y-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 text-lg font-bold">
+          ✓
+        </div>
+        <div>
+          <p className="font-semibold text-green-900">
+            {locale === "zh" ? "已发送资金？立即验证确认到账" : "Sent your funds? Verify now to credit your wallet instantly"}
+          </p>
+          <p className="mt-1 text-sm text-green-700">
+            {locale === "zh"
+              ? `您的 ${deposit.assetSymbol} 充值正在等待确认。点击下方按钮，我们将立即在链上核实并为您到账。`
+              : `Your ${deposit.assetSymbol} deposit is waiting for confirmation. Click the button below and we'll verify it on-chain and credit your wallet immediately.`}
+          </p>
+        </div>
+      </div>
       <button
         type="button"
         onClick={handleVerify}
         disabled={state === "loading"}
-        className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-50 transition-colors"
+        className="w-full rounded-lg bg-green-600 px-4 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-60 transition-colors"
       >
-        {state === "loading" ? "Verifying…" : "Verify payment"}
+        {state === "loading"
+          ? (locale === "zh" ? "验证中…" : "Verifying your payment…")
+          : (locale === "zh" ? "✓ 验证我的付款" : "✓ Verify my payment")}
       </button>
       {state === "error" && errorMsg && (
-        <p className="text-xs text-red-600">{errorMsg}</p>
+        <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{errorMsg}</p>
       )}
     </div>
   );
@@ -372,52 +393,60 @@ function DepositForm({ onSuccess, t, locale }: { onSuccess: (hadAddress: boolean
   );
 }
 
-function DepositHistory({ deposits, t, onRefresh }: { deposits: DepositRow[]; t: T["deposit"]; onRefresh: () => void }) {
+function DepositHistory({ deposits, t, onRefresh, locale }: { deposits: DepositRow[]; t: T["deposit"]; onRefresh: () => void; locale: Locale }) {
   if (deposits.length === 0) {
     return <p className="py-6 text-center text-sm text-slate-500">{t.no_requests}</p>;
   }
 
+  // Pending deposits with a tx hash — show prominent verify cards
+  const verifiable = deposits.filter((d) => d.status === "pending" && d.txHash);
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-            <th className="hidden px-3 py-3 sm:table-cell sm:px-4">{t.col_date}</th>
-            <th className="px-3 py-3 sm:px-4">{t.col_asset}</th>
-            <th className="hidden px-3 py-3 sm:table-cell sm:px-4">{t.col_network}</th>
-            <th className="px-3 py-3 sm:px-4">{t.col_amount}</th>
-            <th className="px-3 py-3 sm:px-4">{t.col_status}</th>
-            <th className="hidden px-3 py-3 md:table-cell sm:px-4">{t.col_notes}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-50">
-          {deposits.map((d) => (
-            <tr key={d.id} className="hover:bg-slate-50">
-              <td className="hidden whitespace-nowrap px-3 py-3 text-slate-500 sm:table-cell sm:px-4">
-                {format(new Date(d.createdAt), "dd MMM yyyy, HH:mm")}
-              </td>
-              <td className="px-3 py-3 font-medium sm:px-4">{d.assetSymbol}</td>
-              <td className="hidden px-3 py-3 text-slate-500 sm:table-cell sm:px-4">{d.networkName ?? "—"}</td>
-              <td className="px-3 py-3 font-mono sm:px-4">
-                {d.amountReceived != null
-                  ? d.amountReceived
-                  : d.amountExpected != null
-                    ? `~${d.amountExpected}`
-                    : "—"}
-              </td>
-              <td className="px-3 py-3 sm:px-4">
-                <div className="space-y-1">
-                  <StatusBadge status={d.status} t={t} />
-                  {d.status === "pending" && d.txHash && (
-                    <VerifyButton depositId={d.id} onVerified={onRefresh} />
-                  )}
-                </div>
-              </td>
-              <td className="hidden px-3 py-3 text-slate-500 md:table-cell sm:px-4">{d.adminNotes ?? "—"}</td>
+    <div className="space-y-4">
+      {/* Prominent verify cards — one per pending deposit with tx hash */}
+      {verifiable.map((d) => (
+        <div key={d.id} className="px-4 pt-4">
+          <VerifyPaymentCard deposit={d} onVerified={onRefresh} locale={locale} />
+        </div>
+      ))}
+
+      {/* History table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
+              <th className="hidden px-3 py-3 sm:table-cell sm:px-4">{t.col_date}</th>
+              <th className="px-3 py-3 sm:px-4">{t.col_asset}</th>
+              <th className="hidden px-3 py-3 sm:table-cell sm:px-4">{t.col_network}</th>
+              <th className="px-3 py-3 sm:px-4">{t.col_amount}</th>
+              <th className="px-3 py-3 sm:px-4">{t.col_status}</th>
+              <th className="hidden px-3 py-3 md:table-cell sm:px-4">{t.col_notes}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-50">
+            {deposits.map((d) => (
+              <tr key={d.id} className="hover:bg-slate-50">
+                <td className="hidden whitespace-nowrap px-3 py-3 text-slate-500 sm:table-cell sm:px-4">
+                  {format(new Date(d.createdAt), "dd MMM yyyy, HH:mm")}
+                </td>
+                <td className="px-3 py-3 font-medium sm:px-4">{d.assetSymbol}</td>
+                <td className="hidden px-3 py-3 text-slate-500 sm:table-cell sm:px-4">{d.networkName ?? "—"}</td>
+                <td className="px-3 py-3 font-mono sm:px-4">
+                  {d.amountReceived != null
+                    ? d.amountReceived
+                    : d.amountExpected != null
+                      ? `~${d.amountExpected}`
+                      : "—"}
+                </td>
+                <td className="px-3 py-3 sm:px-4">
+                  <StatusBadge status={d.status} t={t} />
+                </td>
+                <td className="hidden px-3 py-3 text-slate-500 md:table-cell sm:px-4">{d.adminNotes ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -472,7 +501,7 @@ export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Loca
               {t.loading}
             </CardContent>
           ) : (
-            <DepositHistory deposits={deposits} t={t} onRefresh={loadDeposits} />
+            <DepositHistory deposits={deposits} t={t} onRefresh={loadDeposits} locale={locale} />
           )}
         </Card>
       </div>
