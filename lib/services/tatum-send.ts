@@ -58,6 +58,7 @@ async function tatumPost(path: string, body: Record<string, unknown>): Promise<{
       (json?.message as string) ??
       (json?.error as string) ??
       `Tatum API error ${res.status}`;
+    console.error("[tatum-send] API error:", res.status, JSON.stringify(json));
     throw new Error(message);
   }
 
