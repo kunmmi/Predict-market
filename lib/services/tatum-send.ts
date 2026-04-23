@@ -1,18 +1,24 @@
 /**
- * Tatum v3 REST API wrapper for sending outgoing crypto transactions.
+ * Outgoing crypto transaction service.
  *
- * Supported:
- *   - ETH  (native, Ethereum)
- *   - BNB  (native, BNB Smart Chain)
- *   - SOL  (native, Solana)
- *   - USDT (ERC-20 on ETH  | BEP-20 on BSC)
- *   - USDC (ERC-20 on ETH  | BEP-20 on BSC)
+ * Sends BEP-20 USDT/USDC on BSC directly via ethers.js — no Tatum plan required.
+ * Native coin senders (ETH, BNB, SOL) are kept for future use.
  *
- * Private keys are read exclusively from environment variables — they are
- * never logged or returned to callers.
+ * Required env vars:
+ *   WALLET_PRIVATE_KEY_ETH  — hex private key for the BSC/ETH platform wallet
+ *   WALLET_PRIVATE_KEY_SOL  — base58 private key for the SOL platform wallet
  */
 
-const TATUM_BASE = "https://api.tatum.io/v3";
+import { ethers } from "ethers";
+
+// ---------------------------------------------------------------------------
+// BEP-20 / ERC-20 minimal ABI (transfer only)
+// ---------------------------------------------------------------------------
+
+const ERC20_ABI = [
+  "function transfer(address to, uint256 amount) returns (bool)",
+  "function decimals() view returns (uint8)",
+];
 
 // ---------------------------------------------------------------------------
 // Token contract addresses
@@ -30,6 +36,15 @@ const TOKEN_CONTRACTS = {
 };
 
 // ---------------------------------------------------------------------------
+// RPC endpoints (public, no API key needed)
+// ---------------------------------------------------------------------------
+
+const RPC = {
+  BSC: "https://bsc-dataseed1.binance.org/",
+  ETH: "https://eth.llamarpc.com",
+};
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -39,70 +54,49 @@ function getEnv(key: string): string {
   return val;
 }
 
-async function tatumPost(path: string, body: Record<string, unknown>): Promise<{ txId: string }> {
-  const apiKey = getEnv("TATUM_API_KEY");
+// ---------------------------------------------------------------------------
+// BEP-20 sender (ethers.js — direct BSC broadcast)
+// ---------------------------------------------------------------------------
 
-  const res = await fetch(`${TATUM_BASE}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-    },
-    body: JSON.stringify(body),
+async function sendBep20(
+  toAddress: string,
+  amount: number,
+  token: "USDT" | "USDC",
+): Promise<string> {
+  const contract = TOKEN_CONTRACTS.BSC[token];
+  const provider = new ethers.JsonRpcProvider(RPC.BSC);
+  const wallet = new ethers.Wallet(getEnv("WALLET_PRIVATE_KEY_ETH"), provider);
+  const erc20 = new ethers.Contract(contract.address, ERC20_ABI, wallet);
+
+  // Convert human-readable amount to token units (USDT BSC has 18 decimals)
+  const amountUnits = ethers.parseUnits(
+    parseFloat(amount.toFixed(8)).toString(),
+    contract.decimals,
+  );
+
+  console.log("[tatum-send] sendBep20:", {
+    token,
+    to: toAddress,
+    amount,
+    amountUnits: amountUnits.toString(),
+    contractAddress: contract.address,
   });
 
-  const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+  const tx = await (erc20.transfer as (to: string, amount: bigint) => Promise<ethers.TransactionResponse>)(toAddress, amountUnits);
+  console.log("[tatum-send] tx submitted:", tx.hash);
 
-  if (!res.ok) {
-    const message =
-      (json?.message as string) ??
-      (json?.error as string) ??
-      `Tatum API error ${res.status}`;
-    console.error("[tatum-send] API error:", res.status, JSON.stringify(json));
-    throw new Error(message);
+  // Wait for 1 confirmation
+  const receipt = await tx.wait(1);
+  if (!receipt || receipt.status !== 1) {
+    throw new Error("Transaction was submitted but failed on-chain.");
   }
 
-  const txId = (json?.txId ?? json?.hash ?? json?.id) as string | undefined;
-  if (!txId) throw new Error("Tatum did not return a transaction ID.");
-  return { txId };
+  console.log("[tatum-send] tx confirmed:", tx.hash);
+  return tx.hash;
 }
 
 // ---------------------------------------------------------------------------
-// Native coin senders
-// ---------------------------------------------------------------------------
-
-async function sendEth(toAddress: string, amount: number): Promise<string> {
-  const { txId } = await tatumPost("/ethereum/transaction", {
-    fromPrivateKey: getEnv("WALLET_PRIVATE_KEY_ETH"),
-    to: toAddress,
-    amount: amount.toFixed(18),
-  });
-  return txId;
-}
-
-async function sendBnb(toAddress: string, amount: number): Promise<string> {
-  const { txId } = await tatumPost("/bsc/transaction", {
-    fromPrivateKey: getEnv("WALLET_PRIVATE_KEY_ETH"), // same key — ETH & BSC share address
-    to: toAddress,
-    amount: amount.toFixed(18),
-    currency: "BNB",
-  });
-  return txId;
-}
-
-async function sendSol(toAddress: string, amount: number): Promise<string> {
-  const fromAddress = getEnv("DEPOSIT_ADDRESS_SOL");
-  const { txId } = await tatumPost("/solana/transaction", {
-    from: fromAddress,
-    to: toAddress,
-    amount: amount.toFixed(9),
-    fromPrivateKey: getEnv("WALLET_PRIVATE_KEY_SOL"),
-  });
-  return txId;
-}
-
-// ---------------------------------------------------------------------------
-// ERC-20 / BEP-20 token senders
+// ERC-20 sender (ethers.js — direct ETH broadcast)
 // ---------------------------------------------------------------------------
 
 async function sendErc20(
@@ -111,39 +105,53 @@ async function sendErc20(
   token: "USDT" | "USDC",
 ): Promise<string> {
   const contract = TOKEN_CONTRACTS.ETH[token];
-  const { txId } = await tatumPost("/ethereum/erc20/transaction", {
-    fromPrivateKey: getEnv("WALLET_PRIVATE_KEY_ETH"),
-    to: toAddress,
-    amount: amount.toFixed(contract.decimals),
-    contractAddress: contract.address,
-    digits: contract.decimals,
-  });
-  return txId;
+  const provider = new ethers.JsonRpcProvider(RPC.ETH);
+  const wallet = new ethers.Wallet(getEnv("WALLET_PRIVATE_KEY_ETH"), provider);
+  const erc20 = new ethers.Contract(contract.address, ERC20_ABI, wallet);
+
+  const amountUnits = ethers.parseUnits(
+    parseFloat(amount.toFixed(8)).toString(),
+    contract.decimals,
+  );
+
+  const tx = await (erc20.transfer as (to: string, amount: bigint) => Promise<ethers.TransactionResponse>)(toAddress, amountUnits);
+  const receipt = await tx.wait(1);
+  if (!receipt || receipt.status !== 1) {
+    throw new Error("Transaction was submitted but failed on-chain.");
+  }
+  return tx.hash;
 }
 
-async function sendBep20(
-  toAddress: string,
-  amount: number,
-  token: "USDT" | "USDC",
-): Promise<string> {
-  const contract = TOKEN_CONTRACTS.BSC[token];
-  // Use 8 significant decimal places — Tatum chokes on 18-digit strings
-  const amountStr = parseFloat(amount.toFixed(8)).toString();
-  console.log("[tatum-send] sendBep20 request:", {
+// ---------------------------------------------------------------------------
+// Native coin senders (kept for future use)
+// ---------------------------------------------------------------------------
+
+async function sendBnb(toAddress: string, amount: number): Promise<string> {
+  const provider = new ethers.JsonRpcProvider(RPC.BSC);
+  const wallet = new ethers.Wallet(getEnv("WALLET_PRIVATE_KEY_ETH"), provider);
+  const tx = await wallet.sendTransaction({
     to: toAddress,
-    amount: amountStr,
-    contractAddress: contract.address,
-    digits: contract.decimals,
+    value: ethers.parseEther(amount.toFixed(18)),
   });
-  const { txId } = await tatumPost("/bsc/bep20/transaction", {
-    fromPrivateKey: getEnv("WALLET_PRIVATE_KEY_ETH"),
+  const receipt = await tx.wait(1);
+  if (!receipt || receipt.status !== 1) {
+    throw new Error("BNB transaction failed on-chain.");
+  }
+  return tx.hash;
+}
+
+async function sendEth(toAddress: string, amount: number): Promise<string> {
+  const provider = new ethers.JsonRpcProvider(RPC.ETH);
+  const wallet = new ethers.Wallet(getEnv("WALLET_PRIVATE_KEY_ETH"), provider);
+  const tx = await wallet.sendTransaction({
     to: toAddress,
-    amount: amountStr,
-    contractAddress: contract.address,
-    digits: contract.decimals,
-    feeCurrency: "BSC",
+    value: ethers.parseEther(amount.toFixed(18)),
   });
-  return txId;
+  const receipt = await tx.wait(1);
+  if (!receipt || receipt.status !== 1) {
+    throw new Error("ETH transaction failed on-chain.");
+  }
+  return tx.hash;
 }
 
 // ---------------------------------------------------------------------------
@@ -160,8 +168,9 @@ export type SendCryptoParams = {
 };
 
 /**
- * Sends crypto from the platform wallet to the user's address via Tatum.
- * Returns the on-chain transaction hash/ID on success.
+ * Sends crypto from the platform wallet to the user's address.
+ * BEP-20/ERC-20 tokens go via ethers.js directly — no Tatum plan required.
+ * Returns the on-chain transaction hash on success.
  * Throws a descriptive Error on failure.
  */
 export async function sendCrypto({
@@ -182,11 +191,11 @@ export async function sendCrypto({
       return sendBnb(toAddress, cryptoAmount);
 
     case "SOL":
-      return sendSol(toAddress, cryptoAmount);
+      // SOL sending not yet implemented — kept for future expansion
+      throw new Error("SOL withdrawals are not yet supported.");
 
     case "USDT":
     case "USDC": {
-      // Decide chain from network hint — default to ETH if unclear
       const onBsc =
         network.includes("bsc") ||
         network.includes("bnb") ||
