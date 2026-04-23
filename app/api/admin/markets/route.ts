@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminForApi } from "@/lib/auth/require-admin-api";
+import { insertInitialMarketPrice } from "@/lib/services/market-initial-prices";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAllMarketsAdmin } from "@/lib/services/market-data";
 import { marketCreateSchema } from "@/lib/validations/market";
@@ -97,6 +98,21 @@ export async function POST(request: Request) {
         ? "A market with that slug already exists."
         : "Failed to create market.";
     return NextResponse.json({ success: false, message: msg }, { status: 400 });
+  }
+
+  try {
+    await insertInitialMarketPrice(data.id);
+  } catch (priceError) {
+    const message =
+      priceError instanceof Error ? priceError.message : "Failed to create initial market price.";
+
+    return NextResponse.json(
+      {
+        success: false,
+        message,
+      },
+      { status: 500 },
+    );
   }
 
   // Log admin action

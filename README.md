@@ -33,6 +33,15 @@ A referral-driven crypto prediction market platform (MVP). Promoters get promo c
 4. **Run**  
    - `npm run dev` — open [http://localhost:3000](http://localhost:3000)
 
+## Scheduled market price updates
+
+- The live market repricing endpoint is `GET /api/cron/update-market-prices`.
+- It requires `Authorization: Bearer ${CRON_SECRET}`.
+- If you are not using a Vercel plan that supports hourly cron, this repo includes [`.github/workflows/update-market-prices.yml`](.github/workflows/update-market-prices.yml).
+- Add these GitHub Actions repository secrets:
+  - `APP_URL`: your deployed app base URL, for example `https://your-app.vercel.app`
+  - `CRON_SECRET`: the same secret configured in your deployment environment
+
 ## Project layout
 
 - `app/` — Routes (public, auth, dashboard, admin) and API
