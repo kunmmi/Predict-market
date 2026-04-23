@@ -76,13 +76,13 @@ export default async function MarketsPage() {
                   <div>
                     <p className="text-xs text-slate-400">YES</p>
                     <p className="mt-0.5 text-base font-bold text-green-600">
-                      {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 4)}` : "—"}
+                      {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "—"}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs text-slate-400">NO</p>
                     <p className="mt-0.5 text-base font-bold text-red-500">
-                      {market.noPrice != null ? `$${formatDecimal(market.noPrice, 4)}` : "—"}
+                      {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "—"}
                     </p>
                   </div>
                 </div>

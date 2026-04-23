@@ -117,7 +117,7 @@ export default async function MarketDetailPage({ params }: Props) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tm.yes_price}</p>
                 <p className="mt-1.5 text-2xl font-bold text-green-600 tabular-nums">
                   {market.latestYesPrice != null
-                    ? `$${formatDecimal(market.latestYesPrice, 4)}`
+                    ? `$${formatDecimal(market.latestYesPrice, 2)}`
                     : "—"}
                 </p>
               </div>
@@ -134,7 +134,7 @@ export default async function MarketDetailPage({ params }: Props) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tm.no_price}</p>
                 <p className="mt-1.5 text-2xl font-bold text-red-500 tabular-nums">
                   {market.latestNoPrice != null
-                    ? `$${formatDecimal(market.latestNoPrice, 4)}`
+                    ? `$${formatDecimal(market.latestNoPrice, 2)}`
                     : "—"}
                 </p>
               </div>

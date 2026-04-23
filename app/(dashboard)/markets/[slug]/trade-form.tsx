@@ -156,7 +156,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, t }: Prop
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  YES {yesPrice != null ? `@ $${parseFloat(yesPrice).toFixed(4)}` : ""}
+                  YES {yesPrice != null ? `@ $${parseFloat(yesPrice).toFixed(2)}` : ""}
                 </button>
                 <button
                   type="button"
@@ -167,7 +167,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, t }: Prop
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  NO {noPrice != null ? `@ $${parseFloat(noPrice).toFixed(4)}` : ""}
+                  NO {noPrice != null ? `@ $${parseFloat(noPrice).toFixed(2)}` : ""}
                 </button>
               </div>
             </div>

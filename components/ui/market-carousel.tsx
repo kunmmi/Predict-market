@@ -25,7 +25,7 @@ type Props = {
 
 function formatPrice(p: string | null): string {
   if (p == null) return "—";
-  return (parseFloat(p) * 100).toFixed(0) + "¢";
+  return "$" + parseFloat(p).toFixed(2);
 }
 
 function formatPct(p: string | null): string {
