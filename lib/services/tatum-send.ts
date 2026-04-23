@@ -17,6 +17,7 @@ import { ethers } from "ethers";
 
 const ERC20_ABI = [
   "function transfer(address to, uint256 amount) returns (bool)",
+  "function balanceOf(address account) view returns (uint256)",
   "function decimals() view returns (uint8)",
 ];
 
@@ -73,6 +74,21 @@ async function sendBep20(
     parseFloat(amount.toFixed(8)).toString(),
     contract.decimals,
   );
+
+  // Pre-check: verify platform wallet has enough USDT before attempting send
+  const platformBalance = await (erc20.balanceOf as (addr: string) => Promise<bigint>)(wallet.address);
+  if (platformBalance < amountUnits) {
+    const humanBalance = ethers.formatUnits(platformBalance, contract.decimals);
+    console.error(`[tatum-send] Insufficient platform ${token} balance: ${humanBalance} available, ${amount} requested`);
+    throw new Error(`Withdrawals are temporarily unavailable. Please try again later or contact support.`);
+  }
+
+  // Warn if platform balance is getting low (less than 3x the withdrawal amount)
+  const lowThreshold = amountUnits * BigInt(3);
+  if (platformBalance < lowThreshold) {
+    const humanBalance = ethers.formatUnits(platformBalance, contract.decimals);
+    console.warn(`[tatum-send] WARNING: Platform ${token} balance is low: ${humanBalance} remaining`);
+  }
 
   console.log("[tatum-send] sendBep20:", {
     token,
