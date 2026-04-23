@@ -21,10 +21,9 @@ function generatePromoCode(displayName: string): string {
     .slice(0, 4)
     .padEnd(4, "X");
   const bytes = randomBytes(4);
-  let suffix = "";
-  for (const value of bytes) {
-    suffix += PROMO_CODE_ALPHABET[value % PROMO_CODE_ALPHABET.length];
-  }
+  const suffix = Array.from(bytes)
+    .map((value) => PROMO_CODE_ALPHABET[value % PROMO_CODE_ALPHABET.length])
+    .join("");
   return `${prefix}${suffix}`;
 }
 
