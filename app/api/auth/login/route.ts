@@ -2,11 +2,18 @@ import { NextResponse } from "next/server";
 
 import { loginSchema } from "@/lib/validations/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /** Must match the domain used in the signup route */
 const USERNAME_EMAIL_DOMAIN = "elemental.local";
 
 export async function POST(request: Request) {
+  // 5 login attempts per minute per IP
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(`login:${ip}`, 5, 60_000)) {
+    return rateLimitResponse("Too many login attempts. Please wait a minute and try again.");
+  }
+
   const body = await request.json().catch(() => undefined);
   if (body === undefined) {
     return NextResponse.json({ success: false, message: "Malformed JSON body." }, { status: 400 });

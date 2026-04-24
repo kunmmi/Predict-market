@@ -14,6 +14,7 @@ import { ethers } from "ethers";
 import { requireUserForApi } from "@/lib/auth/require-user-for-api";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { ASSET_ADDRESS_CONFIG } from "@/lib/config/deposit-addresses";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // BSC USDT contract address
 const BSC_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
@@ -29,6 +30,11 @@ export async function POST(request: Request) {
     profileId = profile.id;
   } catch {
     return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
+  }
+
+  // 5 verify attempts per minute per user
+  if (!rateLimit(`verify:${profileId}`, 5, 60_000)) {
+    return rateLimitResponse("Too many verify attempts. Please wait before trying again.");
   }
 
   const body = await request.json().catch(() => null) as { deposit_id?: string } | null;

@@ -7,6 +7,7 @@ import { getUserWithdrawals } from "@/lib/services/withdrawal-data";
 import { withdrawalCreateSchema } from "@/lib/validations/withdrawal";
 import { usdToAsset } from "@/lib/services/crypto-price";
 import { sendCrypto } from "@/lib/services/tatum-send";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * GET /api/withdrawals
@@ -51,6 +52,11 @@ export async function POST(request: Request) {
       { success: false, message: "Authentication required." },
       { status: 401 },
     );
+  }
+
+  // 3 withdrawal requests per minute per user
+  if (!rateLimit(`withdrawals:${profileId}`, 3, 60_000)) {
+    return rateLimitResponse("Too many withdrawal requests. Please wait before submitting another.");
   }
 
   const body = await request.json().catch(() => undefined);

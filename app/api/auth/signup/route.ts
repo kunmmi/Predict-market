@@ -4,11 +4,18 @@ import { signupSchema, signupUsernameSchema } from "@/lib/validations/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validatePromoCode, linkReferral } from "@/lib/services/referral";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /** Virtual email domain used for username-only accounts. Never exposed to users. */
 const USERNAME_EMAIL_DOMAIN = "elemental.local";
 
 export async function POST(request: Request) {
+  // 3 signups per minute per IP
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(`signup:${ip}`, 3, 60_000)) {
+    return rateLimitResponse("Too many signup attempts. Please wait a minute and try again.");
+  }
+
   const body = await request.json().catch(() => undefined);
   if (body === undefined) {
     return NextResponse.json({ success: false, message: "Malformed JSON body." }, { status: 400 });

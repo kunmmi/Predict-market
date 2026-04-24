@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { tradePlaceSchema } from "@/lib/validations/trade";
 import { sendCommissionEarnedEmail } from "@/lib/services/email-notifications";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * POST /api/trades
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
       { success: false, message: "Authentication required." },
       { status: 401 },
     );
+  }
+
+  // 10 trades per minute per user
+  if (!rateLimit(`trades:${profileId}`, 10, 60_000)) {
+    return rateLimitResponse("Too many trades. Please wait before placing another.");
   }
 
   const body = await request.json().catch(() => undefined);

@@ -6,6 +6,7 @@ import { requireUserForApi } from "@/lib/auth/require-user-for-api";
 import { getUserDeposits } from "@/lib/services/deposit-data";
 import { getDepositAddress } from "@/lib/config/deposit-addresses";
 import type { DepositAssetSymbol } from "@/types/enums";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * GET /api/deposits
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
       { success: false, message: "Authentication required." },
       { status: 401 },
     );
+  }
+
+  // 5 deposit requests per minute per user
+  if (!rateLimit(`deposits:${profileId}`, 5, 60_000)) {
+    return rateLimitResponse("Too many deposit requests. Please wait before submitting another.");
   }
 
   const body = await request.json().catch(() => undefined);
