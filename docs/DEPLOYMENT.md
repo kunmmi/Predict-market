@@ -1,21 +1,56 @@
-# Deployment Guide — Elemental MVP
+# Deployment Guide — Elemental
 
-Deployment target: **Vercel** + **Supabase** (global region).
+Deployment target: **Vercel** + **Supabase**
 
 ---
 
 ## 1. Environment Variables
 
-Set the following in Vercel project settings (or `.env.local` for local dev):
+Set all of the following in Vercel project settings → Environment Variables (and in `.env.local` for local dev).
 
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase publishable (anon) key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key — server-only, never expose publicly |
-| `NEXT_PUBLIC_APP_URL` | Recommended | Full URL of the deployment (e.g. `https://yourapp.com`) |
-| `ADMIN_EMAIL` | Recommended | Email to use for admin account and seed script |
-| `APP_REGION` | Optional | `global` (default) or `cn` — region feature flag |
+### Core (required — app will not start without these)
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable (anon) key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key — server-only, never expose publicly |
+
+### Crypto deposit addresses (required for deposits to work)
+
+| Variable | Description |
+|---|---|
+| `DEPOSIT_ADDRESS_BTC` | Platform Bitcoin deposit address |
+| `DEPOSIT_ADDRESS_ETH` | Platform Ethereum (ERC-20) deposit address |
+| `DEPOSIT_ADDRESS_BSC` | Platform BNB Smart Chain (BEP-20) deposit address |
+| `DEPOSIT_ADDRESS_SOL` | Platform Solana deposit address |
+
+### Webhooks & cron (required for automation)
+
+| Variable | Description |
+|---|---|
+| `TATUM_WEBHOOK_SECRET` | Secret to verify incoming Tatum webhook payloads |
+| `CRON_SECRET` | Bearer token for the hourly price updater cron job — set any random string, add to Vercel and it is sent automatically |
+
+### Email notifications (required for transactional emails)
+
+| Variable | Description |
+|---|---|
+| `EMAIL_PROVIDER` | `resend` or `gmail` |
+| `RESEND_API_KEY` | API key from resend.com (if using Resend) |
+| `GMAIL_USER` | Gmail address (if using Gmail SMTP) |
+| `GMAIL_APP_PASSWORD` | Gmail app password (if using Gmail SMTP) |
+| `DEFAULT_FROM_EMAIL` | Sender address shown on outgoing emails |
+
+### Optional
+
+| Variable | Description |
+|---|---|
+| `NEXT_PUBLIC_APP_URL` | Full URL of the deployment (e.g. `https://predict-market-xi.vercel.app`) |
+| `APP_REGION` | `global` (default) or `cn` — region feature flag |
+| `SYSTEM_ADMIN_PROFILE_ID` | Profile ID of the system admin user for internal operations |
+| `NEXT_PUBLIC_ANALYTICS_PROVIDER` | Analytics provider identifier |
+| `NEXT_PUBLIC_ANALYTICS_ID` | Analytics tracking ID |
 
 ---
 
@@ -23,10 +58,10 @@ Set the following in Vercel project settings (or `.env.local` for local dev):
 
 1. Run `docs/SCHEMA.sql` in the Supabase SQL editor to create all tables, views, functions, triggers, and RLS policies.
 2. Confirm these objects exist:
-   - Tables: `profiles`, `wallets`, `wallet_transactions`, `promoters`, `referrals`, `deposits`, `markets`, `market_prices`, `positions`, `trades`, `commissions`, `admin_logs`
-   - Views: `v_admin_dashboard_summary`, `v_promoter_dashboard`
-   - RPC functions: `place_trade`, `approve_deposit`, `reject_deposit`, `settle_market`
-   - Triggers: `on_auth_user_created`, `trg_create_wallet_for_profile`, `trg_create_referral_for_profile`
+   - **Tables**: `profiles`, `wallets`, `wallet_transactions`, `promoters`, `referrals`, `deposits`, `markets`, `market_prices`, `positions`, `trades`, `commissions`, `admin_logs`
+   - **Views**: `v_admin_dashboard_summary`, `v_promoter_dashboard`
+   - **RPC functions**: `place_trade`, `approve_deposit`, `reject_deposit`, `settle_market`, `credit_wallet`
+   - **Triggers**: `on_auth_user_created`, `trg_create_wallet_for_profile`, `trg_create_referral_for_profile`
 
 ---
 
@@ -41,58 +76,86 @@ Set the following in Vercel project settings (or `.env.local` for local dev):
 
 ---
 
-## 4. Seed Sample Data (optional)
-
-Run the seed script to create 3 sample markets (BTC, ETH, SOL) with initial prices set at 0.50/0.50, and a sample promoter with code `LAUNCH25`:
-
-```bash
-npm run seed
-```
-
-The script is idempotent — safe to run multiple times.
-
----
-
-## 5. Pre-Deploy Checks
+## 4. Pre-Deploy Checks
 
 ```bash
 npm install
-npx tsc --noEmit       # TypeScript check — must pass with 0 errors
-npm run lint           # ESLint check
+npx tsc --noEmit       # TypeScript — must pass with 0 errors
+npm run lint           # ESLint
 npm run build          # Production build
 ```
 
 ---
 
-## 6. Post-Deploy Smoke Tests
+## 5. Post-Deploy Smoke Tests
 
-- **Auth**: signup, login, logout, session persists across refresh
-- **Markets**: `/markets` lists active markets; individual market pages load
-- **Trading**: place a YES/NO trade, check wallet balance decrements, portfolio updates
-- **Wallet**: `/wallet` shows balance and transaction history; `/wallet/deposit` allows submitting a deposit
-- **Admin – Deposits**: `/admin/deposits` shows pending deposits; approve/reject works
-- **Admin – Markets**: `/admin/markets` lists markets; edit form and price update work; settlement works
-- **Admin – Commissions**: `/admin/commissions` renders (may be empty since fee is 0 in MVP)
-- **Admin – Users / Promoters / Referrals / Trades**: all table pages load
-- **Promoter**: sign up with a promo code, verify referral is linked
-
----
-
-## 7. Known MVP Limitations
-
-- **Fee double-debit bug**: The `place_trade` RPC has a known issue where passing `p_fee_amount > 0` debits the fee twice. The API passes `p_fee_amount: 0` to avoid this. Fees are shown in the UI but not deducted at the DB level. Commission tracking is therefore disabled at the RPC level.
-- **No email notifications**: `emailNotificationsEnabled` is `false` in region config. All email features are stubs.
-- **No KYC flow**: KYC status is stored but no verification workflow is implemented.
-- **No order book / matching engine**: Trades execute at whatever price is set by the admin in `market_prices`.
-- **CN region**: All CN provider adapters are stubs. Set `APP_REGION=global` in production.
+- **Auth**: signup, login, logout, password reset, username signup
+- **Language**: switch EN ↔ 中文 — full UI should flip including market titles
+- **Markets**: `/markets` lists active markets with YES/NO prices and probability bars
+- **Trading**: place a YES/NO trade → wallet balance decrements → portfolio updates → price moves
+- **Dynamic pricing**: place two YES trades back-to-back — confirm YES price increases after each
+- **Wallet**: `/wallet` shows balance and transaction history
+- **Deposit**: submit a deposit request → admin approves → balance credited
+- **Withdrawal**: submit withdrawal → processed via Tatum → balance debited
+- **Settlement**: admin settles a market → winning users receive payout in wallet
+- **Admin – Markets**: edit, set price manually, settle market all work
+- **Admin – Deposits/Withdrawals**: approve and reject flows work
+- **Admin – Users/Promoters/Trades/Commissions**: all table pages load
+- **Promoter**: sign up with promo code → referral linked → commission generated on trade
+- **Rate limiting**: confirm 429 response after rapid repeated requests to `/api/trades`
 
 ---
 
-## 8. Region Notes
+## 6. Key Features & Architecture
 
-The app supports a `APP_REGION` flag for future China deployment:
+### Dynamic Pricing (AMM)
+Prices update automatically after every trade using a Constant Product Market Maker formula:
+```
+yes_price = (L + yes_volume) / (2L + yes_volume + no_volume)
+```
+Where `L = $500` virtual liquidity per side. More YES buying → YES price rises. More NO buying → YES price falls.
+Source: `lib/services/dynamic-pricing.ts`
 
-- `APP_REGION=global` (default): Uses global providers. All feature flags reflect current MVP state.
-- `APP_REGION=cn`: Activates CN feature flags in `lib/config/regions.ts`, but CN adapters are not yet implemented — all fall back to no-ops. Do **not** deploy with `APP_REGION=cn` until CN provider adapters are built.
+### Automatic Price Updater (Cron)
+A Vercel cron job runs every hour (`vercel.json`) hitting `/api/cron/update-market-prices`.
+Uses a barrier-option probability model to estimate the chance each market resolves YES based on live CoinGecko prices and historical volatility.
+Requires `CRON_SECRET` env var.
+Source: `lib/services/market-price-updater.ts`
 
-See `docs/architecture-regionalization.md` for the full provider abstraction design.
+### Rate Limiting
+All sensitive endpoints are rate-limited per user or IP:
+
+| Endpoint | Limit |
+|---|---|
+| `POST /api/trades` | 10 / min per user |
+| `POST /api/deposits` | 5 / min per user |
+| `POST /api/deposits/verify` | 5 / min per user |
+| `POST /api/withdrawals` | 3 / min per user |
+| `POST /api/auth/login` | 5 / min per IP |
+| `POST /api/auth/signup` | 3 / min per IP |
+
+Source: `lib/rate-limit.ts`
+
+### Internationalisation (i18n)
+Full English / Chinese (中文) support. Language stored in a `lang` cookie.
+- UI strings: `lib/i18n/translations.ts`
+- Status/side labels: `lib/i18n/labels.ts`
+- Market content (titles, descriptions, rules): stored in `_zh` columns in the `markets` table
+
+### Market Settlement
+Admin manually settles markets via the edit page (`/admin/markets/[id]/edit`).
+Calls the `settle_market` Supabase RPC which credits winning positions at $1/unit and marks the market as settled.
+Email notifications sent to all users with open positions.
+
+### Deposit Security
+- Double-spend protection: tx hash checked against all existing approved deposits before crediting
+- Hash theft protection: tx hash ownership verified against the submitting user's account
+
+---
+
+## 7. Current Limitations
+
+- **No KYC flow**: KYC status field exists in the DB but no verification workflow is implemented
+- **No order book**: Trades execute at the AMM price — no limit orders or peer-to-peer matching
+- **Rate limiting is in-process**: Uses module-level Map per serverless instance — not globally consistent across Vercel instances. Sufficient for MVP but consider Upstash Redis for production scale
+- **CN region**: All CN provider adapters are stubs. Keep `APP_REGION=global` until CN providers are built
