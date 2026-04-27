@@ -25,12 +25,11 @@ Set all of the following in Vercel project settings → Environment Variables (a
 | `DEPOSIT_ADDRESS_BSC` | Platform BNB Smart Chain (BEP-20) deposit address |
 | `DEPOSIT_ADDRESS_SOL` | Platform Solana deposit address |
 
-### Webhooks & cron (required for automation)
+### Webhooks (required for automation)
 
 | Variable | Description |
 |---|---|
 | `TATUM_WEBHOOK_SECRET` | Secret to verify incoming Tatum webhook payloads |
-| `CRON_SECRET` | Bearer token for the hourly price updater cron job — set any random string, add to Vercel and it is sent automatically |
 
 ### Email notifications (required for transactional emails)
 
@@ -56,11 +55,12 @@ Set all of the following in Vercel project settings → Environment Variables (a
 
 ## 2. Supabase Setup
 
-1. Run `docs/SCHEMA.sql` in the Supabase SQL editor to create all tables, views, functions, triggers, and RLS policies.
-2. Confirm these objects exist:
+1. Run **Section A** of `docs/SCHEMA.md` in the Supabase SQL editor.
+2. Run **Section B** of `docs/SCHEMA.md` to add Chinese-language columns to the `markets` table.
+3. Confirm these objects exist:
    - **Tables**: `profiles`, `wallets`, `wallet_transactions`, `promoters`, `referrals`, `deposits`, `markets`, `market_prices`, `positions`, `trades`, `commissions`, `admin_logs`
-   - **Views**: `v_admin_dashboard_summary`, `v_promoter_dashboard`
-   - **RPC functions**: `place_trade`, `approve_deposit`, `reject_deposit`, `settle_market`, `credit_wallet`
+   - **Views**: `v_admin_dashboard_summary`, `v_promoter_dashboard`, `v_wallet_summary`
+   - **RPC functions**: `place_trade`, `approve_deposit`, `reject_deposit`, `settle_market`, `credit_wallet`, `debit_wallet`, `create_promoter`
    - **Triggers**: `on_auth_user_created`, `trg_create_wallet_for_profile`, `trg_create_referral_for_profile`
 
 ---
@@ -115,12 +115,6 @@ yes_price = (L + yes_volume) / (2L + yes_volume + no_volume)
 ```
 Where `L = $500` virtual liquidity per side. More YES buying → YES price rises. More NO buying → YES price falls.
 Source: `lib/services/dynamic-pricing.ts`
-
-### Automatic Price Updater (Cron)
-A Vercel cron job runs every hour (`vercel.json`) hitting `/api/cron/update-market-prices`.
-Uses a barrier-option probability model to estimate the chance each market resolves YES based on live CoinGecko prices and historical volatility.
-Requires `CRON_SECRET` env var.
-Source: `lib/services/market-price-updater.ts`
 
 ### Rate Limiting
 All sensitive endpoints are rate-limited per user or IP:

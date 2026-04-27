@@ -180,14 +180,8 @@ export default async function MarketDetailPage({ params }: Props) {
         t={t.trade}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base font-semibold">{tm.price_history}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />
-        </CardContent>
-      </Card>
+      {/* Price history chart */}
+      <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />
 
       {/* Description */}
       {(market.description || market.descriptionZh) && (

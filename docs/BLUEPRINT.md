@@ -1,4 +1,6 @@
-# Crypto Prediction Market MVP Blueprint
+# Crypto Prediction Market — Platform Blueprint
+
+> **Status as of April 2026**: MVP is complete and in beta. Sections 1–17 describe the original design intent. Sections 18–19 are the historical build plan (completed). Section 20 is the launch checklist (all items done). Section 21 is the post-MVP roadmap (updated to reflect what has since been built). Section 24 documents everything built beyond the original MVP scope.
 
 ## 1. Product Summary
 
@@ -158,24 +160,26 @@ The following features are part of the MVP.
 - trade monitoring  
 - commission monitoring  
 
-### 5.2 Out of scope for version 1
+### 5.2 Originally out of scope — current status
 
-The following should not be built in the first version unless absolutely necessary:
+The table below shows what was originally deferred and whether it has since been built.
 
-- real-time central limit order book engine  
-- advanced market making system  
-- on-chain settlement infrastructure  
-- automated blockchain confirmation engine across all supported assets  
-- automated withdrawals  
-- full custody infrastructure  
-- advanced anti-fraud or surveillance tooling  
-- dispute resolution workflows  
-- multi-language support  
-- mobile app  
-- complex fee tiers  
-- promoter withdrawals automation  
-- fiat onboarding  
-- complex charting beyond basic market display  
+| Originally deferred | Status |
+|---|---|
+| Real-time central limit order book engine | ❌ Not built — AMM model used instead |
+| Advanced market making system | ✅ **Built** — CPMM dynamic pricing engine |
+| On-chain settlement infrastructure | ❌ Not built — admin manual settlement |
+| Automated blockchain confirmation across all assets | ⚠️ **Partial** — BSC USDT auto-verify built; BTC/ETH/SOL still manual |
+| Automated withdrawals | ✅ **Built** — Tatum SDK integration |
+| Full custody infrastructure | ❌ Not built — platform-owned deposit addresses |
+| Advanced anti-fraud / surveillance tooling | ❌ Not built |
+| Dispute resolution workflows | ❌ Not built |
+| Multi-language support | ✅ **Built** — full English / Chinese (中文) |
+| Mobile app | ❌ Not built |
+| Complex fee tiers | ❌ Not built — flat fee per trade |
+| Promoter withdrawals automation | ❌ Not built — manual |
+| Fiat onboarding | ❌ Not built |
+| Complex charting beyond basic market display | ❌ Not built |
 
 ---
 
@@ -831,42 +835,57 @@ Assuming roughly 5 focused hours per day.
 
 ## 20. Minimum Launch Checklist
 
-Before launch, confirm the following:
+All items confirmed working as of beta release.
 
-- [ ] signup and login work  
-- [ ] promoter codes work  
-- [ ] referral linkage works  
-- [ ] wallet balances reconcile to ledger  
-- [ ] deposits can be submitted and approved  
-- [ ] markets can be created and displayed  
-- [ ] trades debit balance correctly  
-- [ ] portfolio updates correctly  
-- [ ] fees calculate correctly  
-- [ ] commissions are created correctly  
-- [ ] admin can review all core entities  
-- [ ] all protected routes are locked by role  
-
----
-
-## 21. Post-MVP Expansion Plan
-
-Once the MVP is stable, possible next steps are:
-
-- real deposit address generation  
-- blockchain transaction monitoring  
-- automated deposit confirmation  
-- withdrawals workflow  
-- improved market pricing engine  
-- realtime market updates  
-- charting improvements  
-- promoter payout automation  
-- analytics dashboard  
-- notifications  
-- dispute and resolution workflows  
+- [x] signup and login work  
+- [x] promoter codes work  
+- [x] referral linkage works  
+- [x] wallet balances reconcile to ledger  
+- [x] deposits can be submitted and approved  
+- [x] markets can be created and displayed  
+- [x] trades debit balance correctly  
+- [x] portfolio updates correctly  
+- [x] fees calculate correctly  
+- [x] commissions are created correctly  
+- [x] admin can review all core entities  
+- [x] all protected routes are locked by role  
+- [x] dynamic pricing updates after every trade  
+- [x] rate limiting on all sensitive endpoints  
+- [x] transactional email notifications  
+- [x] English / Chinese language switching  
+- [x] automated BSC USDT deposit verification  
+- [x] automated withdrawals via Tatum  
 
 ---
 
-## 22. Recommended Immediate Next Actions
+## 21. Post-Beta Expansion Plan
+
+Items marked ✅ were built during or shortly after the MVP sprint. The rest remain as future work.
+
+| Item | Status |
+|---|---|
+| Real deposit address generation | ✅ Built — static platform addresses per asset |
+| Blockchain transaction monitoring (BSC USDT) | ✅ Built — ethers.js on-chain verification |
+| Automated deposit confirmation (BSC USDT) | ✅ Built — `/api/deposits/verify` self-heal endpoint |
+| Automated withdrawals | ✅ Built — Tatum SDK |
+| Improved market pricing engine (AMM/CPMM) | ✅ Built — `lib/services/dynamic-pricing.ts` |
+| Transactional email notifications | ✅ Built — Resend or Gmail SMTP |
+| Multi-language support (EN/ZH) | ✅ Built — full UI + market content |
+| Rate limiting on sensitive endpoints | ✅ Built — `lib/rate-limit.ts` |
+| Blockchain tx monitoring for BTC / ETH / SOL | ⬜ Not yet — still manual admin approval |
+| Realtime market price updates (WebSocket) | ⬜ Future — Supabase Realtime |
+| Automatic market price updater via cron | ❌ Removed — conflicts with AMM; admin sets opening price manually |
+| Price history chart on market detail page | ⬜ Future |
+| Leaderboard / top traders page | ⬜ Future |
+| Promoter payout automation | ⬜ Future |
+| Analytics dashboard | ⬜ Future |
+| Dispute and resolution workflows | ⬜ Future |
+| KYC / identity verification flow | ⬜ Future — DB field exists, no UI/workflow |
+| Global rate limiting (Redis/Upstash) | ⬜ Future — current limiter is per-instance |
+
+---
+
+## 22. Original Next Actions (completed)
 
 The next actions should be:
 
@@ -903,3 +922,98 @@ Build the product around the core loop:
 That loop is enough to validate the business.
 
 Everything else can come later.
+
+---
+
+## 24. What Was Built Beyond the Original MVP Scope
+
+The following features were not in the original MVP blueprint but were built during or shortly after the initial sprint. They are all live in the current beta.
+
+### 24.1 Dynamic Pricing Engine (AMM/CPMM)
+
+Instead of static or manually-set prices, every market now uses a Constant Product Market Maker formula to move YES/NO prices automatically based on trading volume.
+
+```
+yes_price = (L + yes_volume) / (2L + yes_volume + no_volume)
+```
+
+- `L = $500` virtual liquidity per side (controls price sensitivity)
+- Prices clamped to `[0.03, 0.97]` to avoid extreme values
+- Price update fires non-blocking after every successful trade
+- Price history stored in `market_prices` table with `source = 'volume'`
+
+Source: `lib/services/dynamic-pricing.ts`
+
+### 24.2 Rate Limiting
+
+All sensitive API endpoints are rate-limited per user or per IP to prevent abuse.
+
+| Endpoint | Limit |
+|---|---|
+| `POST /api/trades` | 10 / min per user |
+| `POST /api/deposits` | 5 / min per user |
+| `POST /api/deposits/verify` | 5 / min per user |
+| `POST /api/withdrawals` | 3 / min per user |
+| `POST /api/auth/login` | 5 / min per IP |
+| `POST /api/auth/signup` | 3 / min per IP |
+
+Implementation is in-process using a module-level `Map`. Sufficient for MVP; Upstash Redis would be needed for globally consistent limiting at scale.
+
+Source: `lib/rate-limit.ts`
+
+### 24.3 Internationalisation (i18n) — English / Chinese
+
+Full bilingual support for all user-facing UI and content.
+
+- Language toggled via a `lang` cookie (persists across sessions)
+- All UI strings: `lib/i18n/translations.ts`
+- Status and side labels (locale-aware): `lib/i18n/labels.ts`
+- Market content (titles, descriptions, rules, questions): stored in `_zh` columns on the `markets` table — `title_zh`, `description_zh`, `question_text_zh`, `rules_text_zh`
+- Admin market edit form has Chinese fields for all content columns
+
+### 24.4 Transactional Email Notifications
+
+Automated emails sent for key platform events:
+
+| Event | Recipient |
+|---|---|
+| Deposit approved | User |
+| Deposit rejected | User |
+| Withdrawal processed | User |
+| Market settled | All users with open positions |
+| Commission earned | Promoter |
+
+Supports two providers via `EMAIL_PROVIDER` env var: `resend` (recommended) or `gmail` SMTP.
+
+Source: `lib/services/email-notifications.ts`
+
+### 24.5 Automated Withdrawal Processing (Tatum)
+
+Users can submit withdrawal requests that are processed automatically via the Tatum SDK. The platform debits the wallet, sends the on-chain transaction, and records the Tatum transaction ID.
+
+Source: `lib/services/tatum-send.ts`
+
+### 24.6 Automated Deposit Verification (BSC USDT)
+
+Users who submitted a BSC USDT deposit can trigger self-service on-chain verification via `/api/deposits/verify`. The system:
+
+1. Loads the deposit record
+2. Checks the tx hash is not already claimed (double-spend and hash-theft protection)
+3. Fetches the transaction receipt from the BSC RPC
+4. Verifies the USDT Transfer log matches the platform address and amount
+5. Calls `approve_deposit` RPC if all checks pass
+
+This acts as a self-heal for missed Tatum webhooks. BTC, ETH, and SOL still require manual admin approval.
+
+### 24.7 Platform Favicon
+
+Generated via Next.js `app/icon.tsx` using `ImageResponse`. Yellow rounded square with a dark bar chart icon — matches the platform colour scheme.
+
+### 24.8 Pricing model decision
+
+The AMM (CPMM) engine is the sole dynamic pricing mechanism. A cron-based barrier-option probability updater was built but removed because it conflicted with the AMM — a cron run would overwrite community sentiment prices with a mathematical estimate, making prices jump unexpectedly.
+
+The current model:
+- **Admin sets opening price** when creating or editing a market
+- **AMM moves the price** after every trade based on volume
+- **Admin can override** price manually at any time via the market edit page

@@ -1,8 +1,25 @@
-# Crypto Prediction Market MVP — Database Schema
+# Elemental — Database Schema
 
 Target: **PostgreSQL / Supabase**
 
-This file is the source of truth for the database schema. Run the SQL below in the Supabase SQL Editor to create tables, enums, functions, triggers, views, and RLS policies.
+This file is the source of truth for the database schema. To set up a fresh environment:
+
+1. Run **Section A** (the main block below) in the Supabase SQL Editor — creates all tables, enums, triggers, functions, views, and RLS policies.
+2. Run **Section B** (at the bottom) — adds Chinese-language columns to the `markets` table. This was added after the initial schema via a migration.
+
+### Objects created
+
+**Tables**: `profiles`, `wallets`, `wallet_transactions`, `promoters`, `referrals`, `deposits`, `markets`, `market_prices`, `positions`, `trades`, `commissions`, `admin_logs`
+
+**Views**: `v_admin_dashboard_summary`, `v_promoter_dashboard`, `v_wallet_summary`
+
+**RPC functions**: `place_trade`, `approve_deposit`, `reject_deposit`, `settle_market`, `credit_wallet`, `debit_wallet`, `create_promoter`
+
+**Triggers**: `on_auth_user_created`, `trg_create_wallet_for_profile`, `trg_create_referral_for_profile`
+
+---
+
+## Section A — Core Schema
 
 ---
 
@@ -1521,3 +1538,64 @@ comment on table public.positions is 'Aggregated open/settled market exposure pe
 comment on table public.commissions is 'Promoter commissions generated from referred user trades';
 comment on table public.admin_logs is 'Audit log of admin actions';
 ```
+
+---
+
+## Section B — Post-Initial Migrations
+
+Run these after Section A. They add features built beyond the original MVP scope.
+
+### B1 — Chinese language columns on `markets`
+
+Added to support full EN/ZH bilingual market content. When `lang = 'zh'`, the platform reads from these columns and falls back to the English column if the `_zh` column is `NULL`.
+
+```sql
+-- supabase/migrations/20260415_market_zh_fields.sql
+ALTER TABLE public.markets
+  ADD COLUMN IF NOT EXISTS title_zh          text,
+  ADD COLUMN IF NOT EXISTS description_zh    text,
+  ADD COLUMN IF NOT EXISTS question_text_zh  text,
+  ADD COLUMN IF NOT EXISTS rules_text_zh     text;
+```
+
+---
+
+## Schema notes
+
+### Wallet balance invariant
+
+The `wallets` table enforces `balance = available_balance + reserved_balance` via a CHECK constraint. Every balance change must go through `credit_wallet()` or `debit_wallet()` to maintain this invariant and produce a `wallet_transactions` ledger entry.
+
+### Market pricing
+
+`market_prices` stores a time-series of YES/NO prices for each market. The `source` column distinguishes where the price came from:
+
+| Source | Description |
+|---|---|
+| `volume` | Calculated by the CPMM AMM engine after a trade |
+| `cron` | Set by the hourly barrier-option probability updater |
+| `manual` | Set directly by an admin |
+| `internal` | Legacy/default label |
+
+The latest row per market (by `created_at DESC`) is the displayed price.
+
+### Trade debit model
+
+`place_trade` debits `p_amount + p_fee_amount` in a single `trade_debit` wallet transaction. The fee is also recorded separately in the `trades.fee_amount` column for reporting. No double-debit occurs.
+
+### Commission generation
+
+Commissions are generated automatically inside `place_trade` when:
+- `p_fee_amount > 0`, AND
+- the trading user has a `referred_by_promoter_id` in their profile, AND
+- that promoter's status is `'active'`
+
+Commission rate comes from `promoters.commission_rate` (default 10%).
+
+### Settlement model
+
+`settle_market` credits winning positions at **$1.00 per unit**. Position units are calculated at trade time as `amount / price`. A user who buys YES at $0.50 with $100 receives 200 units; if YES resolves, they receive $200.
+
+### RLS model
+
+All tables use Row Level Security. User-facing reads are scoped to the authenticated user's own data. All writes that require cross-table access (trades, deposits, settlements) go through the Supabase service role key via the admin client — authentication is validated in the API route before calling any RPC.
