@@ -252,6 +252,10 @@ export const translations = {
       resolved_label: "Resolved:",
       prob_yes: "probability YES",
       prob_no: "probability NO",
+      price_history: "Price History",
+      price_history_empty: "Place a trade to start the price chart.",
+      chart_yes: "YES",
+      chart_no: "NO",
     },
     trade: {
       title: "Place a Trade",
@@ -590,6 +594,10 @@ export const translations = {
       resolved_label: "已结算：",
       prob_yes: "看涨概率",
       prob_no: "看跌概率",
+      price_history: "价格走势",
+      price_history_empty: "完成首笔交易后，价格走势图将在此显示。",
+      chart_yes: "看涨",
+      chart_no: "看跌",
     },
     trade: {
       title: "下单",

@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
-import { getMarketBySlug } from "@/lib/services/market-data";
+import { getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { statusLabel } from "@/lib/i18n/labels";
 import { TradeForm } from "./trade-form";
+import { PriceHistoryChart } from "./price-history-chart";
 
 type Props = {
   params: { slug: string };
@@ -44,6 +45,7 @@ export default async function MarketDetailPage({ params }: Props) {
 
   const market = await getMarketBySlug(params.slug);
   if (!market) notFound();
+  const priceHistory = await getMarketPriceHistory(market.id);
 
   const locale = getLocale();
   const t = getT(locale);
@@ -177,6 +179,15 @@ export default async function MarketDetailPage({ params }: Props) {
         locale={locale}
         t={t.trade}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">{tm.price_history}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />
+        </CardContent>
+      </Card>
 
       {/* Description */}
       {(market.description || market.descriptionZh) && (

@@ -97,6 +97,12 @@ function toPrice(v: string | number | null | undefined): string | null {
   return String(v);
 }
 
+export type PricePoint = {
+  time: string;     // ISO timestamp
+  yesPrice: number; // 0–1
+  noPrice: number;  // 0–1
+};
+
 // ---------------------------------------------------------------------------
 // Public / user queries (uses server client — respects RLS)
 // ---------------------------------------------------------------------------
@@ -230,6 +236,30 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
       createdAt: row.created_at,
     };
   });
+}
+
+/**
+ * Returns up to 200 price points for a market, oldest first.
+ * Used to render the price history chart on the market detail page.
+ * market_prices is publicly readable (RLS policy: true), so the server client works.
+ */
+export async function getMarketPriceHistory(marketId: string): Promise<PricePoint[]> {
+  const supabase = createSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("market_prices")
+    .select("yes_price, no_price, created_at")
+    .eq("market_id", marketId)
+    .order("created_at", { ascending: true })
+    .limit(200);
+
+  if (error || !data) return [];
+
+  return data.map((row) => ({
+    time: row.created_at as string,
+    yesPrice: Number(row.yes_price),
+    noPrice: Number(row.no_price),
+  }));
 }
 
 // ---------------------------------------------------------------------------
