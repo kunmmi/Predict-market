@@ -117,7 +117,7 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
     .from("markets")
     .select(
       `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
-       market_prices ( yes_price, no_price, created_at )`,
+       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
     )
     .eq("status", "active")
     .order("close_at", { ascending: true });
@@ -126,9 +126,7 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
 
   return (data as unknown as RawMarketRow[]).map((row) => {
     const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-    const latest = prices.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )[0] ?? null;
+    const latest = prices[0] ?? null;
     return {
       id: row.id,
       title: row.title,
@@ -158,7 +156,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
        asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
        close_at, settle_at, status, resolution_outcome, resolution_notes,
        created_by, resolved_by, resolved_at, created_at, updated_at,
-       market_prices ( yes_price, no_price, created_at )`,
+       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -167,9 +165,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
 
   const row = data as unknown as RawMarketRow;
   const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-  const latest = prices.sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  )[0] ?? null;
+  const latest = prices[0] ?? null;
 
   return {
     id: row.id,
@@ -210,7 +206,7 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
     .from("markets")
     .select(
       `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
-       market_prices ( yes_price, no_price, created_at )`,
+       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
     )
     .eq("status", "active")
     .order("close_at", { ascending: true });
@@ -219,9 +215,7 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
 
   return (data as unknown as RawMarketRow[]).map((row) => {
     const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-    const latest = prices.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )[0] ?? null;
+    const latest = prices[0] ?? null;
     return {
       id: row.id,
       title: row.title,
@@ -273,7 +267,7 @@ export async function getAllMarketsAdmin(): Promise<AdminMarketRow[]> {
     .from("markets")
     .select(
       `id, title, slug, asset_symbol, status, resolution_outcome, close_at, settle_at, created_at, updated_at,
-       market_prices ( yes_price, no_price, created_at )`,
+       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
     )
     .order("created_at", { ascending: false });
 
@@ -281,9 +275,7 @@ export async function getAllMarketsAdmin(): Promise<AdminMarketRow[]> {
 
   return (data as unknown as RawMarketRow[]).map((row) => {
     const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-    const latest = prices.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    )[0] ?? null;
+    const latest = prices[0] ?? null;
     return {
       id: row.id,
       title: row.title,
@@ -314,7 +306,7 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
        asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
        close_at, settle_at, status, resolution_outcome, resolution_notes,
        created_by, resolved_by, resolved_at, created_at, updated_at,
-       market_prices ( yes_price, no_price, created_at )`,
+       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
     )
     .eq("id", id)
     .maybeSingle();
@@ -323,9 +315,7 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
 
   const row = data as unknown as RawMarketRow;
   const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-  const latest = prices.sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  )[0] ?? null;
+  const latest = prices[0] ?? null;
 
   return {
     id: row.id,

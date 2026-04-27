@@ -41,9 +41,10 @@ function ProbabilityBar({
 }
 
 export default async function MarketDetailPage({ params }: Props) {
-  await requireUser();
-
-  const market = await getMarketBySlug(params.slug);
+  const [, market] = await Promise.all([
+    requireUser(),
+    getMarketBySlug(params.slug),
+  ]);
   if (!market) notFound();
   const priceHistory = await getMarketPriceHistory(market.id);
 
