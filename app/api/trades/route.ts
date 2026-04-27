@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { tradePlaceSchema } from "@/lib/validations/trade";
 import { sendCommissionEarnedEmail } from "@/lib/services/email-notifications";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { updatePriceAfterTrade } from "@/lib/services/dynamic-pricing";
 
 /**
  * POST /api/trades
@@ -75,6 +76,9 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  // Recalculate and store new YES/NO prices based on updated trade volumes (non-blocking)
+  void updatePriceAfterTrade(market_id);
 
   // Notify the promoter if a commission was generated (non-blocking)
   if (data && parseFloat(fee_amount) > 0) {

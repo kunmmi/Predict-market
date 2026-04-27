@@ -1,0 +1,86 @@
+/**
+ * Volume-based dynamic pricing engine.
+ *
+ * Uses a Constant Product Market Maker (CPMM) formula to move YES/NO prices
+ * based on cumulative trading volume in each direction.
+ *
+ * Formula:
+ *   yes_price = (L + yes_volume) / (2L + yes_volume + no_volume)
+ *
+ * Where L = virtual initial liquidity (controls price sensitivity).
+ *
+ * Properties:
+ *   - Zero trades → 50/50
+ *   - More YES buyers → YES price rises, NO price falls
+ *   - More NO buyers  → NO price rises, YES price falls
+ *   - Balanced buying → price stays neutral
+ *   - Clamped to [0.03, 0.97] to avoid extreme prices
+ */
+
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+
+/**
+ * Virtual liquidity per side in USD.
+ * Higher = more stable prices (harder to move).
+ * Lower  = more volatile prices (easier to move).
+ *
+ * $500 means you need ~$500 of one-sided buying to move the price
+ * from 0.50 to roughly 0.67.
+ */
+const LIQUIDITY = 500;
+
+type PriceResult = {
+  yesPrice: number;
+  noPrice: number;
+  yesVolume: number;
+  noVolume: number;
+};
+
+/**
+ * Calculate new YES/NO prices for a market based on all trade volumes.
+ * Does not write to DB — just returns the calculated prices.
+ */
+export async function calculateMarketPrice(marketId: string): Promise<PriceResult> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: trades } = await supabase
+    .from("trades")
+    .select("side, amount")
+    .eq("market_id", marketId)
+    .neq("status", "cancelled");
+
+  const yesVolume = (trades ?? [])
+    .filter((t) => t.side === "yes")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const noVolume = (trades ?? [])
+    .filter((t) => t.side === "no")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const raw = (LIQUIDITY + yesVolume) / (2 * LIQUIDITY + yesVolume + noVolume);
+  const yesPrice = parseFloat(Math.max(0.03, Math.min(0.97, raw)).toFixed(4));
+  const noPrice = parseFloat((1 - yesPrice).toFixed(4));
+
+  return { yesPrice, noPrice, yesVolume, noVolume };
+}
+
+/**
+ * Recalculate prices after a trade and insert a new row into market_prices.
+ * Call this after every successful trade — non-blocking from the caller's perspective.
+ */
+export async function updatePriceAfterTrade(marketId: string): Promise<void> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { yesPrice, noPrice } = await calculateMarketPrice(marketId);
+
+    await supabase.from("market_prices").insert({
+      market_id: marketId,
+      yes_price: yesPrice,
+      no_price: noPrice,
+      source: "volume",
+    });
+  } catch (err) {
+    // Non-fatal — price update failure must never break the trade response
+    console.error("[dynamic-pricing] Failed to update price after trade:", err);
+  }
+}
