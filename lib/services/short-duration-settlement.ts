@@ -67,6 +67,32 @@ function buildArchivedRoundSlug(baseSlug: string, roundCloseAt: Date): string {
   return `${baseSlug}-${stamp}`.toLowerCase();
 }
 
+async function findActiveShortDurationRound(baseSlug: string, excludeMarketId?: string): Promise<{
+  id: string;
+  slug: string;
+  close_at: string;
+} | null> {
+  const supabase = createSupabaseAdminClient();
+
+  let query = supabase
+    .from("markets")
+    .select("id, slug, close_at")
+    .eq("slug", baseSlug)
+    .eq("status", "active")
+    .not("duration_minutes", "is", null)
+    .order("close_at", { ascending: false })
+    .limit(1);
+
+  if (excludeMarketId) {
+    query = query.neq("id", excludeMarketId);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error || !data) return null;
+
+  return data;
+}
+
 async function archiveSettledShortDurationMarket(
   market: ShortDurationMarketRow,
 ): Promise<{ archivedSlug: string | null; error?: string }> {
@@ -115,10 +141,7 @@ async function createNextShortDurationRound(
   const baseSlug = deriveBaseSlug(market.slug);
 
   const durationMs = market.duration_minutes! * 60_000;
-  const currentCloseAtMs = new Date(market.close_at).getTime();
-  const nowMs = Date.now();
-  const missedIntervals = Math.max(1, Math.floor((nowMs - currentCloseAtMs) / durationMs) + 1);
-  const nextCloseAt = new Date(currentCloseAtMs + missedIntervals * durationMs);
+  const nextCloseAt = new Date(Date.now() + durationMs);
   const nextSlug = baseSlug;
 
   let nextSpotPriceAtOpen: number;
@@ -251,12 +274,23 @@ export async function settleShortDurationMarketById(
     return { success: false, status: 400, message: "Not a short-duration market." };
   }
 
+  const baseSlug = deriveBaseSlug(market.slug);
+
   if (new Date(market.close_at) > new Date()) {
     return { success: false, status: 400, message: "Market window has not expired yet." };
   }
 
   if (market.status !== "active") {
-    return { success: true, already: true };
+    const activeRound = await findActiveShortDurationRound(baseSlug, market.id);
+
+    return {
+      success: true,
+      already: true,
+      rolloverCreated: Boolean(activeRound),
+      nextMarketId: activeRound?.id,
+      nextMarketSlug: activeRound?.slug,
+      nextMarketCloseAt: activeRound?.close_at,
+    };
   }
 
   const binanceSymbol = ASSET_TO_BINANCE[market.asset_symbol];
@@ -291,7 +325,16 @@ export async function settleShortDurationMarketById(
 
   if (rpcErr) {
     if (rpcErr.message?.includes("already finalized") || rpcErr.message?.includes("already settled")) {
-      return { success: true, already: true };
+      const activeRound = await findActiveShortDurationRound(baseSlug, market.id);
+
+      return {
+        success: true,
+        already: true,
+        rolloverCreated: Boolean(activeRound),
+        nextMarketId: activeRound?.id,
+        nextMarketSlug: activeRound?.slug,
+        nextMarketCloseAt: activeRound?.close_at,
+      };
     }
 
     return {
