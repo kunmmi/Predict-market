@@ -2,6 +2,11 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import type { MarketStatus, MarketOutcome, MarketAssetSymbol } from "@/types/enums";
 
+type QueryErrorLike = {
+  code?: string;
+  message?: string;
+};
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -18,6 +23,9 @@ export type MarketListItem = {
   closeAt: string;
   settleAt: string;
   createdAt: string;
+  durationMinutes: number | null;
+  targetDirection: string | null;
+  spotPriceAtOpen: string | null;
 };
 
 export type MarketDetail = {
@@ -45,6 +53,9 @@ export type MarketDetail = {
   updatedAt: string;
   latestYesPrice: string | null;
   latestNoPrice: string | null;
+  durationMinutes: number | null;
+  targetDirection: string | null;
+  spotPriceAtOpen: string | null;
 };
 
 export type AdminMarketRow = {
@@ -90,11 +101,34 @@ type RawMarketRow = {
   created_at: string;
   updated_at: string;
   market_prices?: Array<{ yes_price: string | number; no_price: string | number; created_at: string }> | null;
+  duration_minutes: number | null;
+  target_direction: string | null;
+  spot_price_at_open: string | null;
 };
 
 function toPrice(v: string | number | null | undefined): string | null {
   if (v == null) return null;
   return String(v);
+}
+
+function isMissingShortDurationColumns(error: QueryErrorLike | null): boolean {
+  if (!error) return false;
+
+  return error.code === "42703" && Boolean(
+    error.message?.includes("duration_minutes") ||
+    error.message?.includes("target_direction") ||
+    error.message?.includes("spot_price_at_open"),
+  );
+}
+
+function getLatestMarketPrice(
+  prices: RawMarketRow["market_prices"],
+): { yes_price: string | number; no_price: string | number; created_at: string } | null {
+  if (!Array.isArray(prices) || prices.length === 0) return null;
+
+  return [...prices].sort((a, b) => {
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  })[0] ?? null;
 }
 
 export type PricePoint = {
@@ -113,20 +147,37 @@ export type PricePoint = {
 export async function getActiveMarkets(): Promise<MarketListItem[]> {
   const supabase = createSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const baseSelect = `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
+    market_prices ( yes_price, no_price, created_at )`;
+  const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open`;
+
+  let data: RawMarketRow[] | null = null;
+  let error: QueryErrorLike | null = null;
+
+  const initial = await supabase
     .from("markets")
-    .select(
-      `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
-       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
-    )
+    .select(extendedSelect)
     .eq("status", "active")
     .order("close_at", { ascending: true });
+
+  data = initial.data as unknown as RawMarketRow[] | null;
+  error = initial.error;
+
+  if (isMissingShortDurationColumns(error)) {
+    const fallback = await supabase
+      .from("markets")
+      .select(baseSelect)
+      .eq("status", "active")
+      .order("close_at", { ascending: true });
+
+    data = fallback.data as unknown as RawMarketRow[] | null;
+    error = fallback.error;
+  }
 
   if (error || !data) return [];
 
   return (data as unknown as RawMarketRow[]).map((row) => {
-    const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-    const latest = prices[0] ?? null;
+    const latest = getLatestMarketPrice(row.market_prices);
     return {
       id: row.id,
       title: row.title,
@@ -139,6 +190,9 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
       closeAt: row.close_at,
       settleAt: row.settle_at,
       createdAt: row.created_at,
+      durationMinutes: row.duration_minutes ?? null,
+      targetDirection: row.target_direction ?? null,
+      spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
     };
   });
 }
@@ -149,23 +203,43 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
 export async function getMarketBySlug(slug: string): Promise<MarketDetail | null> {
   const supabase = createSupabaseServerClient();
 
-  const { data, error } = await supabase
+  const baseSelect = `id, title, title_zh, slug, description, description_zh, category,
+    asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
+    close_at, settle_at, status, resolution_outcome, resolution_notes,
+    created_by, resolved_by, resolved_at, created_at, updated_at`;
+  const extendedSelect = `${baseSelect},
+    duration_minutes, target_direction, spot_price_at_open,
+    market_prices ( yes_price, no_price, created_at )`;
+  const fallbackSelect = `${baseSelect},
+    market_prices ( yes_price, no_price, created_at )`;
+
+  let data: RawMarketRow | null = null;
+  let error: QueryErrorLike | null = null;
+
+  const initial = await supabase
     .from("markets")
-    .select(
-      `id, title, title_zh, slug, description, description_zh, category,
-       asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
-       close_at, settle_at, status, resolution_outcome, resolution_notes,
-       created_by, resolved_by, resolved_at, created_at, updated_at,
-       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
-    )
+    .select(extendedSelect)
     .eq("slug", slug)
     .maybeSingle();
+
+  data = initial.data as unknown as RawMarketRow | null;
+  error = initial.error;
+
+  if (isMissingShortDurationColumns(error)) {
+    const fallback = await supabase
+      .from("markets")
+      .select(fallbackSelect)
+      .eq("slug", slug)
+      .maybeSingle();
+
+    data = fallback.data as unknown as RawMarketRow | null;
+    error = fallback.error;
+  }
 
   if (error || !data) return null;
 
   const row = data as unknown as RawMarketRow;
-  const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-  const latest = prices[0] ?? null;
+  const latest = getLatestMarketPrice(row.market_prices);
 
   return {
     id: row.id,
@@ -192,6 +266,9 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
     updatedAt: row.updated_at,
     latestYesPrice: toPrice(latest?.yes_price),
     latestNoPrice: toPrice(latest?.no_price),
+    durationMinutes: row.duration_minutes ?? null,
+    targetDirection: row.target_direction ?? null,
+    spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
   };
 }
 
@@ -202,20 +279,37 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
 export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
   const supabase = createSupabaseAdminClient();
 
-  const { data, error } = await supabase
+  const baseSelect = `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
+    market_prices ( yes_price, no_price, created_at )`;
+  const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open`;
+
+  let data: RawMarketRow[] | null = null;
+  let error: QueryErrorLike | null = null;
+
+  const initial = await supabase
     .from("markets")
-    .select(
-      `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
-       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
-    )
+    .select(extendedSelect)
     .eq("status", "active")
     .order("close_at", { ascending: true });
+
+  data = initial.data as unknown as RawMarketRow[] | null;
+  error = initial.error;
+
+  if (isMissingShortDurationColumns(error)) {
+    const fallback = await supabase
+      .from("markets")
+      .select(baseSelect)
+      .eq("status", "active")
+      .order("close_at", { ascending: true });
+
+    data = fallback.data as unknown as RawMarketRow[] | null;
+    error = fallback.error;
+  }
 
   if (error || !data) return [];
 
   return (data as unknown as RawMarketRow[]).map((row) => {
-    const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-    const latest = prices[0] ?? null;
+    const latest = getLatestMarketPrice(row.market_prices);
     return {
       id: row.id,
       title: row.title,
@@ -228,6 +322,9 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
       closeAt: row.close_at,
       settleAt: row.settle_at,
       createdAt: row.created_at,
+      durationMinutes: row.duration_minutes ?? null,
+      targetDirection: row.target_direction ?? null,
+      spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
     };
   });
 }
@@ -267,15 +364,14 @@ export async function getAllMarketsAdmin(): Promise<AdminMarketRow[]> {
     .from("markets")
     .select(
       `id, title, slug, asset_symbol, status, resolution_outcome, close_at, settle_at, created_at, updated_at,
-       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
+       market_prices ( yes_price, no_price, created_at )`,
     )
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
 
   return (data as unknown as RawMarketRow[]).map((row) => {
-    const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-    const latest = prices[0] ?? null;
+    const latest = getLatestMarketPrice(row.market_prices);
     return {
       id: row.id,
       title: row.title,
@@ -299,23 +395,43 @@ export async function getAllMarketsAdmin(): Promise<AdminMarketRow[]> {
 export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | null> {
   const supabase = createSupabaseAdminClient();
 
-  const { data, error } = await supabase
+  const baseSelect = `id, title, title_zh, slug, description, description_zh, category,
+    asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
+    close_at, settle_at, status, resolution_outcome, resolution_notes,
+    created_by, resolved_by, resolved_at, created_at, updated_at`;
+  const extendedSelect = `${baseSelect},
+    duration_minutes, target_direction, spot_price_at_open,
+    market_prices ( yes_price, no_price, created_at )`;
+  const fallbackSelect = `${baseSelect},
+    market_prices ( yes_price, no_price, created_at )`;
+
+  let data: RawMarketRow | null = null;
+  let error: QueryErrorLike | null = null;
+
+  const initial = await supabase
     .from("markets")
-    .select(
-      `id, title, title_zh, slug, description, description_zh, category,
-       asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
-       close_at, settle_at, status, resolution_outcome, resolution_notes,
-       created_by, resolved_by, resolved_at, created_at, updated_at,
-       market_prices ( yes_price, no_price, created_at ).order(created_at.desc).limit(1)`,
-    )
+    .select(extendedSelect)
     .eq("id", id)
     .maybeSingle();
+
+  data = initial.data as unknown as RawMarketRow | null;
+  error = initial.error;
+
+  if (isMissingShortDurationColumns(error)) {
+    const fallback = await supabase
+      .from("markets")
+      .select(fallbackSelect)
+      .eq("id", id)
+      .maybeSingle();
+
+    data = fallback.data as unknown as RawMarketRow | null;
+    error = fallback.error;
+  }
 
   if (error || !data) return null;
 
   const row = data as unknown as RawMarketRow;
-  const prices = Array.isArray(row.market_prices) ? row.market_prices : [];
-  const latest = prices[0] ?? null;
+  const latest = getLatestMarketPrice(row.market_prices);
 
   return {
     id: row.id,
@@ -342,5 +458,8 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
     updatedAt: row.updated_at,
     latestYesPrice: toPrice(latest?.yes_price),
     latestNoPrice: toPrice(latest?.no_price),
+    durationMinutes: row.duration_minutes ?? null,
+    targetDirection: row.target_direction ?? null,
+    spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
   };
 }

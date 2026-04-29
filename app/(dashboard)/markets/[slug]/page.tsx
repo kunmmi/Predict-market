@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { statusLabel } from "@/lib/i18n/labels";
 import { TradeForm } from "./trade-form";
+import { LivePriceTicker } from "./live-price-ticker";
 import { PriceHistoryChart } from "./price-history-chart";
 
 type Props = {
@@ -52,6 +53,9 @@ export default async function MarketDetailPage({ params }: Props) {
   const t = getT(locale);
   const tm = t.market_detail;
   const dateLocale = locale === "zh" ? "zh-CN" : "en-US";
+  const isShortDuration = market.durationMinutes != null;
+  const positiveLabel = isShortDuration ? (locale === "zh" ? "看涨" : "UP") : tm.yes_price;
+  const negativeLabel = isShortDuration ? (locale === "zh" ? "看跌" : "DOWN") : tm.no_price;
 
   const isActive = market.status === "active";
   const isSettled = market.status === "settled";
@@ -112,13 +116,23 @@ export default async function MarketDetailPage({ params }: Props) {
         />
       </Card>
 
+      <LivePriceTicker
+        marketId={market.id}
+        marketSlug={market.slug}
+        assetSymbol={market.assetSymbol}
+        closeAt={market.closeAt}
+        isShortDuration={isShortDuration}
+        spotPriceAtOpen={market.spotPriceAtOpen}
+        t={tm}
+      />
+
       {/* Price + Date cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tm.yes_price}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{positiveLabel}</p>
                 <p className="mt-1.5 text-2xl font-bold text-green-600 tabular-nums">
                   {market.latestYesPrice != null
                     ? `$${formatDecimal(market.latestYesPrice, 2)}`
@@ -135,7 +149,7 @@ export default async function MarketDetailPage({ params }: Props) {
           <CardContent className="pt-5 pb-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tm.no_price}</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{negativeLabel}</p>
                 <p className="mt-1.5 text-2xl font-bold text-red-500 tabular-nums">
                   {market.latestNoPrice != null
                     ? `$${formatDecimal(market.latestNoPrice, 2)}`
@@ -177,6 +191,7 @@ export default async function MarketDetailPage({ params }: Props) {
         yesPrice={market.latestYesPrice}
         noPrice={market.latestNoPrice}
         marketStatus={market.status}
+        isShortDuration={isShortDuration}
         locale={locale}
         t={t.trade}
       />

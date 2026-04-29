@@ -25,3 +25,15 @@ export const tradePlaceSchema = z.object({
 });
 
 export type TradePlaceInput = z.infer<typeof tradePlaceSchema>;
+
+/** Body for POST /api/trades/sell */
+export const tradeSellSchema = z.object({
+  position_id: z.string().uuid(),
+  side: z.enum(["yes", "no"]),
+  units: z
+    .string()
+    .regex(/^\d+(\.\d+)?$/, "Units must be a positive decimal string.")
+    .refine((v) => Number.parseFloat(v) > 0, "Units must be greater than zero."),
+});
+
+export type TradeSellInput = z.infer<typeof tradeSellSchema>;

@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { User } from "@supabase/supabase-js";
 
 export type CurrentUser = {
   id: string;
@@ -24,21 +25,55 @@ export type CurrentWallet = {
   status: "active" | "locked" | "suspended";
 };
 
+async function getAuthenticatedUserWithFallback() {
+  const supabase = createSupabaseServerClient();
+
+  let user: User | null = null;
+  let userErrorMessage: string | null = null;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const {
+      data: { user: nextUser },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (!error) {
+      user = nextUser;
+      userErrorMessage = null;
+      break;
+    }
+
+    userErrorMessage = error.message;
+    if (attempt < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+
+  if (!user && userErrorMessage) {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (!sessionError && session?.user) {
+      user = session.user;
+      userErrorMessage = null;
+    }
+  }
+
+  return { supabase, user, userErrorMessage };
+}
+
 export async function getCurrentUser(): Promise<{
   user: CurrentUser | null;
   profile: CurrentProfile | null;
   wallet: CurrentWallet | null;
   error: string | null;
 }> {
-  const supabase = createSupabaseServerClient();
+  const { supabase, user, userErrorMessage } = await getAuthenticatedUserWithFallback();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError) {
-    return { user: null, profile: null, wallet: null, error: userError.message };
+  if (userErrorMessage) {
+    return { user: null, profile: null, wallet: null, error: userErrorMessage };
   }
 
   if (!user) {
@@ -90,4 +125,3 @@ export async function getCurrentUser(): Promise<{
     error: null,
   };
 }
-

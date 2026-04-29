@@ -5,6 +5,8 @@ import { insertInitialMarketPrice } from "@/lib/services/market-initial-prices";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getAllMarketsAdmin } from "@/lib/services/market-data";
 import { marketCreateSchema } from "@/lib/validations/market";
+import { getBinanceSpotPrice } from "@/lib/services/binance-price";
+import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 
 /**
  * GET /api/admin/markets
@@ -58,14 +60,46 @@ export async function POST(request: Request) {
     asset_symbol,
     question_text,
     rules_text,
-    close_at,
-    settle_at,
     status,
     title_zh,
     description_zh,
     question_text_zh,
     rules_text_zh,
+    duration_minutes,
   } = parsed.data;
+
+  let close_at = parsed.data.close_at;
+  let settle_at = parsed.data.settle_at;
+  let spot_price_at_open: number | null = null;
+
+  // Short-duration market: compute close/settle times and fetch live Binance price
+  if (duration_minutes != null) {
+    const binanceSymbol = ASSET_TO_BINANCE[asset_symbol];
+    if (!binanceSymbol) {
+      return NextResponse.json(
+        { success: false, message: `No Binance symbol configured for asset ${asset_symbol}.` },
+        { status: 400 },
+      );
+    }
+
+    try {
+      spot_price_at_open = await getBinanceSpotPrice(binanceSymbol);
+    } catch (priceErr) {
+      const msg = priceErr instanceof Error ? priceErr.message : "Failed to fetch live price from Binance.";
+      return NextResponse.json({ success: false, message: msg }, { status: 502 });
+    }
+
+    const closeTime = new Date(Date.now() + duration_minutes * 60_000).toISOString();
+    close_at = closeTime;
+    settle_at = closeTime;
+  }
+
+  if (!close_at || !settle_at) {
+    return NextResponse.json(
+      { success: false, message: "close_at and settle_at are required for standard markets." },
+      { status: 400 },
+    );
+  }
 
   const supabase = createSupabaseAdminClient();
 
@@ -88,6 +122,9 @@ export async function POST(request: Request) {
       description_zh: description_zh ?? null,
       question_text_zh: question_text_zh ?? null,
       rules_text_zh: rules_text_zh ?? null,
+      duration_minutes: duration_minutes ?? null,
+      target_direction: duration_minutes != null ? null : parsed.data.target_direction ?? null,
+      spot_price_at_open: spot_price_at_open,
     })
     .select("id, slug")
     .single();

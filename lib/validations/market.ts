@@ -14,6 +14,8 @@ const marketAssets = [
 
 const marketStatuses = ["draft", "active", "closed", "settled", "cancelled"] as const;
 
+const durationValues = [3, 5, 10, 15] as const;
+
 const marketFieldsSchema = z.object({
   title: z.string().trim().min(1).max(500),
   slug: z
@@ -27,21 +29,30 @@ const marketFieldsSchema = z.object({
   asset_symbol: z.enum(marketAssets),
   question_text: z.string().trim().min(1).max(2000),
   rules_text: z.string().trim().max(20000).optional().nullable(),
-  close_at: z.string().datetime({ offset: true }),
-  settle_at: z.string().datetime({ offset: true }),
+  // For short-duration markets, close_at/settle_at are computed server-side
+  close_at: z.string().datetime({ offset: true }).optional(),
+  settle_at: z.string().datetime({ offset: true }).optional(),
   status: z.enum(marketStatuses).optional().default("draft"),
   // Chinese translations (optional)
   title_zh: z.string().trim().max(500).optional().nullable(),
   description_zh: z.string().trim().max(20000).optional().nullable(),
   question_text_zh: z.string().trim().max(2000).optional().nullable(),
   rules_text_zh: z.string().trim().max(20000).optional().nullable(),
+  // Short-duration fields
+  duration_minutes: z.union(durationValues.map((v) => z.literal(v)) as [z.ZodLiteral<3>, z.ZodLiteral<5>, z.ZodLiteral<10>, z.ZodLiteral<15>]).nullable().optional(),
+  target_direction: z.enum(["above", "below"]).nullable().optional(),
 });
 
 /** Admin creates a market — matches public.markets insert fields used in MVP */
 export const marketCreateSchema = marketFieldsSchema.refine(
-  (data) => new Date(data.settle_at) >= new Date(data.close_at),
+  (data) => {
+    // Short-duration markets have close_at computed server-side
+    if (data.duration_minutes != null) return true;
+    if (!data.close_at || !data.settle_at) return false;
+    return new Date(data.settle_at) >= new Date(data.close_at);
+  },
   {
-    message: "settle_at must be >= close_at",
+    message: "settle_at must be >= close_at (or use duration_minutes for short-duration markets)",
     path: ["settle_at"],
   },
 );

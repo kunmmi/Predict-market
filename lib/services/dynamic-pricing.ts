@@ -32,8 +32,8 @@ const LIQUIDITY = 500;
 type PriceResult = {
   yesPrice: number;
   noPrice: number;
-  yesVolume: number;
-  noVolume: number;
+  yesUnits: number;
+  noUnits: number;
 };
 
 /**
@@ -43,25 +43,26 @@ type PriceResult = {
 export async function calculateMarketPrice(marketId: string): Promise<PriceResult> {
   const supabase = createSupabaseAdminClient();
 
-  const { data: trades } = await supabase
-    .from("trades")
-    .select("side, amount")
+  const { data: positions } = await supabase
+    .from("positions")
+    .select("yes_units, no_units")
     .eq("market_id", marketId)
-    .neq("status", "cancelled");
+    .eq("status", "open");
 
-  const yesVolume = (trades ?? [])
-    .filter((t) => t.side === "yes")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+  const yesUnits = (positions ?? []).reduce(
+    (sum, position) => sum + Number(position.yes_units ?? 0),
+    0,
+  );
+  const noUnits = (positions ?? []).reduce(
+    (sum, position) => sum + Number(position.no_units ?? 0),
+    0,
+  );
 
-  const noVolume = (trades ?? [])
-    .filter((t) => t.side === "no")
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  const raw = (LIQUIDITY + yesVolume) / (2 * LIQUIDITY + yesVolume + noVolume);
+  const raw = (LIQUIDITY + yesUnits) / (2 * LIQUIDITY + yesUnits + noUnits);
   const yesPrice = parseFloat(Math.max(0.03, Math.min(0.97, raw)).toFixed(4));
   const noPrice = parseFloat((1 - yesPrice).toFixed(4));
 
-  return { yesPrice, noPrice, yesVolume, noVolume };
+  return { yesPrice, noPrice, yesUnits, noUnits };
 }
 
 /**

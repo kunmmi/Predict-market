@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DollarSign, BarChart2, TrendingUp, ChevronRight } from "lucide-react";
+import { DollarSign, BarChart2, TrendingUp } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
 import { getPortfolioData } from "@/lib/services/portfolio-data";
@@ -9,6 +9,7 @@ import { getT } from "@/lib/i18n/translations";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
+import { OpenPositionsLive } from "./open-positions-live";
 
 export default async function PortfolioPage() {
   const { profile } = await requireUser();
@@ -37,7 +38,6 @@ export default async function PortfolioPage() {
         <p className="page-subtitle">{t.subtitle}</p>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card>
           <CardContent className="pt-6 pb-5">
@@ -84,82 +84,12 @@ export default async function PortfolioPage() {
         </Card>
       </div>
 
-      {/* Open Positions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">
-            {t.open_positions}
-            <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-              {openPositions.length}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {openPositions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <TrendingUp className="mb-3 h-8 w-8 text-slate-200" />
-              <p className="text-sm font-medium text-slate-600">{t.no_positions}</p>
-              <Link
-                href="/markets"
-                className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-slate-900 underline underline-offset-4 hover:text-yellow-600"
-              >
-                {t.browse_markets} <ChevronRight className="h-3 w-3" />
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    <th className="pb-3 pr-3 text-left">{t.col_market}</th>
-                    <th className="pb-3 pr-3 text-right">{t.col_yes_units}</th>
-                    <th className="pb-3 pr-3 text-right">{t.col_no_units}</th>
-                    <th className="hidden pb-3 pr-3 text-right sm:table-cell">{t.col_current_yes}</th>
-                    <th className="pb-3 text-right">{t.col_est_value}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {openPositions.map((pos) => {
-                    const yesVal =
-                      parseFloat(pos.yesUnits) *
-                      (pos.latestYesPrice != null ? parseFloat(pos.latestYesPrice) : 0);
-                    const noVal =
-                      parseFloat(pos.noUnits) *
-                      (pos.latestNoPrice != null ? parseFloat(pos.latestNoPrice) : 0);
-                    const totalVal = yesVal + noVal;
-                    return (
-                      <tr key={pos.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 pr-3">
-                          <Link
-                            href={`/markets/${pos.marketSlug}`}
-                            className="font-medium text-slate-800 hover:text-yellow-600 hover:underline"
-                          >
-                            {locale === "zh" && pos.marketTitleZh ? pos.marketTitleZh : pos.marketTitle}
-                          </Link>
-                        </td>
-                        <td className="py-3 pr-3 text-right font-mono tabular-nums text-green-700">
-                          {formatDecimal(pos.yesUnits, 4)}
-                        </td>
-                        <td className="py-3 pr-3 text-right font-mono tabular-nums text-red-600">
-                          {formatDecimal(pos.noUnits, 4)}
-                        </td>
-                        <td className="hidden py-3 pr-3 text-right font-mono tabular-nums text-green-700 sm:table-cell">
-                          {pos.latestYesPrice != null ? `$${formatDecimal(pos.latestYesPrice, 4)}` : "—"}
-                        </td>
-                        <td className="py-3 text-right font-mono font-semibold tabular-nums text-slate-800">
-                          ${formatDecimal(totalVal, 4)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <OpenPositionsLive
+        initialPositions={openPositions}
+        locale={locale}
+        t={t}
+      />
 
-      {/* Settled Positions */}
       {settledPositions.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
@@ -212,7 +142,6 @@ export default async function PortfolioPage() {
         </Card>
       )}
 
-      {/* Recent Trades */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold">

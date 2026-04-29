@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,13 +20,22 @@ type Props = {
   yesPrice: string | null;
   noPrice: string | null;
   marketStatus: string;
+  isShortDuration?: boolean;
   locale: Locale;
   t: T["trade"];
 };
 
-const FEE_RATE = 0.02; // 2%
+const FEE_RATE = 0.02;
 
-export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t }: Props) {
+export function TradeForm({
+  marketId,
+  yesPrice,
+  noPrice,
+  marketStatus,
+  isShortDuration = false,
+  locale,
+  t,
+}: Props) {
   const [side, setSide] = useState<TradeSide>("yes");
   const [amount, setAmount] = useState("");
   const [wallet, setWallet] = useState<WalletData | null>(null);
@@ -47,25 +56,26 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t
         setWalletLoading(false);
       }
     }
-    fetchWallet();
+
+    void fetchWallet();
   }, [success]);
 
   const currentPrice = side === "yes" ? yesPrice : noPrice;
   const priceNum = currentPrice != null ? parseFloat(currentPrice) : null;
   const amountNum = parseFloat(amount);
-  const isValidAmount = !isNaN(amountNum) && amountNum > 0;
+  const isValidAmount = !Number.isNaN(amountNum) && amountNum > 0;
 
   const estimatedUnits =
-    isValidAmount && priceNum != null && priceNum > 0
-      ? (amountNum / priceNum).toFixed(4)
-      : null;
+    isValidAmount && priceNum != null && priceNum > 0 ? (amountNum / priceNum).toFixed(4) : null;
   const fee = isValidAmount ? (amountNum * FEE_RATE).toFixed(4) : null;
   const totalDebit = isValidAmount ? (amountNum + amountNum * FEE_RATE).toFixed(4) : null;
 
-  const availableBalance =
-    wallet != null ? parseFloat(wallet.availableBalance) : null;
+  const availableBalance = wallet != null ? parseFloat(wallet.availableBalance) : null;
   const insufficientFunds =
     isValidAmount && availableBalance != null && amountNum > availableBalance;
+
+  const upLabel = isShortDuration ? (locale === "zh" ? "看涨" : "UP") : sideLabel("yes", locale);
+  const downLabel = isShortDuration ? (locale === "zh" ? "看跌" : "DOWN") : sideLabel("no", locale);
 
   if (marketStatus !== "active") {
     return null;
@@ -139,13 +149,12 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {error ? (
               <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
               </div>
-            )}
+            ) : null}
 
-            {/* Side Toggle */}
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700">{t.side}</label>
               <div className="flex gap-2">
@@ -158,7 +167,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {sideLabel("yes", locale)} {yesPrice != null ? `@ $${parseFloat(yesPrice).toFixed(2)}` : ""}
+                  {upLabel} {yesPrice != null ? `@ $${parseFloat(yesPrice).toFixed(2)}` : ""}
                 </button>
                 <button
                   type="button"
@@ -169,12 +178,11 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {sideLabel("no", locale)} {noPrice != null ? `@ $${parseFloat(noPrice).toFixed(2)}` : ""}
+                  {downLabel} {noPrice != null ? `@ $${parseFloat(noPrice).toFixed(2)}` : ""}
                 </button>
               </div>
             </div>
 
-            {/* Amount */}
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700">{t.amount_label}</label>
               <Input
@@ -194,15 +202,14 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t
               ) : availableBalance != null ? (
                 <p className="text-xs text-slate-500">
                   {t.available} ${availableBalance.toFixed(2)}
-                  {insufficientFunds && (
+                  {insufficientFunds ? (
                     <span className="ml-1 font-medium text-red-600">{t.insufficient}</span>
-                  )}
+                  ) : null}
                 </p>
               ) : null}
             </div>
 
-            {/* Summary */}
-            {isValidAmount && priceNum != null && (
+            {isValidAmount && priceNum != null ? (
               <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
                 <div className="space-y-1 text-slate-700">
                   <div className="flex justify-between">
@@ -219,11 +226,9 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t
                   </div>
                 </div>
               </div>
-            )}
+            ) : null}
 
-            {priceNum == null && (
-              <p className="text-sm text-amber-600">{t.no_price}</p>
-            )}
+            {priceNum == null ? <p className="text-sm text-amber-600">{t.no_price}</p> : null}
 
             <Button
               type="submit"
@@ -232,7 +237,7 @@ export function TradeForm({ marketId, yesPrice, noPrice, marketStatus, locale, t
             >
               {loading
                 ? t.placing
-                : `${sideLabel(side, locale)} — $${isValidAmount ? amountNum.toFixed(2) : "0.00"}`}
+                : `${side === "yes" ? upLabel : downLabel} - $${isValidAmount ? amountNum.toFixed(2) : "0.00"}`}
             </Button>
           </form>
         )}

@@ -42,6 +42,14 @@ A referral-driven crypto prediction market platform (MVP). Promoters get promo c
   - `APP_URL`: your deployed app base URL, for example `https://your-app.vercel.app`
   - `CRON_SECRET`: the same secret configured in your deployment environment
 
+## Scheduled short-duration settlement
+
+- The short-duration settlement sweep endpoint is `GET /api/cron/settle-short-markets`.
+- It requires `Authorization: Bearer ${CRON_SECRET}`.
+- This repo includes [`.github/workflows/settle-short-markets.yml`](.github/workflows/settle-short-markets.yml), scheduled every 5 minutes.
+- When an expired short-duration market is found, it is settled and a fresh active round is created automatically.
+- Set `SYSTEM_ADMIN_PROFILE_ID` in your deployment environment so the settlement RPC can write admin logs correctly.
+
 ## Project layout
 
 - `app/` — Routes (public, auth, dashboard, admin) and API
