@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getAdminDeposits } from "@/lib/services/admin-data";
 import { DepositsTable } from "./deposits-table";

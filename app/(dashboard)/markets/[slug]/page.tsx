@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 

@@ -290,7 +290,7 @@ export const translations = {
       total_debit: "Total debit",
       current_round_timer: "Round timer",
       cutoff_countdown: "Prediction cutoff",
-      reward_multiplier: "Reward multiplier",
+      potential_payout: "If you win",
       opening_price: "Opening price",
       entry_price: "Entry price",
       live_confidence: "Live confidence",

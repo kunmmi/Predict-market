@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { format } from "date-fns";
 import { DollarSign, CheckCircle2, Lock, ArrowDownLeft, ArrowUpRight, Clock } from "lucide-react";

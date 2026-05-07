@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
 import { requireUser } from "@/lib/auth/require-user";
 import { formatDecimal } from "@/lib/helpers/format-decimal";

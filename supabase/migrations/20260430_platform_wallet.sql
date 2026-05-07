@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.platform_wallets (
 
 CREATE INDEX IF NOT EXISTS idx_platform_wallets_wallet_key ON public.platform_wallets(wallet_key);
 
+DROP TRIGGER IF EXISTS trg_platform_wallets_updated_at ON public.platform_wallets;
 CREATE TRIGGER trg_platform_wallets_updated_at
 BEFORE UPDATE ON public.platform_wallets
 FOR EACH ROW
@@ -91,6 +92,7 @@ CREATE INDEX IF NOT EXISTS idx_platform_withdrawals_status
 CREATE INDEX IF NOT EXISTS idx_platform_withdrawals_created_at
   ON public.platform_withdrawals(created_at DESC);
 
+DROP TRIGGER IF EXISTS trg_platform_withdrawals_updated_at ON public.platform_withdrawals;
 CREATE TRIGGER trg_platform_withdrawals_updated_at
 BEFORE UPDATE ON public.platform_withdrawals
 FOR EACH ROW

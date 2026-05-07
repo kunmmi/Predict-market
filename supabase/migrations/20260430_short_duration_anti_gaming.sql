@@ -39,8 +39,8 @@ COMMENT ON COLUMN public.markets.round_result IS 'Short-duration round result: u
 CREATE TABLE IF NOT EXISTS public.predictions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   trade_id uuid NOT NULL UNIQUE REFERENCES public.trades(id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  round_id uuid NOT NULL REFERENCES public.markets(id) ON DELETE CASCADE,
+  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  market_id uuid NOT NULL REFERENCES public.markets(id) ON DELETE CASCADE,
   direction text NOT NULL,
   entry_price numeric(20,8) NOT NULL,
   round_open_price numeric(20,8) NOT NULL,
@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS public.predictions (
     CHECK (outcome IS NULL OR outcome IN ('up', 'down', 'flat'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_predictions_user_id ON public.predictions(user_id);
-CREATE INDEX IF NOT EXISTS idx_predictions_round_id ON public.predictions(round_id);
+CREATE INDEX IF NOT EXISTS idx_predictions_profile_id ON public.predictions(profile_id);
+CREATE INDEX IF NOT EXISTS idx_predictions_market_id ON public.predictions(market_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_trade_id ON public.predictions(trade_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_entry_time ON public.predictions(entry_time DESC);
 CREATE INDEX IF NOT EXISTS idx_predictions_settled ON public.predictions(settled);
@@ -82,7 +82,7 @@ USING (
   EXISTS (
     SELECT 1
     FROM public.profiles p
-    WHERE p.id = predictions.user_id
+    WHERE p.id = predictions.profile_id
       AND p.auth_user_id = auth.uid()
   )
 );
@@ -247,8 +247,8 @@ BEGIN
   IF v_market.duration_minutes IS NOT NULL THEN
     INSERT INTO public.predictions (
       trade_id,
-      user_id,
-      round_id,
+      profile_id,
+      market_id,
       direction,
       entry_price,
       round_open_price,
@@ -442,7 +442,7 @@ BEGIN
       settled_at = now()
   FROM public.trades t
   WHERE p.trade_id = t.id
-    AND p.round_id = p_market_id
+    AND p.market_id = p_market_id
     AND p.settled = false;
 
   INSERT INTO public.admin_logs (

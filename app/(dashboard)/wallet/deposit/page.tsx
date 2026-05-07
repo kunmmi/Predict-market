@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { DepositPageClient } from "./deposit-client";

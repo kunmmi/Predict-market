@@ -14,6 +14,9 @@ export function MarketsAutoRefresh({ enabled, intervalMs = 15_000 }: Props) {
   useEffect(() => {
     if (!enabled) return;
 
+    // Immediately flush the router cache on mount so users always land on fresh data
+    router.refresh();
+
     const refreshIfVisible = () => {
       if (document.visibilityState !== "visible") return;
       router.refresh();

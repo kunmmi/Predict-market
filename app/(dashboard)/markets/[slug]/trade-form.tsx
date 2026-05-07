@@ -107,6 +107,9 @@ export function TradeForm({
     isValidAmount && priceNum != null && priceNum > 0 ? (amountNum / priceNum).toFixed(4) : null;
   const fee = isValidAmount ? (amountNum * FEE_RATE).toFixed(4) : null;
   const totalDebit = isValidAmount ? (amountNum + amountNum * FEE_RATE).toFixed(4) : null;
+  const potentialPayout =
+    isValidAmount && priceNum != null && priceNum > 0 ? (amountNum / priceNum).toFixed(2) : null;
+  const payoutMultiplier = priceNum != null && priceNum > 0 ? (1 / priceNum).toFixed(2) : null;
 
   const availableBalance = wallet != null ? parseFloat(wallet.availableBalance) : null;
   const insufficientFunds =
@@ -118,17 +121,13 @@ export function TradeForm({
   const uiText = {
     currentRoundTimer: t.current_round_timer ?? "Round timer",
     cutoffCountdown: t.cutoff_countdown ?? "Prediction cutoff",
-    rewardMultiplier: t.reward_multiplier ?? "Reward multiplier",
+    potentialPayout: t.potential_payout ?? "If you win",
     openingPrice: t.opening_price ?? "Opening price",
     entryPrice: t.entry_price ?? "Entry price",
     liveConfidence: t.live_confidence ?? "Live confidence",
     predictionsClosed: t.predictions_closed ?? "Predictions closed",
     predictionsClosedMessage:
       t.predictions_closed_message ?? "Predictions closed for this round. Next round starts soon.",
-    lowMultiplierWarningMedium:
-      t.low_multiplier_warning_medium ?? "Reward has dropped. Later entries earn fewer points.",
-    lowMultiplierWarningHigh:
-      t.low_multiplier_warning_high ?? "Reward is now very low. Final-second entries earn almost nothing.",
     cutoffNote:
       t.cutoff_note ?? "Predictions close {seconds} seconds before the round ends.",
   };
@@ -245,9 +244,9 @@ export function TradeForm({
                     </p>
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.rewardMultiplier}</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-900">
-                      {rewardPreview.multiplier.toFixed(2)}x
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.potentialPayout}</p>
+                    <p className="mt-1 text-lg font-semibold text-green-600">
+                      {payoutMultiplier != null ? `${payoutMultiplier}x` : "—"}
                     </p>
                   </div>
                 </div>
@@ -276,14 +275,6 @@ export function TradeForm({
                 {isPredictionClosed ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
                     {uiText.predictionsClosedMessage}
-                  </div>
-                ) : rewardPreview.warningLevel === "high" ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-                    {uiText.lowMultiplierWarningHigh}
-                  </div>
-                ) : rewardPreview.warningLevel === "medium" ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
-                    {uiText.lowMultiplierWarningMedium}
                   </div>
                 ) : null}
               </div>
@@ -364,9 +355,9 @@ export function TradeForm({
                     <span className="font-medium">${fee}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{uiText.rewardMultiplier}</span>
-                    <span className="font-medium">
-                      {rewardPreview != null ? `${rewardPreview.multiplier.toFixed(2)}x` : "—"}
+                    <span>{uiText.potentialPayout}</span>
+                    <span className="font-medium text-green-600">
+                      {potentialPayout != null ? `$${potentialPayout}` : "—"}
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-slate-200 pt-1">
