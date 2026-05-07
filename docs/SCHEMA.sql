@@ -52,6 +52,10 @@ begin
     create type deposit_status as enum ('pending', 'approved', 'rejected', 'cancelled');
   end if;
 
+  if not exists (select 1 from pg_type where typname = 'withdrawal_status') then
+    create type withdrawal_status as enum ('pending', 'approved', 'rejected', 'cancelled');
+  end if;
+
   if not exists (select 1 from pg_type where typname = 'market_status') then
     create type market_status as enum ('draft', 'active', 'closed', 'settled', 'cancelled');
   end if;
@@ -255,6 +259,92 @@ create index if not exists idx_wallet_transactions_reference on public.wallet_tr
 create index if not exists idx_wallet_transactions_created_at on public.wallet_transactions(created_at desc);
 
 -- ---------------------------------------------------------
+-- PLATFORM WALLETS
+-- Shared treasury wallet visible to admins only
+-- ---------------------------------------------------------
+
+create table if not exists public.platform_wallets (
+  id uuid primary key default gen_random_uuid(),
+  wallet_key text not null unique default 'general_admin',
+  balance numeric(20,8) not null default 0,
+  available_balance numeric(20,8) not null default 0,
+  reserved_balance numeric(20,8) not null default 0,
+  status wallet_status not null default 'active',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint chk_platform_wallet_balance_nonnegative check (balance >= 0),
+  constraint chk_platform_wallet_available_nonnegative check (available_balance >= 0),
+  constraint chk_platform_wallet_reserved_nonnegative check (reserved_balance >= 0),
+  constraint chk_platform_wallet_balance_consistency check (balance = available_balance + reserved_balance)
+);
+
+create index if not exists idx_platform_wallets_wallet_key on public.platform_wallets(wallet_key);
+
+create trigger trg_platform_wallets_updated_at
+before update on public.platform_wallets
+for each row
+execute function public.set_updated_at();
+
+create table if not exists public.platform_wallet_transactions (
+  id uuid primary key default gen_random_uuid(),
+  platform_wallet_id uuid not null references public.platform_wallets(id) on delete cascade,
+  admin_profile_id uuid references public.profiles(id) on delete set null,
+  transaction_type text not null,
+  reference_table text,
+  reference_id uuid,
+  asset_symbol text not null default 'USDT',
+  amount numeric(20,8) not null,
+  direction entry_direction not null,
+  balance_before numeric(20,8) not null,
+  balance_after numeric(20,8) not null,
+  description text,
+  created_at timestamptz not null default now(),
+  constraint chk_platform_wallet_transactions_amount_positive check (amount > 0),
+  constraint chk_platform_wallet_transaction_type
+    check (transaction_type in ('fee_credit', 'withdrawal_debit', 'adjustment_credit', 'adjustment_debit'))
+);
+
+create index if not exists idx_platform_wallet_transactions_wallet_id on public.platform_wallet_transactions(platform_wallet_id);
+create index if not exists idx_platform_wallet_transactions_admin_profile_id on public.platform_wallet_transactions(admin_profile_id);
+create index if not exists idx_platform_wallet_transactions_reference on public.platform_wallet_transactions(reference_table, reference_id);
+create index if not exists idx_platform_wallet_transactions_created_at on public.platform_wallet_transactions(created_at desc);
+
+create table if not exists public.platform_withdrawals (
+  id uuid primary key default gen_random_uuid(),
+  platform_wallet_id uuid not null references public.platform_wallets(id) on delete cascade,
+  requested_by_admin_profile_id uuid not null references public.profiles(id) on delete restrict,
+  asset_symbol text not null,
+  network_name text,
+  amount numeric(20,8) not null,
+  crypto_amount numeric(30,12),
+  withdrawal_address text not null,
+  tx_hash text,
+  status withdrawal_status not null default 'pending',
+  admin_notes text,
+  approved_at timestamptz,
+  rejected_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint chk_platform_withdrawals_asset_symbol
+    check (asset_symbol = 'USDT'),
+  constraint chk_platform_withdrawals_network_name
+    check (network_name is null or network_name = 'BNB Smart Chain (BEP-20)'),
+  constraint chk_platform_withdrawals_amount_positive check (amount > 0),
+  constraint chk_platform_withdrawals_crypto_amount_nonnegative
+    check (crypto_amount is null or crypto_amount > 0)
+);
+
+create index if not exists idx_platform_withdrawals_wallet_id on public.platform_withdrawals(platform_wallet_id);
+create index if not exists idx_platform_withdrawals_requested_by on public.platform_withdrawals(requested_by_admin_profile_id);
+create index if not exists idx_platform_withdrawals_status on public.platform_withdrawals(status);
+create index if not exists idx_platform_withdrawals_created_at on public.platform_withdrawals(created_at desc);
+
+create trigger trg_platform_withdrawals_updated_at
+before update on public.platform_withdrawals
+for each row
+execute function public.set_updated_at();
+
+-- ---------------------------------------------------------
 -- DEPOSITS
 -- User top-up requests
 -- ---------------------------------------------------------
@@ -309,23 +399,37 @@ create table if not exists public.markets (
   rules_text text,
   close_at timestamptz not null,
   settle_at timestamptz not null,
+  cutoff_at timestamptz not null,
   status market_status not null default 'draft',
   resolution_outcome market_outcome not null default 'unresolved',
   resolution_notes text,
   created_by uuid not null references public.profiles(id) on delete restrict,
   resolved_by uuid references public.profiles(id) on delete set null,
   resolved_at timestamptz,
+  duration_minutes smallint default null,
+  target_direction text default null,
+  spot_price_at_open numeric(20,8) default null,
+  final_spot_price numeric(20,8) default null,
+  round_result text default null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint chk_markets_asset_symbol
     check (asset_symbol in ('BTC', 'ETH', 'SOL', 'BNB', 'USDT', 'USDC', 'XRP', 'ADA', 'DOGE')),
-  constraint chk_markets_dates check (settle_at >= close_at)
+  constraint chk_markets_dates check (settle_at >= close_at),
+  constraint chk_markets_target_direction
+    check (target_direction is null or target_direction in ('above', 'below')),
+  constraint chk_markets_duration_minutes
+    check (duration_minutes is null or duration_minutes in (3, 5, 10, 15)),
+  constraint chk_markets_round_result
+    check (round_result is null or round_result in ('up', 'down', 'flat'))
 );
 
 create index if not exists idx_markets_status on public.markets(status);
 create index if not exists idx_markets_asset_symbol on public.markets(asset_symbol);
 create index if not exists idx_markets_close_at on public.markets(close_at);
 create index if not exists idx_markets_settle_at on public.markets(settle_at);
+create index if not exists idx_markets_cutoff_at on public.markets(cutoff_at);
+create index if not exists idx_markets_round_result on public.markets(round_result);
 
 create trigger trg_markets_updated_at
 before update on public.markets
@@ -379,6 +483,47 @@ create index if not exists idx_trades_profile_id on public.trades(profile_id);
 create index if not exists idx_trades_market_id on public.trades(market_id);
 create index if not exists idx_trades_created_at on public.trades(created_at desc);
 create index if not exists idx_trades_status on public.trades(status);
+
+-- ---------------------------------------------------------
+-- PREDICTIONS
+-- Immutable short-duration prediction snapshots
+-- ---------------------------------------------------------
+
+create table if not exists public.predictions (
+  id uuid primary key default gen_random_uuid(),
+  trade_id uuid not null unique references public.trades(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  round_id uuid not null references public.markets(id) on delete cascade,
+  direction text not null,
+  entry_price numeric(20,8) not null,
+  round_open_price numeric(20,8) not null,
+  entry_time timestamptz not null default now(),
+  time_remaining_seconds integer not null,
+  reward_multiplier numeric(10,6) not null,
+  prediction_locked boolean not null default true,
+  settled boolean not null default false,
+  points_awarded numeric(20,8) not null default 0,
+  outcome text,
+  settled_at timestamptz,
+  constraint chk_predictions_direction
+    check (direction in ('up', 'down')),
+  constraint chk_predictions_entry_price_positive
+    check (entry_price > 0),
+  constraint chk_predictions_round_open_price_positive
+    check (round_open_price > 0),
+  constraint chk_predictions_time_remaining_nonnegative
+    check (time_remaining_seconds >= 0),
+  constraint chk_predictions_reward_multiplier_nonnegative
+    check (reward_multiplier >= 0),
+  constraint chk_predictions_outcome
+    check (outcome is null or outcome in ('up', 'down', 'flat'))
+);
+
+create index if not exists idx_predictions_user_id on public.predictions(user_id);
+create index if not exists idx_predictions_round_id on public.predictions(round_id);
+create index if not exists idx_predictions_trade_id on public.predictions(trade_id);
+create index if not exists idx_predictions_entry_time on public.predictions(entry_time desc);
+create index if not exists idx_predictions_settled on public.predictions(settled);
 
 -- ---------------------------------------------------------
 -- POSITIONS
@@ -786,6 +931,173 @@ end;
 $$;
 
 -- ---------------------------------------------------------
+-- FUNCTION: ENSURE / CREDIT / DEBIT PLATFORM WALLET
+-- Shared treasury wallet helpers for admin-visible fee flows
+-- ---------------------------------------------------------
+
+create or replace function public.ensure_platform_wallet(
+  p_wallet_key text default 'general_admin'
+)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_wallet_id uuid;
+begin
+  insert into public.platform_wallets (wallet_key)
+  values (coalesce(p_wallet_key, 'general_admin'))
+  on conflict (wallet_key) do nothing;
+
+  select id
+    into v_wallet_id
+  from public.platform_wallets
+  where wallet_key = coalesce(p_wallet_key, 'general_admin');
+
+  return v_wallet_id;
+end;
+$$;
+
+create or replace function public.credit_platform_wallet(
+  p_amount numeric,
+  p_transaction_type text,
+  p_reference_table text,
+  p_reference_id uuid,
+  p_asset_symbol text,
+  p_description text default null,
+  p_wallet_key text default 'general_admin',
+  p_admin_profile_id uuid default null
+)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_wallet public.platform_wallets%rowtype;
+  v_wallet_id uuid;
+  v_new_balance numeric(20,8);
+begin
+  if p_amount <= 0 then
+    raise exception 'credit amount must be greater than zero';
+  end if;
+
+  v_wallet_id := public.ensure_platform_wallet(p_wallet_key);
+
+  select *
+    into v_wallet
+  from public.platform_wallets
+  where id = v_wallet_id
+  for update;
+
+  v_new_balance := v_wallet.balance + p_amount;
+
+  update public.platform_wallets
+  set balance = v_new_balance,
+      available_balance = available_balance + p_amount
+  where id = v_wallet.id;
+
+  insert into public.platform_wallet_transactions (
+    platform_wallet_id,
+    admin_profile_id,
+    transaction_type,
+    reference_table,
+    reference_id,
+    asset_symbol,
+    amount,
+    direction,
+    balance_before,
+    balance_after,
+    description
+  )
+  values (
+    v_wallet.id,
+    p_admin_profile_id,
+    p_transaction_type,
+    p_reference_table,
+    p_reference_id,
+    coalesce(p_asset_symbol, 'USDT'),
+    p_amount,
+    'credit',
+    v_wallet.balance,
+    v_new_balance,
+    p_description
+  );
+
+  return v_wallet.id;
+end;
+$$;
+
+create or replace function public.debit_platform_wallet(
+  p_amount numeric,
+  p_transaction_type text,
+  p_reference_table text,
+  p_reference_id uuid,
+  p_asset_symbol text,
+  p_description text default null,
+  p_wallet_key text default 'general_admin',
+  p_admin_profile_id uuid default null
+)
+returns uuid
+language plpgsql
+as $$
+declare
+  v_wallet public.platform_wallets%rowtype;
+  v_wallet_id uuid;
+  v_new_balance numeric(20,8);
+begin
+  if p_amount <= 0 then
+    raise exception 'debit amount must be greater than zero';
+  end if;
+
+  v_wallet_id := public.ensure_platform_wallet(p_wallet_key);
+
+  select *
+    into v_wallet
+  from public.platform_wallets
+  where id = v_wallet_id
+  for update;
+
+  if v_wallet.available_balance < p_amount then
+    raise exception 'insufficient available platform wallet balance';
+  end if;
+
+  v_new_balance := v_wallet.balance - p_amount;
+
+  update public.platform_wallets
+  set balance = v_new_balance,
+      available_balance = available_balance - p_amount
+  where id = v_wallet.id;
+
+  insert into public.platform_wallet_transactions (
+    platform_wallet_id,
+    admin_profile_id,
+    transaction_type,
+    reference_table,
+    reference_id,
+    asset_symbol,
+    amount,
+    direction,
+    balance_before,
+    balance_after,
+    description
+  )
+  values (
+    v_wallet.id,
+    p_admin_profile_id,
+    p_transaction_type,
+    p_reference_table,
+    p_reference_id,
+    coalesce(p_asset_symbol, 'USDT'),
+    p_amount,
+    'debit',
+    v_wallet.balance,
+    v_new_balance,
+    p_description
+  );
+
+  return v_wallet.id;
+end;
+$$;
+
+-- ---------------------------------------------------------
 -- FUNCTION: APPROVE DEPOSIT
 -- For V1 admin deposit approval flow
 -- ---------------------------------------------------------
@@ -984,7 +1296,12 @@ create or replace function public.place_trade(
   p_side trade_side,
   p_amount numeric,
   p_price numeric,
-  p_fee_amount numeric default 0
+  p_fee_amount numeric default 0,
+  p_entry_spot_price numeric default null,
+  p_round_open_price numeric default null,
+  p_time_remaining_seconds integer default null,
+  p_reward_multiplier numeric default null,
+  p_prediction_direction text default null
 )
 returns uuid
 language plpgsql
@@ -992,7 +1309,6 @@ as $$
 declare
   v_trade_id uuid;
   v_market public.markets%rowtype;
-  v_position public.positions%rowtype;
   v_units numeric(20,8);
   v_total_debit numeric(20,8);
   v_promoter_id uuid;
@@ -1019,6 +1335,32 @@ begin
 
   if v_market.status <> 'active' or now() >= v_market.close_at then
     raise exception 'market is not tradeable';
+  end if;
+
+  if now() >= coalesce(v_market.cutoff_at, v_market.close_at) then
+    raise exception 'Predictions closed for this round. Next round starts soon.';
+  end if;
+
+  if v_market.duration_minutes is not null then
+    if p_entry_spot_price is null or p_entry_spot_price <= 0 then
+      raise exception 'entry spot price is required for short-duration trades';
+    end if;
+
+    if p_round_open_price is null or p_round_open_price <= 0 then
+      raise exception 'round opening price is required for short-duration trades';
+    end if;
+
+    if p_time_remaining_seconds is null or p_time_remaining_seconds < 0 then
+      raise exception 'time remaining is required for short-duration trades';
+    end if;
+
+    if p_reward_multiplier is null or p_reward_multiplier < 0 then
+      raise exception 'reward multiplier is required for short-duration trades';
+    end if;
+
+    if p_prediction_direction is null or p_prediction_direction not in ('up', 'down') then
+      raise exception 'prediction direction is required for short-duration trades';
+    end if;
   end if;
 
   v_total_debit := p_amount;
@@ -1103,6 +1445,33 @@ begin
     end,
     status = 'open';
 
+  if v_market.duration_minutes is not null then
+    insert into public.predictions (
+      trade_id,
+      user_id,
+      round_id,
+      direction,
+      entry_price,
+      round_open_price,
+      entry_time,
+      time_remaining_seconds,
+      reward_multiplier,
+      prediction_locked
+    )
+    values (
+      v_trade_id,
+      p_profile_id,
+      p_market_id,
+      p_prediction_direction,
+      p_entry_spot_price,
+      p_round_open_price,
+      now(),
+      p_time_remaining_seconds,
+      p_reward_multiplier,
+      true
+    );
+  end if;
+
   if coalesce(p_fee_amount, 0) > 0 then
     perform public.debit_wallet(
       p_profile_id,
@@ -1112,6 +1481,15 @@ begin
       v_trade_id,
       'USD',
       'Platform fee'
+    );
+
+    perform public.credit_platform_wallet(
+      p_fee_amount,
+      'fee_credit',
+      'trades',
+      v_trade_id,
+      'USDT',
+      'Platform fee collected'
     );
   end if;
 
@@ -1178,6 +1556,7 @@ declare
   v_market public.markets%rowtype;
   v_position record;
   v_payout numeric(20,8);
+  v_round_result text;
 begin
   if p_resolution not in ('yes', 'no', 'cancelled') then
     raise exception 'resolution must be yes, no, or cancelled';
@@ -1196,6 +1575,15 @@ begin
   if v_market.status in ('settled', 'cancelled') then
     raise exception 'market already finalized';
   end if;
+
+  v_round_result := coalesce(
+    v_market.round_result,
+    case
+      when p_resolution = 'yes' then 'up'
+      when p_resolution = 'no' then 'down'
+      else 'flat'
+    end
+  );
 
   update public.markets
   set status = case when p_resolution = 'cancelled' then 'cancelled'::market_status else 'settled'::market_status end,
@@ -1216,8 +1604,8 @@ begin
     elsif p_resolution = 'no' then
       v_payout := v_position.no_units;
     else
-      -- Cancelled logic can be changed later to refund by cost basis if desired
-      v_payout := 0;
+      v_payout := coalesce(v_position.yes_units * v_position.avg_yes_price, 0)
+        + coalesce(v_position.no_units * v_position.avg_no_price, 0);
     end if;
 
     if v_payout > 0 then
@@ -1228,21 +1616,41 @@ begin
         'markets',
         p_market_id,
         'USD',
-        'Market settlement payout'
+        case
+          when p_resolution = 'cancelled' then 'Market settlement refund'
+          else 'Market settlement payout'
+        end
       );
     end if;
 
     update public.positions
     set status = case when p_resolution = 'cancelled' then 'cancelled'::position_status else 'settled'::position_status end,
-        pnl_amount = v_payout
+        pnl_amount = case
+          when p_resolution = 'cancelled' then 0
+          else v_payout
+        end
     where id = v_position.id;
   end loop;
 
   update public.trades
-  set status = 'settled'::trade_status,
+  set status = case when p_resolution = 'cancelled' then 'cancelled'::trade_status else 'settled'::trade_status end,
       settled_at = now()
   where market_id = p_market_id
     and status = 'executed'::trade_status;
+
+  update public.predictions p
+  set settled = true,
+      points_awarded = case
+        when v_round_result = 'flat' then 0
+        when p.direction = v_round_result then round((t.amount * p.reward_multiplier)::numeric, 8)
+        else 0
+      end,
+      outcome = v_round_result,
+      settled_at = now()
+  from public.trades t
+  where p.trade_id = t.id
+    and p.round_id = p_market_id
+    and p.settled = false;
 
   insert into public.admin_logs (
     admin_profile_id,
@@ -1323,10 +1731,14 @@ alter table public.promoters enable row level security;
 alter table public.referrals enable row level security;
 alter table public.wallets enable row level security;
 alter table public.wallet_transactions enable row level security;
+alter table public.platform_wallets enable row level security;
+alter table public.platform_wallet_transactions enable row level security;
+alter table public.platform_withdrawals enable row level security;
 alter table public.deposits enable row level security;
 alter table public.markets enable row level security;
 alter table public.market_prices enable row level security;
 alter table public.trades enable row level security;
+alter table public.predictions enable row level security;
 alter table public.positions enable row level security;
 alter table public.commissions enable row level security;
 alter table public.admin_logs enable row level security;
@@ -1460,6 +1872,20 @@ using (
   )
 );
 
+-- Predictions
+drop policy if exists "predictions_select_own" on public.predictions;
+create policy "predictions_select_own"
+on public.predictions
+for select
+using (
+  exists (
+    select 1
+    from public.profiles p
+    where p.id = predictions.user_id
+      and p.auth_user_id = auth.uid()
+  )
+);
+
 -- Positions
 drop policy if exists "positions_select_own" on public.positions;
 create policy "positions_select_own"
@@ -1508,6 +1934,7 @@ comment on table public.deposits is 'User top-up requests for supported crypto a
 comment on table public.markets is 'Yes/No crypto prediction markets';
 comment on table public.market_prices is 'Historical displayed price points for markets';
 comment on table public.trades is 'Trade executions on markets';
+comment on table public.predictions is 'Immutable prediction snapshots for short-duration round entries';
 comment on table public.positions is 'Aggregated open/settled market exposure per profile';
 comment on table public.commissions is 'Promoter commissions generated from referred user trades';
 comment on table public.admin_logs is 'Audit log of admin actions';

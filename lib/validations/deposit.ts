@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-const depositAssets = ["BTC", "USDT", "USDC", "BNB", "SOL"] as const;
+export const FIXED_SETTLEMENT_ASSET = "USDT" as const;
+export const FIXED_SETTLEMENT_NETWORK = "BNB Smart Chain (BEP-20)" as const;
 
 /** Body for POST /api/deposits — user creates a pending deposit request */
 export const depositCreateSchema = z.object({
-  asset_symbol: z.enum(depositAssets),
-  network_name: z.string().trim().max(200).optional().nullable(),
+  asset_symbol: z.literal(FIXED_SETTLEMENT_ASSET),
+  network_name: z.literal(FIXED_SETTLEMENT_NETWORK),
   amount_expected: z
     .string()
     .optional()

@@ -7,6 +7,13 @@ import { tradePlaceSchema } from "@/lib/validations/trade";
 import { sendCommissionEarnedEmail } from "@/lib/services/email-notifications";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { updatePriceAfterTrade } from "@/lib/services/dynamic-pricing";
+import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
+import { getBinanceSpotPrice } from "@/lib/services/binance-price";
+import {
+  getPredictionDirectionFromTradeSide,
+  getRewardPreview,
+  getShortDurationCutoffAt,
+} from "@/lib/short-duration-predictions";
 
 /**
  * POST /api/trades
@@ -58,6 +65,108 @@ export async function POST(request: Request) {
   // Authentication is already verified above — profileId is the authenticated user's ID.
   const supabaseAdmin = createSupabaseAdminClient();
 
+  let antiGamingParams: {
+    p_entry_spot_price: number | null;
+    p_round_open_price: number | null;
+    p_time_remaining_seconds: number | null;
+    p_reward_multiplier: number | null;
+    p_prediction_direction: "up" | "down" | null;
+  } = {
+    p_entry_spot_price: null,
+    p_round_open_price: null,
+    p_time_remaining_seconds: null,
+    p_reward_multiplier: null,
+    p_prediction_direction: null,
+  };
+
+  const { data: marketMeta, error: marketMetaError } = await supabaseAdmin
+    .from("markets")
+    .select(`
+      id,
+      status,
+      asset_symbol,
+      close_at,
+      cutoff_at,
+      duration_minutes,
+      spot_price_at_open,
+      market_prices ( yes_price, no_price, created_at )
+    `)
+    .eq("id", market_id)
+    .maybeSingle();
+
+  if (marketMetaError || !marketMeta) {
+    return NextResponse.json(
+      { success: false, message: "Market not found." },
+      { status: 404 },
+    );
+  }
+
+  if (marketMeta.status !== "active") {
+    return NextResponse.json(
+      { success: false, message: "This round is no longer accepting predictions." },
+      { status: 409 },
+    );
+  }
+
+  if (marketMeta.duration_minutes != null) {
+    const latestPriceRow = Array.isArray(marketMeta.market_prices)
+      ? [...marketMeta.market_prices].sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        )[0] ?? null
+      : null;
+
+    const confidencePrice =
+      side === "yes"
+        ? latestPriceRow?.yes_price != null
+          ? Number(latestPriceRow.yes_price)
+          : Number(price)
+        : latestPriceRow?.no_price != null
+          ? Number(latestPriceRow.no_price)
+          : Number(price);
+
+    const predictionDirection = getPredictionDirectionFromTradeSide(side);
+    const openingSpotPrice = marketMeta.spot_price_at_open != null
+      ? Number(marketMeta.spot_price_at_open)
+      : null;
+
+    let currentSpotPrice: number | null = null;
+    const binanceSymbol = ASSET_TO_BINANCE[marketMeta.asset_symbol];
+    if (binanceSymbol) {
+      try {
+        currentSpotPrice = await getBinanceSpotPrice(binanceSymbol);
+      } catch {
+        currentSpotPrice = null;
+      }
+    }
+
+    const rewardPreview = getRewardPreview({
+      closesAt: marketMeta.close_at,
+      cutoffAt: marketMeta.cutoff_at ?? getShortDurationCutoffAt(marketMeta.close_at).toISOString(),
+      direction: predictionDirection,
+      confidencePrice,
+      currentSpotPrice,
+      openingSpotPrice,
+    });
+
+    if (rewardPreview.isClosed) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Predictions closed for this round. Next round starts soon.",
+        },
+        { status: 409 },
+      );
+    }
+
+    antiGamingParams = {
+      p_entry_spot_price: currentSpotPrice ?? openingSpotPrice,
+      p_round_open_price: openingSpotPrice,
+      p_time_remaining_seconds: rewardPreview.secondsRemaining,
+      p_reward_multiplier: rewardPreview.multiplier,
+      p_prediction_direction: predictionDirection,
+    };
+  }
+
   // Pass the actual fee amount so the RPC records it correctly and generates
   // promoter commissions. The RPC debits `amount` as trade_debit and
   // `fee_amount` separately as fee_debit — no double-debit.
@@ -68,6 +177,7 @@ export async function POST(request: Request) {
     p_amount: parseFloat(amount),
     p_price: parseFloat(price),
     p_fee_amount: parseFloat(fee_amount),
+    ...antiGamingParams,
   });
 
   if (error) {

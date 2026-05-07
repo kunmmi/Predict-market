@@ -4,7 +4,11 @@ import { requireUserForApi } from "@/lib/auth/require-user-for-api";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getUserWithdrawals } from "@/lib/services/withdrawal-data";
-import { withdrawalCreateSchema } from "@/lib/validations/withdrawal";
+import {
+  FIXED_WITHDRAWAL_ASSET,
+  FIXED_WITHDRAWAL_NETWORK,
+  withdrawalCreateSchema,
+} from "@/lib/validations/withdrawal";
 import { usdToAsset } from "@/lib/services/crypto-price";
 import { sendCrypto } from "@/lib/services/tatum-send";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
@@ -75,7 +79,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const { asset_symbol, network_name, amount, withdrawal_address, notes } = parsed.data;
+  const { amount, withdrawal_address, notes } = parsed.data;
+  const asset_symbol = FIXED_WITHDRAWAL_ASSET;
+  const network_name = FIXED_WITHDRAWAL_NETWORK;
   const usdAmount = Number(amount);
 
   const supabase = createSupabaseServerClient();

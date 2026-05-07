@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
-import { depositCreateSchema } from "@/lib/validations/deposit";
+import {
+  depositCreateSchema,
+  FIXED_SETTLEMENT_ASSET,
+  FIXED_SETTLEMENT_NETWORK,
+} from "@/lib/validations/deposit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireUserForApi } from "@/lib/auth/require-user-for-api";
 import { getUserDeposits } from "@/lib/services/deposit-data";
@@ -73,8 +77,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const { asset_symbol, network_name, amount_expected, tx_hash, deposit_address } =
-    parsed.data;
+  const { amount_expected, tx_hash, deposit_address } = parsed.data;
+  const asset_symbol = FIXED_SETTLEMENT_ASSET;
+  const network_name = FIXED_SETTLEMENT_NETWORK;
 
   // Auto-populate deposit_address from platform config if user didn't provide one.
   // This ensures tier-2 webhook matching works even when the user omits the address field.

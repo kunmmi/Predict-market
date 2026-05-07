@@ -13,10 +13,13 @@ export type MarketRow = {
   question_text: string;
   rules_text: string | null;
   close_at: string;
+  cutoff_at: string;
   settle_at: string;
   status: MarketStatus;
   resolution_outcome: MarketOutcome;
   resolution_notes: string | null;
+  final_spot_price: string | null;
+  round_result: string | null;
   created_by: string;
   resolved_by: string | null;
   resolved_at: string | null;

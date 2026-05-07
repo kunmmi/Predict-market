@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import QRCode from "react-qr-code";
 
-import { depositCreateSchema } from "@/lib/validations/deposit";
+import {
+  depositCreateSchema,
+  FIXED_SETTLEMENT_NETWORK,
+} from "@/lib/validations/deposit";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -228,7 +231,7 @@ function DepositForm({ onSuccess, t, locale }: { onSuccess: (hadAddress: boolean
 
   // When asset changes, auto-select first network for that asset
   React.useEffect(() => {
-    const first = NETWORK_OPTIONS[selectedAsset]?.[0]?.value ?? "";
+    const first = (NETWORK_OPTIONS[selectedAsset]?.[0]?.value ?? FIXED_SETTLEMENT_NETWORK) as typeof FIXED_SETTLEMENT_NETWORK;
     form.setValue("network_name", first);
   }, [selectedAsset, form]);
 
@@ -302,7 +305,7 @@ function DepositForm({ onSuccess, t, locale }: { onSuccess: (hadAddress: boolean
         <NetworkPicker
           asset={selectedAsset}
           value={selectedNetwork ?? ""}
-          onChange={(v) => form.setValue("network_name", v)}
+          onChange={(v) => form.setValue("network_name", v as typeof FIXED_SETTLEMENT_NETWORK)}
         />
       </div>
 

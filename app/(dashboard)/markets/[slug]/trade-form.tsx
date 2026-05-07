@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
+import { useBinancePrice } from "@/lib/hooks/use-binance-price";
 import type { Locale, T } from "@/lib/i18n/translations";
 import { sideLabel } from "@/lib/i18n/labels";
+import {
+  getPredictionDirectionFromTradeSide,
+  getRewardPreview,
+  getShortDurationCutoffAt,
+  SHORT_DURATION_CUTOFF_SECONDS,
+} from "@/lib/short-duration-predictions";
 
 type TradeSide = "yes" | "no";
 
@@ -21,11 +29,24 @@ type Props = {
   noPrice: string | null;
   marketStatus: string;
   isShortDuration?: boolean;
+  assetSymbol: string;
+  closeAt: string;
+  cutoffAt?: string | null;
+  spotPriceAtOpen?: string | null;
   locale: Locale;
   t: T["trade"];
 };
 
 const FEE_RATE = 0.02;
+
+function formatCountdown(totalSeconds: number | null): string {
+  if (totalSeconds == null) return "--:--";
+
+  const safeSeconds = Math.max(0, totalSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
 
 export function TradeForm({
   marketId,
@@ -33,6 +54,10 @@ export function TradeForm({
   noPrice,
   marketStatus,
   isShortDuration = false,
+  assetSymbol,
+  closeAt,
+  cutoffAt,
+  spotPriceAtOpen,
   locale,
   t,
 }: Props) {
@@ -43,6 +68,10 @@ export function TradeForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState<number | null>(null);
+
+  const binanceSymbol = isShortDuration ? ASSET_TO_BINANCE[assetSymbol] ?? null : null;
+  const { price: liveSpotPrice } = useBinancePrice(binanceSymbol);
 
   useEffect(() => {
     async function fetchWallet() {
@@ -60,6 +89,15 @@ export function TradeForm({
     void fetchWallet();
   }, [success]);
 
+  useEffect(() => {
+    setNow(Date.now());
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 1_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const currentPrice = side === "yes" ? yesPrice : noPrice;
   const priceNum = currentPrice != null ? parseFloat(currentPrice) : null;
   const amountNum = parseFloat(amount);
@@ -74,8 +112,44 @@ export function TradeForm({
   const insufficientFunds =
     isValidAmount && availableBalance != null && amountNum > availableBalance;
 
-  const upLabel = isShortDuration ? (locale === "zh" ? "看涨" : "UP") : sideLabel("yes", locale);
-  const downLabel = isShortDuration ? (locale === "zh" ? "看跌" : "DOWN") : sideLabel("no", locale);
+  const upLabel = isShortDuration ? (locale === "zh" ? "çœ‹æ¶¨" : "UP") : sideLabel("yes", locale);
+  const downLabel = isShortDuration ? (locale === "zh" ? "çœ‹è·Œ" : "DOWN") : sideLabel("no", locale);
+  const activeLabel = side === "yes" ? upLabel : downLabel;
+  const uiText = {
+    currentRoundTimer: t.current_round_timer ?? "Round timer",
+    cutoffCountdown: t.cutoff_countdown ?? "Prediction cutoff",
+    rewardMultiplier: t.reward_multiplier ?? "Reward multiplier",
+    openingPrice: t.opening_price ?? "Opening price",
+    entryPrice: t.entry_price ?? "Entry price",
+    liveConfidence: t.live_confidence ?? "Live confidence",
+    predictionsClosed: t.predictions_closed ?? "Predictions closed",
+    predictionsClosedMessage:
+      t.predictions_closed_message ?? "Predictions closed for this round. Next round starts soon.",
+    lowMultiplierWarningMedium:
+      t.low_multiplier_warning_medium ?? "Reward has dropped. Later entries earn fewer points.",
+    lowMultiplierWarningHigh:
+      t.low_multiplier_warning_high ?? "Reward is now very low. Final-second entries earn almost nothing.",
+    cutoffNote:
+      t.cutoff_note ?? "Predictions close {seconds} seconds before the round ends.",
+  };
+
+  const rewardPreview = useMemo(() => {
+    if (!isShortDuration) return null;
+
+    return getRewardPreview({
+      closesAt: closeAt,
+      cutoffAt: cutoffAt ?? getShortDurationCutoffAt(closeAt).toISOString(),
+      now: now ?? undefined,
+      direction: getPredictionDirectionFromTradeSide(side),
+      confidencePrice: priceNum,
+      currentSpotPrice: liveSpotPrice,
+      openingSpotPrice: spotPriceAtOpen != null ? Number(spotPriceAtOpen) : null,
+    });
+  }, [closeAt, cutoffAt, isShortDuration, liveSpotPrice, now, priceNum, side, spotPriceAtOpen]);
+
+  const isPredictionClosed = rewardPreview?.isClosed ?? false;
+  const submitDisabled =
+    loading || insufficientFunds || priceNum == null || !isValidAmount || isPredictionClosed;
 
   if (marketStatus !== "active") {
     return null;
@@ -96,6 +170,10 @@ export function TradeForm({
     }
     if (insufficientFunds) {
       setError("Insufficient available balance.");
+      return;
+    }
+    if (isPredictionClosed) {
+      setError(uiText.predictionsClosedMessage);
       return;
     }
 
@@ -149,6 +227,68 @@ export function TradeForm({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isShortDuration && rewardPreview ? (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.currentRoundTimer}</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">
+                      {formatCountdown(rewardPreview.secondsRemaining)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.cutoffCountdown}</p>
+                    <p className={`mt-1 text-lg font-semibold ${isPredictionClosed ? "text-red-600" : "text-slate-900"}`}>
+                      {isPredictionClosed
+                        ? uiText.predictionsClosed
+                        : formatCountdown(rewardPreview.cutoffSecondsRemaining)}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.rewardMultiplier}</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-900">
+                      {rewardPreview.multiplier.toFixed(2)}x
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.entryPrice}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {liveSpotPrice != null ? `$${liveSpotPrice.toFixed(2)}` : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.openingPrice}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {spotPriceAtOpen != null ? `$${Number(spotPriceAtOpen).toFixed(2)}` : "—"}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.liveConfidence}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">
+                      {priceNum != null ? `${(priceNum * 100).toFixed(1)}%` : "—"}
+                    </p>
+                  </div>
+                </div>
+
+                {isPredictionClosed ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
+                    {uiText.predictionsClosedMessage}
+                  </div>
+                ) : rewardPreview.warningLevel === "high" ? (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                    {uiText.lowMultiplierWarningHigh}
+                  </div>
+                ) : rewardPreview.warningLevel === "medium" ? (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
+                    {uiText.lowMultiplierWarningMedium}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
             {error ? (
               <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {error}
@@ -161,7 +301,8 @@ export function TradeForm({
                 <button
                   type="button"
                   onClick={() => setSide("yes")}
-                  className={`flex-1 rounded-md border py-2 text-sm font-semibold transition-colors ${
+                  disabled={isPredictionClosed}
+                  className={`flex-1 rounded-md border py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                     side === "yes"
                       ? "border-green-500 bg-green-500 text-white"
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
@@ -172,7 +313,8 @@ export function TradeForm({
                 <button
                   type="button"
                   onClick={() => setSide("no")}
-                  className={`flex-1 rounded-md border py-2 text-sm font-semibold transition-colors ${
+                  disabled={isPredictionClosed}
+                  className={`flex-1 rounded-md border py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                     side === "no"
                       ? "border-red-500 bg-red-500 text-white"
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
@@ -196,6 +338,7 @@ export function TradeForm({
                   setError(null);
                 }}
                 required
+                disabled={isPredictionClosed}
               />
               {walletLoading ? (
                 <p className="text-xs text-slate-400">{t.loading_balance}</p>
@@ -220,6 +363,12 @@ export function TradeForm({
                     <span>{t.fee}</span>
                     <span className="font-medium">${fee}</span>
                   </div>
+                  <div className="flex justify-between">
+                    <span>{uiText.rewardMultiplier}</span>
+                    <span className="font-medium">
+                      {rewardPreview != null ? `${rewardPreview.multiplier.toFixed(2)}x` : "—"}
+                    </span>
+                  </div>
                   <div className="flex justify-between border-t border-slate-200 pt-1">
                     <span className="font-medium">{t.total_debit}</span>
                     <span className="font-semibold">${totalDebit}</span>
@@ -232,13 +381,21 @@ export function TradeForm({
 
             <Button
               type="submit"
-              disabled={loading || insufficientFunds || priceNum == null || !isValidAmount}
+              disabled={submitDisabled}
               className="w-full"
             >
               {loading
                 ? t.placing
-                : `${side === "yes" ? upLabel : downLabel} - $${isValidAmount ? amountNum.toFixed(2) : "0.00"}`}
+                : isPredictionClosed
+                  ? uiText.predictionsClosed
+                  : `${activeLabel} - $${isValidAmount ? amountNum.toFixed(2) : "0.00"}`}
             </Button>
+
+            {isShortDuration ? (
+              <p className="text-xs text-slate-500">
+                {uiText.cutoffNote.replace("{seconds}", String(SHORT_DURATION_CUTOFF_SECONDS))}
+              </p>
+            ) : null}
           </form>
         )}
       </CardContent>

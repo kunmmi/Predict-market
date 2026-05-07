@@ -9,6 +9,7 @@ import { getT } from "@/lib/i18n/translations";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import type { Locale } from "@/lib/i18n/translations";
 import { Card } from "@/components/ui/card";
+import { MarketsAutoRefresh } from "./markets-auto-refresh";
 
 function ProbabilityBar({
   yesPrice,
@@ -58,9 +59,11 @@ export default async function MarketsPage() {
   const locale = getLocale();
   const t = getT(locale).markets;
   const dateLocale = locale === "zh" ? "zh-CN" : "en-US";
+  const hasShortDurationMarkets = markets.some((market) => market.durationMinutes != null);
 
   return (
     <div className="space-y-8">
+      <MarketsAutoRefresh enabled={hasShortDurationMarkets} />
       <div>
         <h1 className="page-title">{t.title}</h1>
         <p className="page-subtitle">{t.subtitle}</p>
@@ -83,84 +86,108 @@ export default async function MarketsPage() {
             return (
               <Link key={market.id} href={`/markets/${market.slug}`} className="group block">
                 {isShortDuration ? (
-                  <Card className="relative h-full overflow-hidden border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.9))] shadow-lg shadow-slate-200/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-xl hover:shadow-slate-200/90">
-                    <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(90deg,rgba(16,185,129,0.10),rgba(255,255,255,0),rgba(244,63,94,0.10))]" />
-                    <div className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-full bg-white/85 ring-1 ring-slate-200">
-                      <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                    </div>
-                    <div className="relative p-6">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-[11px] font-semibold text-white">
-                            {t.short_duration_badge}
+                  <Card className="relative h-full overflow-hidden border-slate-900/90 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.26),transparent_24%),linear-gradient(160deg,#0f172a_0%,#111827_44%,#1f2937_100%)] shadow-[0_20px_50px_-24px_rgba(15,23,42,0.85)] transition-all duration-200 hover:-translate-y-1 hover:border-slate-700 hover:shadow-[0_28px_64px_-28px_rgba(15,23,42,0.92)]">
+                    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),transparent_32%,rgba(255,255,255,0.02)_100%)]" />
+                    <div className="absolute right-4 top-4 h-16 w-16 rounded-full bg-emerald-400/20 blur-2xl" />
+                    <div className="relative p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[11px] font-medium text-slate-100 backdrop-blur-sm">
+                          <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+                            <span className="absolute h-5 w-5 rounded-full bg-emerald-400/25 animate-ping" />
+                            <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,0.9)]" />
                           </span>
-                          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
-                            {t.live_contract}
-                          </span>
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                            {market.assetSymbol}
-                          </span>
+                          Live round
                         </div>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                            market.status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            market.status === "active"
+                              ? "border border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
+                              : "border border-white/10 bg-white/8 text-slate-300"
                           }`}
                         >
                           {statusLabel(market.status, locale)}
                         </span>
                       </div>
 
-                      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(260px,0.7fr)]">
-                        <div>
-                          <h3 className="text-lg font-semibold leading-tight text-slate-950 sm:text-xl">
+                      <div className="mt-4 flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                          {t.short_duration_badge}
+                        </span>
+                        <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+                          {t.live_contract}
+                        </span>
+                        <span className="rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-100">
+                          {market.assetSymbol}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_148px] md:items-start">
+                        <div className="min-w-0">
+                          <h3 className="line-clamp-2 text-lg font-semibold leading-snug text-white">
                             {locale === "zh" && market.titleZh ? market.titleZh : market.title}
                           </h3>
-                          <p className="mt-3 max-w-xl text-sm text-slate-500">
-                            {t.target_price_label}{" "}
-                            <span className="font-semibold text-slate-950">
+                          <div className="mt-3 rounded-2xl border border-white/8 bg-white/5 px-3.5 py-3 backdrop-blur-sm">
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                              {t.target_price_label}
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-white">
                               {formatTargetPrice(market.spotPriceAtOpen)}
-                            </span>
-                          </p>
-                          <div className="mt-5 max-w-md">
+                            </p>
+                          </div>
+                          <div className="mt-3 max-w-md">
                             <ProbabilityBar
                               yesPrice={market.yesPrice}
                               positiveLabel={positiveLabel}
                               negativeLabel={negativeLabel}
                             />
                           </div>
-                          <div className="mt-5 flex items-center gap-1 text-sm font-semibold text-slate-700">
-                            {t.trade_now} <ChevronRight className="h-4 w-4" />
-                          </div>
                         </div>
-                        <div className="grid gap-3">
-                          <div className="rounded-2xl border border-slate-200 bg-white/85 p-4 backdrop-blur">
-                            <p className="text-[11px] uppercase tracking-wide text-slate-400">{t.closes}</p>
-                            <p className="mt-1 text-sm font-semibold text-slate-800">
-                              {new Date(market.closeAt).toLocaleDateString(dateLocale, {
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+
+                        <div className="rounded-2xl border border-white/10 bg-white/7 p-3.5 backdrop-blur-sm">
+                          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">{t.closes}</p>
+                          <p className="mt-2 text-sm font-semibold leading-snug text-white">
+                            {new Date(market.closeAt).toLocaleDateString(dateLocale, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-200">
+                              {positiveLabel}
                             </p>
+                            <ChevronRight className="h-4 w-4 text-emerald-200/80 transition-transform group-hover:translate-x-0.5" />
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4">
-                              <p className="text-[11px] uppercase tracking-wide text-emerald-700">{positiveLabel}</p>
-                              <p className="mt-1 text-2xl font-bold text-emerald-700">
-                                {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "-"}
-                              </p>
-                              <p className="mt-2 text-xs font-medium text-emerald-700/80">{t.quick_entry}</p>
-                            </div>
-                            <div className="rounded-2xl border border-rose-200 bg-rose-50/90 p-4">
-                              <p className="text-[11px] uppercase tracking-wide text-rose-700">{negativeLabel}</p>
-                              <p className="mt-1 text-2xl font-bold text-rose-700">
-                                {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "-"}
-                              </p>
-                              <p className="mt-2 text-xs font-medium text-rose-700/80">{t.quick_entry}</p>
-                            </div>
-                          </div>
+                          <p className="mt-2 text-[1.85rem] font-bold leading-none text-emerald-100">
+                            {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "-"}
+                          </p>
+                          <p className="mt-2 text-xs font-medium text-emerald-200/80">{t.quick_entry}</p>
                         </div>
+                        <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="text-[11px] uppercase tracking-[0.18em] text-rose-200">
+                              {negativeLabel}
+                            </p>
+                            <ChevronRight className="h-4 w-4 text-rose-200/80 transition-transform group-hover:translate-x-0.5" />
+                          </div>
+                          <p className="mt-2 text-[1.85rem] font-bold leading-none text-rose-100">
+                            {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "-"}
+                          </p>
+                          <p className="mt-2 text-xs font-medium text-rose-200/80">{t.quick_entry}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 text-sm">
+                        <span className="text-slate-300">{t.trade_now}</span>
+                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-200">
+                          {positiveLabel} / {negativeLabel} <ChevronRight className="h-4 w-4" />
+                        </span>
                       </div>
                     </div>
                   </Card>

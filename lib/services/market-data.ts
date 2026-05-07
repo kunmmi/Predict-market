@@ -21,11 +21,14 @@ export type MarketListItem = {
   yesPrice: string | null;
   noPrice: string | null;
   closeAt: string;
+  cutoffAt: string | null;
   settleAt: string;
   createdAt: string;
   durationMinutes: number | null;
   targetDirection: string | null;
   spotPriceAtOpen: string | null;
+  finalSpotPrice: string | null;
+  roundResult: string | null;
 };
 
 export type MarketDetail = {
@@ -42,6 +45,7 @@ export type MarketDetail = {
   rulesText: string | null;
   rulesTextZh: string | null;
   closeAt: string;
+  cutoffAt: string | null;
   settleAt: string;
   status: MarketStatus;
   resolutionOutcome: MarketOutcome;
@@ -56,6 +60,8 @@ export type MarketDetail = {
   durationMinutes: number | null;
   targetDirection: string | null;
   spotPriceAtOpen: string | null;
+  finalSpotPrice: string | null;
+  roundResult: string | null;
 };
 
 export type AdminMarketRow = {
@@ -91,6 +97,7 @@ type RawMarketRow = {
   rules_text: string | null;
   rules_text_zh: string | null;
   close_at: string;
+  cutoff_at: string | null;
   settle_at: string;
   status: string;
   resolution_outcome: string;
@@ -104,6 +111,8 @@ type RawMarketRow = {
   duration_minutes: number | null;
   target_direction: string | null;
   spot_price_at_open: string | null;
+  final_spot_price: string | null;
+  round_result: string | null;
 };
 
 function toPrice(v: string | number | null | undefined): string | null {
@@ -117,7 +126,10 @@ function isMissingShortDurationColumns(error: QueryErrorLike | null): boolean {
   return error.code === "42703" && Boolean(
     error.message?.includes("duration_minutes") ||
     error.message?.includes("target_direction") ||
-    error.message?.includes("spot_price_at_open"),
+    error.message?.includes("spot_price_at_open") ||
+    error.message?.includes("cutoff_at") ||
+    error.message?.includes("final_spot_price") ||
+    error.message?.includes("round_result"),
   );
 }
 
@@ -149,7 +161,7 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
 
   const baseSelect = `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
     market_prices ( yes_price, no_price, created_at )`;
-  const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open`;
+  const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result`;
 
   let data: RawMarketRow[] | null = null;
   let error: QueryErrorLike | null = null;
@@ -188,11 +200,14 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
       yesPrice: toPrice(latest?.yes_price),
       noPrice: toPrice(latest?.no_price),
       closeAt: row.close_at,
+      cutoffAt: row.cutoff_at ?? null,
       settleAt: row.settle_at,
       createdAt: row.created_at,
       durationMinutes: row.duration_minutes ?? null,
       targetDirection: row.target_direction ?? null,
       spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
+      finalSpotPrice: row.final_spot_price != null ? String(row.final_spot_price) : null,
+      roundResult: row.round_result ?? null,
     };
   });
 }
@@ -208,7 +223,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
     close_at, settle_at, status, resolution_outcome, resolution_notes,
     created_by, resolved_by, resolved_at, created_at, updated_at`;
   const extendedSelect = `${baseSelect},
-    duration_minutes, target_direction, spot_price_at_open,
+    duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result,
     market_prices ( yes_price, no_price, created_at )`;
   const fallbackSelect = `${baseSelect},
     market_prices ( yes_price, no_price, created_at )`;
@@ -255,6 +270,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
     rulesText: row.rules_text,
     rulesTextZh: row.rules_text_zh ?? null,
     closeAt: row.close_at,
+    cutoffAt: row.cutoff_at ?? null,
     settleAt: row.settle_at,
     status: row.status as MarketStatus,
     resolutionOutcome: row.resolution_outcome as MarketOutcome,
@@ -269,6 +285,8 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
     durationMinutes: row.duration_minutes ?? null,
     targetDirection: row.target_direction ?? null,
     spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
+    finalSpotPrice: row.final_spot_price != null ? String(row.final_spot_price) : null,
+    roundResult: row.round_result ?? null,
   };
 }
 
@@ -281,7 +299,7 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
 
   const baseSelect = `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
     market_prices ( yes_price, no_price, created_at )`;
-  const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open`;
+  const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result`;
 
   let data: RawMarketRow[] | null = null;
   let error: QueryErrorLike | null = null;
@@ -320,11 +338,14 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
       yesPrice: toPrice(latest?.yes_price),
       noPrice: toPrice(latest?.no_price),
       closeAt: row.close_at,
+      cutoffAt: row.cutoff_at ?? null,
       settleAt: row.settle_at,
       createdAt: row.created_at,
       durationMinutes: row.duration_minutes ?? null,
       targetDirection: row.target_direction ?? null,
       spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
+      finalSpotPrice: row.final_spot_price != null ? String(row.final_spot_price) : null,
+      roundResult: row.round_result ?? null,
     };
   });
 }
@@ -400,7 +421,7 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
     close_at, settle_at, status, resolution_outcome, resolution_notes,
     created_by, resolved_by, resolved_at, created_at, updated_at`;
   const extendedSelect = `${baseSelect},
-    duration_minutes, target_direction, spot_price_at_open,
+    duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result,
     market_prices ( yes_price, no_price, created_at )`;
   const fallbackSelect = `${baseSelect},
     market_prices ( yes_price, no_price, created_at )`;
@@ -447,6 +468,7 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
     rulesText: row.rules_text,
     rulesTextZh: row.rules_text_zh ?? null,
     closeAt: row.close_at,
+    cutoffAt: row.cutoff_at ?? null,
     settleAt: row.settle_at,
     status: row.status as MarketStatus,
     resolutionOutcome: row.resolution_outcome as MarketOutcome,
@@ -461,5 +483,7 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
     durationMinutes: row.duration_minutes ?? null,
     targetDirection: row.target_direction ?? null,
     spotPriceAtOpen: row.spot_price_at_open != null ? String(row.spot_price_at_open) : null,
+    finalSpotPrice: row.final_spot_price != null ? String(row.final_spot_price) : null,
+    roundResult: row.round_result ?? null,
   };
 }

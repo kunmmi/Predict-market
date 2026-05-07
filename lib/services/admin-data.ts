@@ -34,6 +34,7 @@ export type AdminDashboardData = {
     totalTradeVolume: string;
     totalPlatformFees: string;
     totalPromoterCommissions: string;
+    platformWalletBalance: string;
   };
   recentAdminLogs: Array<{
     id: string;
@@ -64,6 +65,18 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         .limit(8),
     ]);
 
+    let platformWalletBalance = "0";
+
+    const { data: platformWalletRow } = await supabase
+      .from("platform_wallets")
+      .select("balance")
+      .eq("wallet_key", "general_admin")
+      .maybeSingle();
+
+    if (platformWalletRow?.balance != null) {
+      platformWalletBalance = toStr(platformWalletRow.balance as string | number);
+    }
+
     const summaryRow = (summaryRes.data ?? {}) as Partial<AdminSummaryRow>;
     const logs = (logsRes.data ?? []) as AdminLogRow[];
 
@@ -79,6 +92,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         totalTradeVolume: toStr(summaryRow.total_trade_volume),
         totalPlatformFees: toStr(summaryRow.total_platform_fees),
         totalPromoterCommissions: toStr(summaryRow.total_promoter_commissions),
+        platformWalletBalance,
       },
       recentAdminLogs: logs.map((row) => ({
         id: row.id,
@@ -103,6 +117,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
         totalTradeVolume: "0",
         totalPlatformFees: "0",
         totalPromoterCommissions: "0",
+        platformWalletBalance: "0",
       },
       recentAdminLogs: [],
       warning:

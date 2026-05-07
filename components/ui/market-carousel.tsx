@@ -119,7 +119,7 @@ function ShortDurationCard({
     tc.countdown_expired,
   );
   const binanceSymbol = ASSET_TO_BINANCE[market.assetSymbol] ?? null;
-  const { price, prevPrice } = useBinancePrice(binanceSymbol, 5000);
+  const { price, prevPrice } = useBinancePrice(binanceSymbol);
 
   useEffect(() => {
     if (price == null || prevPrice == null || price === prevPrice) return;

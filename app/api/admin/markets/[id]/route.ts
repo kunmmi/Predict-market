@@ -36,10 +36,21 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 
   const supabase = createSupabaseAdminClient();
+  const d = parsed.data;
+
+  let existingDurationMinutes: number | null = null;
+  if (d.close_at !== undefined) {
+    const { data: existingMarket } = await supabase
+      .from("markets")
+      .select("duration_minutes")
+      .eq("id", params.id)
+      .maybeSingle();
+
+    existingDurationMinutes = existingMarket?.duration_minutes ?? null;
+  }
 
   // Build update payload with only defined fields
   const updateData: Record<string, unknown> = {};
-  const d = parsed.data;
   if (d.title !== undefined) updateData.title = d.title;
   if (d.slug !== undefined) updateData.slug = d.slug;
   if (d.description !== undefined) updateData.description = d.description ?? null;
@@ -48,6 +59,11 @@ export async function PATCH(request: Request, { params }: Params) {
   if (d.question_text !== undefined) updateData.question_text = d.question_text;
   if (d.rules_text !== undefined) updateData.rules_text = d.rules_text ?? null;
   if (d.close_at !== undefined) updateData.close_at = d.close_at;
+  if (d.close_at !== undefined) {
+    updateData.cutoff_at = existingDurationMinutes != null
+      ? new Date(new Date(d.close_at).getTime() - 15_000).toISOString()
+      : d.close_at;
+  }
   if (d.settle_at !== undefined) updateData.settle_at = d.settle_at;
   if (d.status !== undefined) updateData.status = d.status;
   if (d.title_zh !== undefined) updateData.title_zh = d.title_zh ?? null;

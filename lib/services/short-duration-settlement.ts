@@ -28,9 +28,10 @@ export type ShortDurationSettlementResult =
   | {
       success: true;
       already?: boolean;
-      outcome?: "yes" | "no";
+      outcome?: "yes" | "no" | "cancelled";
       finalPrice?: number;
       spotAtOpen?: number;
+      roundResult?: "up" | "down" | "flat";
       rolloverCreated?: boolean;
       nextMarketId?: string;
       nextMarketSlug?: string;
@@ -174,12 +175,15 @@ async function createNextShortDurationRound(
       rules_text_zh: market.rules_text_zh ?? null,
       close_at: nextCloseAt.toISOString(),
       settle_at: nextCloseAt.toISOString(),
+      cutoff_at: new Date(nextCloseAt.getTime() - 15_000).toISOString(),
       status: "active",
       created_by: market.created_by,
       resolution_outcome: "unresolved",
       duration_minutes: market.duration_minutes,
       target_direction: null,
       spot_price_at_open: nextSpotPriceAtOpen,
+      final_spot_price: null,
+      round_result: null,
     })
     .select("id, slug, close_at")
     .single();
@@ -314,13 +318,33 @@ export async function settleShortDurationMarketById(
   }
 
   const spotAtOpen = parseFloat(String(market.spot_price_at_open ?? "0"));
-  const outcome: "yes" | "no" = finalPrice >= spotAtOpen ? "yes" : "no";
+  const roundResult: "up" | "down" | "flat" =
+    finalPrice > spotAtOpen ? "up" : finalPrice < spotAtOpen ? "down" : "flat";
+  const outcome: "yes" | "no" | "cancelled" =
+    roundResult === "up" ? "yes" : roundResult === "down" ? "no" : "cancelled";
+
+  const { error: snapshotErr } = await supabase
+    .from("markets")
+    .update({
+      final_spot_price: finalPrice,
+      round_result: roundResult,
+    })
+    .eq("id", marketId)
+    .eq("status", "active");
+
+  if (snapshotErr) {
+    return {
+      success: false,
+      status: 500,
+      message: snapshotErr.message ?? "Failed to snapshot final round price.",
+    };
+  }
 
   const { error: rpcErr } = await supabase.rpc("settle_market", {
     p_market_id: marketId,
     p_resolution: outcome,
     p_admin_profile_id: systemAdminId,
-    p_notes: `Auto-settled: final price $${finalPrice.toFixed(2)}, opened at $${spotAtOpen.toFixed(2)}. Resolved ${outcome === "yes" ? "UP" : "DOWN"}.`,
+    p_notes: `Auto-settled: final price $${finalPrice.toFixed(2)}, opened at $${spotAtOpen.toFixed(2)}. Round result ${roundResult.toUpperCase()}.`,
   });
 
   if (rpcErr) {
@@ -351,6 +375,7 @@ export async function settleShortDurationMarketById(
       outcome,
       finalPrice,
       spotAtOpen,
+      roundResult,
       rolloverCreated: false,
       rolloverError: archiveResult.error,
     };
@@ -363,6 +388,7 @@ export async function settleShortDurationMarketById(
     outcome,
     finalPrice,
     spotAtOpen,
+    roundResult,
     rolloverCreated: rollover.success ? rollover.rolloverCreated : false,
     nextMarketId: rollover.success ? rollover.nextMarketId : undefined,
     nextMarketSlug: rollover.success ? rollover.nextMarketSlug : undefined,

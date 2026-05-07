@@ -1,11 +1,12 @@
 import { z } from "zod";
 
-const withdrawalAssets = ["BTC", "USDT", "USDC", "BNB", "SOL"] as const;
+export const FIXED_WITHDRAWAL_ASSET = "USDT" as const;
+export const FIXED_WITHDRAWAL_NETWORK = "BNB Smart Chain (BEP-20)" as const;
 
-/** Body for POST /api/withdrawals — user creates a pending withdrawal request */
+/** Body for POST /api/withdrawals â€” user creates a pending withdrawal request */
 export const withdrawalCreateSchema = z.object({
-  asset_symbol: z.enum(withdrawalAssets),
-  network_name: z.string().trim().max(200).optional().nullable(),
+  asset_symbol: z.literal(FIXED_WITHDRAWAL_ASSET),
+  network_name: z.literal(FIXED_WITHDRAWAL_NETWORK),
   amount: z
     .string()
     .trim()

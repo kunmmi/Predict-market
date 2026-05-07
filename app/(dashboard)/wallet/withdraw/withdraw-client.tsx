@@ -10,62 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import type { WithdrawalSummary } from "@/lib/services/withdrawal-data";
 import type { Locale, T } from "@/lib/i18n/translations";
 import { statusLabel } from "@/lib/i18n/labels";
-
-const ASSETS = ["BTC", "USDT", "USDC", "BNB", "SOL"] as const;
-type Asset = (typeof ASSETS)[number];
-
-type NetworkOption = { label: string; value: string; sub: string };
-const NETWORK_OPTIONS: Record<string, NetworkOption[]> = {
-  BTC:  [{ label: "Bitcoin", value: "Bitcoin",                  sub: "Native" }],
-  USDT: [
-    { label: "ETH", value: "Ethereum (ERC-20)",        sub: "ERC-20" },
-    { label: "BSC", value: "BNB Smart Chain (BEP-20)", sub: "BEP-20" },
-    { label: "SOL", value: "Solana (SPL)",              sub: "SPL" },
-  ],
-  USDC: [
-    { label: "ETH", value: "Ethereum (ERC-20)",        sub: "ERC-20" },
-    { label: "BSC", value: "BNB Smart Chain (BEP-20)", sub: "BEP-20" },
-    { label: "SOL", value: "Solana (SPL)",              sub: "SPL" },
-  ],
-  BNB:  [{ label: "BSC",    value: "BNB Smart Chain (BEP-20)", sub: "BEP-20" }],
-  SOL:  [{ label: "Solana", value: "Solana",                    sub: "Native" }],
-};
-
-function NetworkPicker({
-  asset,
-  value,
-  onChange,
-}: {
-  asset: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const options = NETWORK_OPTIONS[asset] ?? [];
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((opt) => {
-        const isSelected = value === opt.value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            className={`flex flex-col items-center rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
-              isSelected
-                ? "border-slate-900 bg-slate-900 text-white"
-                : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
-            }`}
-          >
-            <span>{opt.label}</span>
-            <span className={`text-[10px] font-normal ${isSelected ? "text-slate-300" : "text-slate-400"}`}>
-              {opt.sub}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+import {
+  FIXED_WITHDRAWAL_ASSET,
+  FIXED_WITHDRAWAL_NETWORK,
+} from "@/lib/validations/withdrawal";
 
 function StatusBadge({ status, locale }: { status: string; locale: Locale }) {
   const map: Record<string, string> = {
@@ -84,8 +32,6 @@ function StatusBadge({ status, locale }: { status: string; locale: Locale }) {
 }
 
 export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Locale }) {
-  const [asset, setAsset] = React.useState<Asset>("USDT");
-  const [network, setNetwork] = React.useState<string>(NETWORK_OPTIONS["USDT"][0].value);
   const [amount, setAmount] = React.useState("");
   const [address, setAddress] = React.useState("");
   const [notes, setNotes] = React.useState("");
@@ -103,12 +49,6 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
 
   const [history, setHistory] = React.useState<WithdrawalSummary[]>([]);
   const [historyLoading, setHistoryLoading] = React.useState(true);
-
-  // Auto-select first network when asset changes
-  React.useEffect(() => {
-    const first = NETWORK_OPTIONS[asset]?.[0]?.value ?? "";
-    setNetwork(first);
-  }, [asset]);
 
   React.useEffect(() => {
     fetch("/api/wallet")
@@ -155,8 +95,8 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          asset_symbol: asset,
-          network_name: network.trim() || null,
+          asset_symbol: FIXED_WITHDRAWAL_ASSET,
+          network_name: FIXED_WITHDRAWAL_NETWORK,
           amount: String(amountNum),
           withdrawal_address: address.trim(),
           notes: notes.trim() || null,
@@ -170,7 +110,6 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
       setResult({ txHash: json.txHash, cryptoAmount: json.cryptoAmount, asset: json.asset });
       setAmount("");
       setAddress("");
-      setNetwork("");
       setNotes("");
     } catch {
       setError("Network error. Please try again.");
@@ -216,35 +155,16 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
                 </div>
               )}
 
-              {/* Asset */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">{t.label_asset} *</label>
-                <div className="flex flex-wrap gap-2">
-                  {ASSETS.map((a) => {
-                    const isSelected = asset === a;
-                    return (
-                      <button
-                        key={a}
-                        type="button"
-                        onClick={() => setAsset(a)}
-                        className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
-                          isSelected
-                            ? "border-slate-900 bg-slate-900 text-white"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
-                        }`}
-                      >
-                        {a}
-                      </button>
-                    );
-                  })}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-slate-700">{t.label_asset}</label>
+                  <Input value={FIXED_WITHDRAWAL_ASSET} readOnly className="bg-slate-50" />
                 </div>
-              </div>
-
-              {/* Network */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">{t.label_network}</label>
-                <NetworkPicker asset={asset} value={network} onChange={setNetwork} />
-                <p className="text-xs text-slate-500">{t.hint_network}</p>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-slate-700">{t.label_network}</label>
+                  <Input value={FIXED_WITHDRAWAL_NETWORK} readOnly className="bg-slate-50" />
+                  <p className="text-xs text-slate-500">{t.hint_network}</p>
+                </div>
               </div>
 
               {/* Amount */}

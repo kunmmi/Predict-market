@@ -8,8 +8,8 @@ import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { statusLabel } from "@/lib/i18n/labels";
+import LiveCryptoChart from "@/components/ui/live-crypto-chart";
 import { TradeForm } from "./trade-form";
-import { LivePriceTicker } from "./live-price-ticker";
 import { PriceHistoryChart } from "./price-history-chart";
 
 type Props = {
@@ -116,15 +116,40 @@ export default async function MarketDetailPage({ params }: Props) {
         />
       </Card>
 
-      <LivePriceTicker
-        marketId={market.id}
-        marketSlug={market.slug}
-        assetSymbol={market.assetSymbol}
-        closeAt={market.closeAt}
-        isShortDuration={isShortDuration}
-        spotPriceAtOpen={market.spotPriceAtOpen}
-        t={tm}
-      />
+      {isShortDuration ? (
+        <LiveCryptoChart
+          marketId={market.id}
+          marketSlug={market.slug}
+          assetSymbol={market.assetSymbol}
+          closeAt={market.closeAt}
+          durationMinutes={market.durationMinutes}
+          spotPriceAtOpen={market.spotPriceAtOpen}
+          settleLabels={{
+            countdownClosesIn: tm.countdown_closes_in,
+            countdownExpired: tm.countdown_expired,
+            shortDurationBadge: tm.short_duration_badge,
+          }}
+          labels={{
+            title: locale === "zh" ? "5分钟实时价格" : "5-Minute Live Price",
+            subtitle: locale === "zh" ? "Binance实时K线演示" : "Live Binance candles with a local 5-minute demo round",
+            currentPrice: locale === "zh" ? "当前价格" : "Current price",
+            openingPrice: locale === "zh" ? "开盘价格" : "Opening price",
+            priceDifference: locale === "zh" ? "价格变化" : "Price difference",
+            roundResult: locale === "zh" ? "本轮结果" : "Round result",
+            countdown: locale === "zh" ? "倒计时" : "Countdown",
+            priceToBeat: tm.target_price_label,
+            reconnect: locale === "zh" ? "重新连接" : "Reconnect",
+            loading: locale === "zh" ? "加载中" : "Loading",
+            disconnected: locale === "zh" ? "已断开" : "Disconnected",
+            reconnecting: locale === "zh" ? "重连中" : "Reconnecting",
+            connected: locale === "zh" ? "已连接" : "Connected",
+            waiting: locale === "zh" ? "等待Binance实时K线..." : "Waiting for live Binance candles.",
+            up: locale === "zh" ? "上涨" : "UP",
+            down: locale === "zh" ? "下跌" : "DOWN",
+            flat: locale === "zh" ? "持平" : "FLAT",
+          }}
+        />
+      ) : null}
 
       {/* Price + Date cards */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -192,6 +217,10 @@ export default async function MarketDetailPage({ params }: Props) {
         noPrice={market.latestNoPrice}
         marketStatus={market.status}
         isShortDuration={isShortDuration}
+        assetSymbol={market.assetSymbol}
+        closeAt={market.closeAt}
+        cutoffAt={market.cutoffAt}
+        spotPriceAtOpen={market.spotPriceAtOpen}
         locale={locale}
         t={t.trade}
       />

@@ -1,5 +1,8 @@
 import { requireAdmin } from "@/lib/auth/require-admin";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/helpers/cn";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getAdminDashboardData } from "@/lib/services/admin-data";
 
@@ -26,6 +29,10 @@ export default async function AdminHomePage() {
       label: "Promoter commissions",
       value: formatDecimal(data.summary.totalPromoterCommissions, 2),
     },
+    {
+      label: "Platform wallet balance",
+      value: formatDecimal(data.summary.platformWalletBalance, 2),
+    },
   ];
 
   return (
@@ -33,6 +40,14 @@ export default async function AdminHomePage() {
       <div className="space-y-2">
         <h1 className="page-title">Admin dashboard</h1>
         <p className="text-sm text-slate-600">Signed in as {profile.email}</p>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/platform-wallet" className={cn(buttonVariants({ size: "sm" }))}>
+            Open platform wallet
+          </Link>
+          <Link href="/admin/platform-wallet" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+            Withdraw funds
+          </Link>
+        </div>
         {data.warning ? (
           <p className="text-sm text-amber-700">
             Admin metrics are limited: {data.warning}

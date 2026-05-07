@@ -70,6 +70,7 @@ export async function POST(request: Request) {
 
   let close_at = parsed.data.close_at;
   let settle_at = parsed.data.settle_at;
+  let cutoff_at: string | null = null;
   let spot_price_at_open: number | null = null;
 
   // Short-duration market: compute close/settle times and fetch live Binance price
@@ -92,6 +93,7 @@ export async function POST(request: Request) {
     const closeTime = new Date(Date.now() + duration_minutes * 60_000).toISOString();
     close_at = closeTime;
     settle_at = closeTime;
+    cutoff_at = new Date(new Date(closeTime).getTime() - 15_000).toISOString();
   }
 
   if (!close_at || !settle_at) {
@@ -99,6 +101,12 @@ export async function POST(request: Request) {
       { success: false, message: "close_at and settle_at are required for standard markets." },
       { status: 400 },
     );
+  }
+
+  if (!cutoff_at) {
+    cutoff_at = duration_minutes != null
+      ? new Date(new Date(close_at).getTime() - 15_000).toISOString()
+      : close_at;
   }
 
   const supabase = createSupabaseAdminClient();
@@ -114,6 +122,7 @@ export async function POST(request: Request) {
       question_text,
       rules_text: rules_text ?? null,
       close_at,
+      cutoff_at,
       settle_at,
       status: status ?? "draft",
       created_by: adminProfileId,

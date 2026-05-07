@@ -8,15 +8,15 @@ export type BinancePriceState = {
   error: string | null;
 };
 
+type BinanceTradeMessage = {
+  p?: string;
+};
+
 /**
- * Polls the Binance public REST API every `intervalMs` milliseconds.
- * Returns the current price and the previous price (for flash animations).
- * Cleans up on unmount.
+ * Streams live prices from Binance over WebSocket.
+ * Falls back to an initial REST fetch so the UI has a price immediately.
  */
-export function useBinancePrice(
-  binanceSymbol: string | null,
-  intervalMs = 10_000,
-): BinancePriceState {
+export function useBinancePrice(binanceSymbol: string | null): BinancePriceState {
   const [state, setState] = useState<BinancePriceState>({
     price: null,
     prevPrice: null,
@@ -27,45 +27,94 @@ export function useBinancePrice(
 
   useEffect(() => {
     if (!binanceSymbol) return;
+    const symbol = binanceSymbol;
 
-    let aborted = false;
+    let cancelled = false;
+    let socket: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     const controller = new AbortController();
 
-    async function fetchPrice() {
+    function updatePrice(nextPrice: number) {
+      if (cancelled || Number.isNaN(nextPrice)) return;
+
+      setState((prev) => {
+        prevPriceRef.current = prev.price;
+        return {
+          price: nextPrice,
+          prevPrice: prevPriceRef.current,
+          error: null,
+        };
+      });
+    }
+
+    async function fetchInitialPrice() {
       try {
         const res = await fetch(
-          `https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(binanceSymbol!)}`,
+          `https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(symbol)}`,
           { signal: controller.signal },
         );
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = (await res.json()) as { price: string };
-        const newPrice = parseFloat(data.price);
-        if (!isNaN(newPrice) && !aborted) {
-          setState((prev) => {
-            prevPriceRef.current = prev.price;
-            return { price: newPrice, prevPrice: prevPriceRef.current, error: null };
-          });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
+
+        const data = (await res.json()) as { price: string };
+        updatePrice(parseFloat(data.price));
       } catch (err) {
-        if (!aborted) {
-          const msg = err instanceof Error ? err.message : "Price fetch failed";
-          if (msg !== "AbortError") {
-            setState((prev) => ({ ...prev, error: msg }));
-          }
+        if (cancelled) return;
+
+        const message = err instanceof Error ? err.message : "Initial price fetch failed";
+        if (message !== "AbortError") {
+          setState((prev) => ({ ...prev, error: message }));
         }
       }
     }
 
-    // Fetch immediately, then on interval
-    fetchPrice();
-    const id = setInterval(fetchPrice, intervalMs);
+    function connect() {
+      if (cancelled) return;
+
+      socket = new WebSocket(
+        `wss://stream.binance.com:9443/ws/${encodeURIComponent(symbol.toLowerCase())}@trade`,
+      );
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as BinanceTradeMessage;
+          if (!data.p) return;
+          updatePrice(parseFloat(data.p));
+        } catch {
+          // Ignore malformed messages from the stream.
+        }
+      };
+
+      socket.onerror = () => {
+        if (cancelled) return;
+        setState((prev) => ({ ...prev, error: "Live price stream unavailable." }));
+      };
+
+      socket.onclose = () => {
+        if (cancelled) return;
+
+        reconnectTimer = setTimeout(() => {
+          connect();
+        }, 1_500);
+      };
+    }
+
+    void fetchInitialPrice();
+    connect();
 
     return () => {
-      aborted = true;
+      cancelled = true;
       controller.abort();
-      clearInterval(id);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      } else if (socket && socket.readyState === WebSocket.CONNECTING) {
+        socket.close();
+      }
     };
-  }, [binanceSymbol, intervalMs]);
+  }, [binanceSymbol]);
 
   return state;
 }

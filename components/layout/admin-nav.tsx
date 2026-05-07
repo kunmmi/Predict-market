@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3, LayoutDashboard, TrendingUp, ArrowDownLeft, ArrowUpRight,
-  Users, UserCheck, BarChart2, GitBranch, ScrollText, DollarSign
+  Users, UserCheck, BarChart2, GitBranch, ScrollText, DollarSign, Wallet
 } from "lucide-react";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -24,6 +24,7 @@ export function AdminNav({ locale, t }: Props) {
     { href: "/admin/users",       label: t.users,       en: "Users",       icon: Users },
     { href: "/admin/promoters",   label: t.promoters,   en: "Promoters",   icon: UserCheck },
     { href: "/admin/commissions", label: t.commissions, en: "Commissions", icon: DollarSign },
+    { href: "/admin/platform-wallet", label: t.platform_wallet, en: "Platform Wallet", icon: Wallet },
     { href: "/admin/referrals",   label: t.referrals,   en: "Referrals",   icon: GitBranch },
     { href: "/admin/logs",        label: t.logs,        en: "Logs",        icon: ScrollText },
   ];
