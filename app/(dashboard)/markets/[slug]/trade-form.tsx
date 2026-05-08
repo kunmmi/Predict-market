@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
-import { useBinancePrice } from "@/lib/hooks/use-binance-price";
+import { useBinanceKlineStream } from "@/lib/hooks/use-binance-kline-stream";
 import type { Locale, T } from "@/lib/i18n/translations";
 import { sideLabel } from "@/lib/i18n/labels";
 import {
+  computeBinaryYesPrice,
   getPredictionDirectionFromTradeSide,
   getRewardPreview,
   getShortDurationCutoffAt,
@@ -71,7 +72,24 @@ export function TradeForm({
   const [now, setNow] = useState<number | null>(null);
 
   const binanceSymbol = isShortDuration ? ASSET_TO_BINANCE[assetSymbol] ?? null : null;
-  const { price: liveSpotPrice } = useBinancePrice(binanceSymbol);
+  const { currentPrice: liveSpotPrice, candles } = useBinanceKlineStream(binanceSymbol);
+
+  const liveYesPrice = useMemo(() => {
+    if (!isShortDuration || liveSpotPrice == null || spotPriceAtOpen == null || now == null) return yesPrice;
+    const secondsRemaining = Math.max(0, Math.floor((new Date(closeAt).getTime() - now) / 1000));
+    return String(computeBinaryYesPrice({
+      currentSpotPrice: liveSpotPrice,
+      openingSpotPrice: Number(spotPriceAtOpen),
+      secondsRemaining,
+      recentCandles: candles,
+    }));
+  }, [isShortDuration, liveSpotPrice, spotPriceAtOpen, now, closeAt, yesPrice, candles]);
+
+  const liveNoPrice = useMemo(() => {
+    if (liveYesPrice == null) return noPrice;
+    const yes = parseFloat(liveYesPrice);
+    return String(Math.max(0.01, Math.min(0.99, 1 - yes)));
+  }, [liveYesPrice, noPrice]);
 
   useEffect(() => {
     async function fetchWallet() {
@@ -98,7 +116,7 @@ export function TradeForm({
     return () => window.clearInterval(interval);
   }, []);
 
-  const currentPrice = side === "yes" ? yesPrice : noPrice;
+  const currentPrice = side === "yes" ? liveYesPrice : liveNoPrice;
   const priceNum = currentPrice != null ? parseFloat(currentPrice) : null;
   const amountNum = parseFloat(amount);
   const isValidAmount = !Number.isNaN(amountNum) && amountNum > 0;
@@ -299,7 +317,7 @@ export function TradeForm({
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {upLabel} {yesPrice != null ? `@ $${parseFloat(yesPrice).toFixed(2)}` : ""}
+                  {upLabel} {liveYesPrice != null ? `@ $${parseFloat(liveYesPrice).toFixed(2)}` : ""}
                 </button>
                 <button
                   type="button"
@@ -311,7 +329,7 @@ export function TradeForm({
                       : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  {downLabel} {noPrice != null ? `@ $${parseFloat(noPrice).toFixed(2)}` : ""}
+                  {downLabel} {liveNoPrice != null ? `@ $${parseFloat(liveNoPrice).toFixed(2)}` : ""}
                 </button>
               </div>
             </div>
