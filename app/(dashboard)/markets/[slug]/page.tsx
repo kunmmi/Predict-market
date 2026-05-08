@@ -1,10 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
 import { getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
+import { settleShortDurationMarketById } from "@/lib/services/short-duration-settlement";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,15 @@ export default async function MarketDetailPage({ params }: Props) {
     getMarketBySlug(params.slug),
   ]);
   if (!market) notFound();
+
+  // If this is a short-duration market and its window has already closed,
+  // settle it server-side and redirect to the current active round immediately.
+  if (market.durationMinutes != null && new Date(market.closeAt) <= new Date()) {
+    const result = await settleShortDurationMarketById(market.id);
+    const nextSlug = result.success ? result.nextMarketSlug : null;
+    redirect(`/markets/${nextSlug ?? params.slug}`);
+  }
+
   const priceHistory = await getMarketPriceHistory(market.id);
 
   const locale = getLocale();
