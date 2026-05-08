@@ -101,6 +101,16 @@ export function LivePriceTicker({
     [spotPriceAtOpen],
   );
 
+  // Refresh server data when tab regains visibility (e.g. after laptop wake).
+  // This ensures closeAt is up-to-date before MarketCountdown fires onExpired.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [router]);
+
   useEffect(() => {
     let frameId = 0;
     let lastPaint = 0;
