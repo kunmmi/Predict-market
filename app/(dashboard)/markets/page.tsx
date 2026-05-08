@@ -9,9 +9,7 @@ import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
-import type { Locale } from "@/lib/i18n/translations";
 import { Card } from "@/components/ui/card";
-import { MarketsAutoRefresh } from "./markets-auto-refresh";
 
 function ProbabilityBar({
   yesPrice,
@@ -43,29 +41,14 @@ function ProbabilityBar({
   );
 }
 
-function formatTargetPrice(value: string | null): string {
-  if (value == null) return "-";
-  return `$${formatDecimal(value, 2)}`;
-}
-
-function shortDurationLabels(locale: Locale) {
-  return {
-    positive: locale === "zh" ? "看涨" : "UP",
-    negative: locale === "zh" ? "看跌" : "DOWN",
-  };
-}
-
 export default async function MarketsPage() {
   await requireUser();
   const markets = await getActiveMarkets();
   const locale = getLocale();
   const t = getT(locale).markets;
   const dateLocale = locale === "zh" ? "zh-CN" : "en-US";
-  const hasShortDurationMarkets = markets.some((market) => market.durationMinutes != null);
-
   return (
     <div className="space-y-8">
-      <MarketsAutoRefresh enabled={hasShortDurationMarkets} />
       <div>
         <h1 className="page-title">{t.title}</h1>
         <p className="page-subtitle">{t.subtitle}</p>
@@ -81,9 +64,8 @@ export default async function MarketsPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {markets.map((market) => {
             const isShortDuration = market.durationMinutes != null;
-            const liveLabels = shortDurationLabels(locale);
-            const positiveLabel = isShortDuration ? liveLabels.positive : sideLabel("yes", locale);
-            const negativeLabel = isShortDuration ? liveLabels.negative : sideLabel("no", locale);
+            const positiveLabel = sideLabel("yes", locale);
+            const negativeLabel = sideLabel("no", locale);
 
             return (
               <Link key={market.id} href={`/markets/${market.slug}`} className="group block">
@@ -123,72 +105,18 @@ export default async function MarketsPage() {
                         </span>
                       </div>
 
-                      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_148px] md:items-start">
-                        <div className="min-w-0">
-                          <h3 className="line-clamp-2 text-lg font-semibold leading-snug text-white">
-                            {locale === "zh" && market.titleZh ? market.titleZh : market.title}
-                          </h3>
-                          <div className="mt-3 rounded-2xl border border-white/8 bg-white/5 px-3.5 py-3 backdrop-blur-sm">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                              {t.target_price_label}
-                            </p>
-                            <p className="mt-1 text-lg font-semibold text-white">
-                              {formatTargetPrice(market.spotPriceAtOpen)}
-                            </p>
-                          </div>
-                          <div className="mt-3 max-w-md">
-                            <ProbabilityBar
-                              yesPrice={market.yesPrice}
-                              positiveLabel={positiveLabel}
-                              negativeLabel={negativeLabel}
-                            />
-                          </div>
-                        </div>
+                      <h3 className="mt-4 line-clamp-2 text-lg font-semibold leading-snug text-white">
+                        {locale === "zh" && market.titleZh ? market.titleZh : market.title}
+                      </h3>
 
-                        <div className="rounded-2xl border border-white/10 bg-white/7 p-3.5 backdrop-blur-sm">
-                          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">{t.closes}</p>
-                          <p className="mt-2 text-sm font-semibold leading-snug text-white">
-                            {new Date(market.closeAt).toLocaleDateString(dateLocale, {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-emerald-300/20 bg-emerald-400/10 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-emerald-200">
-                              {positiveLabel}
-                            </p>
-                            <ChevronRight className="h-4 w-4 text-emerald-200/80 transition-transform group-hover:translate-x-0.5" />
-                          </div>
-                          <p className="mt-2 text-[1.85rem] font-bold leading-none text-emerald-100">
-                            {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "-"}
-                          </p>
-                          <p className="mt-2 text-xs font-medium text-emerald-200/80">{t.quick_entry}</p>
-                        </div>
-                        <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-[11px] uppercase tracking-[0.18em] text-rose-200">
-                              {negativeLabel}
-                            </p>
-                            <ChevronRight className="h-4 w-4 text-rose-200/80 transition-transform group-hover:translate-x-0.5" />
-                          </div>
-                          <p className="mt-2 text-[1.85rem] font-bold leading-none text-rose-100">
-                            {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "-"}
-                          </p>
-                          <p className="mt-2 text-xs font-medium text-rose-200/80">{t.quick_entry}</p>
-                        </div>
-                      </div>
+                      <p className="mt-2 text-sm text-slate-400">
+                        {locale === "zh" ? "进入市场查看实时价格和交易" : "Enter to see live prices and trade"}
+                      </p>
 
                       <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 text-sm">
                         <span className="text-slate-300">{t.trade_now}</span>
                         <span className="inline-flex items-center gap-1 font-semibold text-emerald-200">
-                          {positiveLabel} / {negativeLabel} <ChevronRight className="h-4 w-4" />
+                          {locale === "zh" ? "查看详情" : "View live market"} <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                         </span>
                       </div>
                     </div>
