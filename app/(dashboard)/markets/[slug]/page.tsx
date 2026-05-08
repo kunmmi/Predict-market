@@ -56,7 +56,9 @@ export default async function MarketDetailPage({ params }: Props) {
   if (market.durationMinutes != null && new Date(market.closeAt) <= new Date()) {
     const result = await settleShortDurationMarketById(market.id);
     const nextSlug = result.success ? result.nextMarketSlug : null;
-    redirect(`/markets/${nextSlug ?? params.slug}`);
+    if (nextSlug && nextSlug !== params.slug) {
+      redirect(`/markets/${nextSlug}`);
+    }
   }
 
   const priceHistory = await getMarketPriceHistory(market.id);
