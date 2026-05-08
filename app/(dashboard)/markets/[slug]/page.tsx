@@ -171,42 +171,46 @@ export default async function MarketDetailPage({ params }: Props) {
         />
       ) : null}
 
-      {/* Price + Date cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{positiveLabel}</p>
-                <p className="mt-1.5 text-2xl font-bold text-green-600 tabular-nums">
-                  {market.latestYesPrice != null
-                    ? `$${formatDecimal(market.latestYesPrice, 2)}`
-                    : "—"}
-                </p>
+      {/* Price + Date cards — for short-duration markets only show the close time */}
+      <div className={`grid gap-4 ${isShortDuration ? "sm:grid-cols-1 max-w-xs" : "sm:grid-cols-3"}`}>
+        {!isShortDuration && (
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{positiveLabel}</p>
+                  <p className="mt-1.5 text-2xl font-bold text-green-600 tabular-nums">
+                    {market.latestYesPrice != null
+                      ? `$${formatDecimal(market.latestYesPrice, 2)}`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                </div>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100">
-                <TrendingUp className="h-4 w-4 text-green-600" />
+            </CardContent>
+          </Card>
+        )}
+        {!isShortDuration && (
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{negativeLabel}</p>
+                  <p className="mt-1.5 text-2xl font-bold text-red-500 tabular-nums">
+                    {market.latestNoPrice != null
+                      ? `$${formatDecimal(market.latestNoPrice, 2)}`
+                      : "—"}
+                  </p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100">
+                  <TrendingDown className="h-4 w-4 text-red-500" />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{negativeLabel}</p>
-                <p className="mt-1.5 text-2xl font-bold text-red-500 tabular-nums">
-                  {market.latestNoPrice != null
-                    ? `$${formatDecimal(market.latestNoPrice, 2)}`
-                    : "—"}
-                </p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100">
-                <TrendingDown className="h-4 w-4 text-red-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="pt-5 pb-4">
             <div className="flex items-start justify-between">
