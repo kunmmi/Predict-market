@@ -226,7 +226,7 @@ export function TradeForm({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isShortDuration && rewardPreview ? (
+            {isShortDuration && rewardPreview && now != null ? (
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
