@@ -45,19 +45,25 @@ function ProbabilityBar({
 }
 
 export default async function MarketDetailPage({ params }: Props) {
-  const [, market] = await Promise.all([
+  const [, fetchedMarket] = await Promise.all([
     requireUser(),
     getMarketBySlug(params.slug),
   ]);
-  if (!market) notFound();
+  if (!fetchedMarket) notFound();
+  let market = fetchedMarket;
 
   // If this is a short-duration market and its window has already closed,
-  // settle it server-side and redirect to the current active round immediately.
+  // settle it server-side then re-fetch so we always render the current active round.
   if (market.durationMinutes != null && new Date(market.closeAt) <= new Date()) {
     const result = await settleShortDurationMarketById(market.id);
     const nextSlug = result.success ? result.nextMarketSlug : null;
     if (nextSlug && nextSlug !== params.slug) {
       redirect(`/markets/${nextSlug}`);
+    }
+    // Re-fetch — the slug now points to the newly created round
+    const refreshed = await getMarketBySlug(params.slug);
+    if (refreshed && new Date(refreshed.closeAt) > new Date()) {
+      market = refreshed;
     }
   }
 
