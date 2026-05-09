@@ -14,6 +14,7 @@ import { statusLabel } from "@/lib/i18n/labels";
 import LiveCryptoChart from "@/components/ui/live-crypto-chart";
 import { TradeForm } from "./trade-form";
 import { PriceHistoryChart } from "./price-history-chart";
+import { LiveProbabilityBar } from "./live-probability-bar";
 
 type Props = {
   params: { slug: string };
@@ -129,11 +130,22 @@ export default async function MarketDetailPage({ params }: Props) {
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
           {tm.current_probability}
         </p>
-        <ProbabilityBar
-          yesPrice={market.latestYesPrice}
-          probYes={tm.prob_yes}
-          probNo={tm.prob_no}
-        />
+        {isShortDuration ? (
+          <LiveProbabilityBar
+            assetSymbol={market.assetSymbol}
+            spotPriceAtOpen={market.spotPriceAtOpen}
+            closeAt={market.closeAt}
+            upLabel={positiveLabel}
+            downLabel={negativeLabel}
+            fallbackYesPrice={market.latestYesPrice}
+          />
+        ) : (
+          <ProbabilityBar
+            yesPrice={market.latestYesPrice}
+            probYes={tm.prob_yes}
+            probNo={tm.prob_no}
+          />
+        )}
       </Card>
 
       {isShortDuration ? (
