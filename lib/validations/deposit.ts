@@ -21,6 +21,7 @@ export const depositCreateSchema = z.object({
     }, "Expected amount must be greater than zero."),
   tx_hash: z.string().trim().max(500).optional().nullable(),
   deposit_address: z.string().trim().max(500).optional().nullable(),
+  sender_wallet: z.string().trim().regex(/^0x[0-9a-fA-F]{40}$/, "Invalid wallet address").optional().nullable(),
 });
 
 export type DepositCreateInput = z.infer<typeof depositCreateSchema>;

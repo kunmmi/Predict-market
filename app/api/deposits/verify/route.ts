@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   // 1. Load the deposit — must belong to this user and be pending
   const { data: deposit } = await supabase
     .from("deposits")
-    .select("id, status, tx_hash, asset_symbol, amount_expected, deposit_address")
+    .select("id, status, tx_hash, asset_symbol, amount_expected, deposit_address, sender_wallet")
     .eq("id", depositId)
     .eq("profile_id", profileId)
     .maybeSingle();
@@ -105,10 +105,11 @@ export async function POST(request: Request) {
   // 4. Verify on-chain
   const platformAddress = (deposit.deposit_address as string | null) ??
     ASSET_ADDRESS_CONFIG["USDT"].address ?? "";
+  const senderWallet = (deposit.sender_wallet as string | null) ?? null;
 
   let verifiedAmount: string;
   try {
-    verifiedAmount = await verifyBscUsdtTx(txHash, platformAddress.toLowerCase());
+    verifiedAmount = await verifyBscUsdtTx(txHash, platformAddress.toLowerCase(), senderWallet?.toLowerCase() ?? null);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "On-chain verification failed.";
     return NextResponse.json({ success: false, message: msg }, { status: 422 });
@@ -130,22 +131,44 @@ export async function POST(request: Request) {
   return NextResponse.json({ success: true, amountReceived: verifiedAmount });
 }
 
+const MIN_CONFIRMATIONS = 15;
+
 /**
  * Verifies a BSC USDT transfer transaction.
+ * Checks: tx exists, succeeded, has enough confirmations, sent to platform address,
+ * and (if provided) was sent FROM the expected sender wallet.
  * Returns the human-readable USDT amount on success.
- * Throws a descriptive error if the tx is invalid, unconfirmed, or doesn't match.
  */
-async function verifyBscUsdtTx(txHash: string, expectedRecipient: string): Promise<string> {
+async function verifyBscUsdtTx(
+  txHash: string,
+  expectedRecipient: string,
+  expectedSender: string | null,
+): Promise<string> {
   const provider = new ethers.JsonRpcProvider(BSC_RPC);
 
-  const receipt = await provider.getTransactionReceipt(txHash);
+  const [receipt, tx, currentBlock] = await Promise.all([
+    provider.getTransactionReceipt(txHash),
+    provider.getTransaction(txHash),
+    provider.getBlockNumber(),
+  ]);
 
-  if (!receipt) {
-    throw new Error("Transaction not found on BSC. It may still be pending — please wait for confirmation.");
+  if (!receipt || !tx) {
+    throw new Error("Transaction not found on BSC. It may still be pending — please wait a moment and try again.");
   }
 
   if (receipt.status !== 1) {
     throw new Error("Transaction failed on-chain. No funds were transferred.");
+  }
+
+  // Confirmation check — prevents approving txs that could still be reorganised
+  const confirmations = currentBlock - receipt.blockNumber;
+  if (confirmations < MIN_CONFIRMATIONS) {
+    throw new Error(`Transaction has ${confirmations} confirmation(s). Please wait for ${MIN_CONFIRMATIONS} before verifying.`);
+  }
+
+  // Sender check — if we know who should have sent this, verify it
+  if (expectedSender && tx.from.toLowerCase() !== expectedSender.toLowerCase()) {
+    throw new Error("Transaction sender does not match your connected wallet. Contact support if you believe this is an error.");
   }
 
   // Find the USDT Transfer log matching our platform address
@@ -158,13 +181,11 @@ async function verifyBscUsdtTx(txHash: string, expectedRecipient: string): Promi
       continue;
     }
 
-    // topics[2] is the recipient address (padded to 32 bytes)
     const recipient = "0x" + log.topics[2]!.slice(-40);
     if (recipient.toLowerCase() !== expectedRecipient.toLowerCase()) {
       continue;
     }
 
-    // Decode the amount (18 decimals)
     const amountRaw = BigInt(log.data);
     const amount = ethers.formatUnits(amountRaw, 18);
     return amount;

@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { amount_expected, tx_hash, deposit_address } = parsed.data;
+  const { amount_expected, tx_hash, deposit_address, sender_wallet } = parsed.data;
   const asset_symbol = FIXED_SETTLEMENT_ASSET;
   const network_name = FIXED_SETTLEMENT_NETWORK;
 
@@ -99,6 +99,7 @@ export async function POST(request: Request) {
       amount_expected: amount_expected || null,
       tx_hash: tx_hash || null,
       deposit_address: resolvedDepositAddress,
+      sender_wallet: sender_wallet?.toLowerCase() || null,
       status: "pending",
     })
     .select("id")
