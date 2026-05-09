@@ -9,7 +9,6 @@
     "lint": "next lint",
     "format": "prettier --write . --ignore-path .gitignore",
     "format:check": "prettier --check . --ignore-path .gitignore",
-    "invoice:monthly": "tsx scripts/monthly-invoice-row-creator.ts",
     "seed": "npx tsx scripts/seed.ts",
     "setup:tatum": "npx tsx scripts/setup-tatum-subscriptions.ts",
     "test": "playwright test",
