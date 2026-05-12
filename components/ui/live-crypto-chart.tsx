@@ -144,6 +144,7 @@ export default function LiveCryptoChart({
   const [pulseDirection, setPulseDirection] = useState<"up" | "down" | null>(null);
   const [settling, setSettling] = useState(false);
   const settlingRef = useRef(false);
+  const retryCountRef = useRef(0);
   const previousPriceRef = useRef<number | null>(null);
   const hasData = candles.length > 0;
 
@@ -164,7 +165,19 @@ export default function LiveCryptoChart({
           | { success?: boolean; nextMarketSlug?: string }
           | null;
 
-        if (!response.ok || !json?.success) return;
+        if (!response.ok || !json?.success) {
+          // Settlement failed (e.g. Binance 502). Retry via server refresh up to 3 times.
+          if (retryCountRef.current < 3) {
+            retryCountRef.current += 1;
+            setTimeout(() => {
+              settlingRef.current = false;
+              router.refresh();
+            }, 5_000);
+          }
+          return;
+        }
+
+        retryCountRef.current = 0;
 
         if (json.nextMarketSlug && json.nextMarketSlug !== marketSlug) {
           router.replace(`/markets/${json.nextMarketSlug}`);
