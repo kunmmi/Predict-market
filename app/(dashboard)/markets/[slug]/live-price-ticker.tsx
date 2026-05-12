@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +89,7 @@ export function LivePriceTicker({
   const router = useRouter();
   const [direction, setDirection] = useState<"up" | "down" | null>(null);
   const [settling, setSettling] = useState(false);
+  const settlingRef = useRef(false);
   const [recentPrices, setRecentPrices] = useState<PricePoint[]>([]);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
   const binanceSymbol = isShortDuration ? (ASSET_TO_BINANCE[assetSymbol] ?? null) : null;
@@ -157,8 +158,12 @@ export function LivePriceTicker({
   }, [durationMs, price]);
 
   const handleExpired = useCallback(() => {
-    if (settling) return;
-
+    // Use a ref instead of the `settling` state so this callback's reference
+    // stays stable. If `settling` were in the deps, every toggle would produce
+    // a new function → MarketCountdown's useEffect would re-run → firedRef
+    // would reset → onExpired fires again → infinite loop.
+    if (settlingRef.current) return;
+    settlingRef.current = true;
     setSettling(true);
 
     void fetch(`/api/markets/${marketId}/auto-settle`, {
@@ -180,9 +185,10 @@ export function LivePriceTicker({
       })
       .catch(() => undefined)
       .finally(() => {
+        settlingRef.current = false;
         setSettling(false);
       });
-  }, [marketId, marketSlug, router, settling]);
+  }, [marketId, marketSlug, router]);
 
   const priceClassName = useMemo(() => {
     if (direction === "up") return "text-green-500";

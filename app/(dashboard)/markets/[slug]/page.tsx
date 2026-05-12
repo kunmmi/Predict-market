@@ -55,7 +55,10 @@ export default async function MarketDetailPage({ params }: Props) {
 
   // If this is a short-duration market and its window has already closed,
   // settle it server-side then re-fetch so we always render the current active round.
-  if (market.durationMinutes != null && new Date(market.closeAt) <= new Date()) {
+  // Only attempt settlement when the market is still active — already-settled markets
+  // would return success:false from settleShortDurationMarketById and leave the page
+  // rendering a stale expired market, which triggers an infinite client-side loop.
+  if (market.durationMinutes != null && market.status === "active" && new Date(market.closeAt) <= new Date()) {
     const result = await settleShortDurationMarketById(market.id);
     const nextSlug = result.success ? result.nextMarketSlug : null;
     if (nextSlug && nextSlug !== params.slug) {
