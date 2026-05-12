@@ -119,7 +119,7 @@ export function TradeForm({
   const currentPrice = side === "yes" ? liveYesPrice : liveNoPrice;
   const priceNum = currentPrice != null ? parseFloat(currentPrice) : null;
   const amountNum = parseFloat(amount);
-  const isValidAmount = !Number.isNaN(amountNum) && amountNum > 0;
+  const isValidAmount = !Number.isNaN(amountNum) && amountNum > 0 && amountNum <= 100;
 
   const estimatedUnits =
     isValidAmount && priceNum != null && priceNum > 0 ? (amountNum / priceNum).toFixed(4) : null;
@@ -339,6 +339,7 @@ export function TradeForm({
               <Input
                 type="number"
                 min="0.01"
+                max="100"
                 step="0.01"
                 placeholder="10.00"
                 value={amount}
@@ -349,6 +350,9 @@ export function TradeForm({
                 required
                 disabled={isPredictionClosed}
               />
+              {!Number.isNaN(amountNum) && amountNum > 100 && (
+                <p className="text-xs font-medium text-red-600">Maximum bet is $100.</p>
+              )}
               {walletLoading ? (
                 <p className="text-xs text-slate-400">{t.loading_balance}</p>
               ) : availableBalance != null ? (
