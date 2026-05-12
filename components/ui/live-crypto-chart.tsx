@@ -143,12 +143,13 @@ export default function LiveCryptoChart({
 
   const [pulseDirection, setPulseDirection] = useState<"up" | "down" | null>(null);
   const [settling, setSettling] = useState(false);
+  const settlingRef = useRef(false);
   const previousPriceRef = useRef<number | null>(null);
   const hasData = candles.length > 0;
 
   const handleExpired = useCallback(() => {
-    if (!marketId || !marketSlug || settling) return;
-
+    if (!marketId || !marketSlug || settlingRef.current) return;
+    settlingRef.current = true;
     setSettling(true);
 
     void fetch(`/api/markets/${marketId}/auto-settle`, {
@@ -170,9 +171,10 @@ export default function LiveCryptoChart({
       })
       .catch(() => undefined)
       .finally(() => {
+        settlingRef.current = false;
         setSettling(false);
       });
-  }, [marketId, marketSlug, router, settling]);
+  }, [marketId, marketSlug, router]);
 
   useEffect(() => {
     if (currentPrice == null) return;
