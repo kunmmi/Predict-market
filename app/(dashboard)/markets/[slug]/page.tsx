@@ -53,21 +53,30 @@ export default async function MarketDetailPage({ params }: Props) {
   if (!fetchedMarket) notFound();
   let market = fetchedMarket;
 
-  // If this is a short-duration market and its window has already closed,
-  // settle it server-side then re-fetch so we always render the current active round.
-  // Only attempt settlement when the market is still active — already-settled markets
-  // would return success:false from settleShortDurationMarketById and leave the page
-  // rendering a stale expired market, which triggers an infinite client-side loop.
-  if (market.durationMinutes != null && market.status === "active" && new Date(market.closeAt) <= new Date()) {
-    const result = await settleShortDurationMarketById(market.id);
-    const nextSlug = result.success ? result.nextMarketSlug : null;
-    if (nextSlug && nextSlug !== params.slug) {
-      redirect(`/markets/${nextSlug}`);
-    }
-    // Re-fetch — the slug now points to the newly created round
-    const refreshed = await getMarketBySlug(params.slug);
-    if (refreshed && new Date(refreshed.closeAt) > new Date()) {
-      market = refreshed;
+  if (market.durationMinutes != null) {
+    const isExpired = new Date(market.closeAt) <= new Date();
+
+    if (market.status === "active" && isExpired) {
+      // Active but window closed — settle and redirect to the new round.
+      const result = await settleShortDurationMarketById(market.id);
+      const nextSlug = result.success ? result.nextMarketSlug : null;
+      if (nextSlug && nextSlug !== params.slug) {
+        redirect(`/markets/${nextSlug}`);
+      }
+      // Re-fetch in case the new round reuses the same base slug.
+      const refreshed = await getMarketBySlug(params.slug);
+      if (refreshed && new Date(refreshed.closeAt) > new Date()) {
+        market = refreshed;
+      }
+    } else if (market.status !== "active") {
+      // Already settled/cancelled — look up the current active round and redirect.
+      // settleShortDurationMarketById handles non-active markets by finding the
+      // active round without re-settling, so it's safe to call here.
+      const result = await settleShortDurationMarketById(market.id);
+      const nextSlug = result.success ? result.nextMarketSlug : null;
+      if (nextSlug && nextSlug !== params.slug) {
+        redirect(`/markets/${nextSlug}`);
+      }
     }
   }
 
