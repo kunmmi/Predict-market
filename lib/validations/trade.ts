@@ -7,7 +7,8 @@ export const tradePlaceSchema = z.object({
   amount: z
     .string()
     .regex(/^\d+(\.\d+)?$/, "Amount must be a positive decimal string.")
-    .refine((v) => Number.parseFloat(v) > 0, "Amount must be greater than zero."),
+    .refine((v) => Number.parseFloat(v) > 0, "Amount must be greater than zero.")
+    .refine((v) => Number.parseFloat(v) <= 100, "Maximum bet is $100."),
   price: z
     .string()
     .regex(/^\d+(\.\d+)?$/, "Price must be a decimal string.")
