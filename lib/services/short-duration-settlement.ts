@@ -146,17 +146,22 @@ async function createNextShortDurationRound(
   const nextSlug = baseSlug;
 
   let nextSpotPriceAtOpen: number;
+  let rolloverPriceError: string | undefined;
   try {
     nextSpotPriceAtOpen = await getBinanceSpotPrice(binanceSymbol);
   } catch (err) {
-    return {
-      success: true,
-      rolloverCreated: false,
-      rolloverError:
-        err instanceof Error
-          ? err.message
-          : "Failed to fetch next round opening price from Binance.",
-    };
+    // Binance unavailable — fall back to the settled round's opening price so
+    // the new round still gets created rather than leaving a gap at the base slug.
+    const fallback = market.spot_price_at_open != null ? parseFloat(String(market.spot_price_at_open)) : null;
+    if (!fallback || isNaN(fallback) || fallback <= 0) {
+      return {
+        success: true,
+        rolloverCreated: false,
+        rolloverError: err instanceof Error ? err.message : "Failed to fetch next round opening price from Binance.",
+      };
+    }
+    nextSpotPriceAtOpen = fallback;
+    rolloverPriceError = err instanceof Error ? err.message : "Used fallback opening price (Binance unavailable).";
   }
 
   const { data: nextMarket, error: nextMarketErr } = await supabase
@@ -234,6 +239,7 @@ async function createNextShortDurationRound(
     nextMarketId: nextMarket.id,
     nextMarketSlug: nextMarket.slug,
     nextMarketCloseAt: nextMarket.close_at,
+    rolloverPriceError,
   };
 }
 
