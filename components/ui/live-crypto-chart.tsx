@@ -152,8 +152,12 @@ export default function LiveCryptoChart({
     settlingRef.current = true;
     setSettling(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20_000);
+
     void fetch(`/api/markets/${marketId}/auto-settle`, {
       method: "POST",
+      signal: controller.signal,
     })
       .then(async (response) => {
         const json = (await response.json().catch(() => null)) as
@@ -171,8 +175,10 @@ export default function LiveCryptoChart({
       })
       .catch(() => undefined)
       .finally(() => {
+        clearTimeout(timeoutId);
         settlingRef.current = false;
         setSettling(false);
+        if (controller.signal.aborted) router.refresh();
       });
   }, [marketId, marketSlug, router]);
 
