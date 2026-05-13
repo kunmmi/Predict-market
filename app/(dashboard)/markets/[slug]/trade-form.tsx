@@ -133,8 +133,8 @@ export function TradeForm({
   const insufficientFunds =
     isValidAmount && availableBalance != null && amountNum > availableBalance;
 
-  const upLabel = isShortDuration ? (locale === "zh" ? "çœ‹æ¶¨" : "UP") : sideLabel("yes", locale);
-  const downLabel = isShortDuration ? (locale === "zh" ? "çœ‹è·Œ" : "DOWN") : sideLabel("no", locale);
+  const upLabel = isShortDuration ? (t.up_label ?? "UP") : sideLabel("yes", locale);
+  const downLabel = isShortDuration ? (t.down_label ?? "DOWN") : sideLabel("no", locale);
   const activeLabel = side === "yes" ? upLabel : downLabel;
   const uiText = {
     currentRoundTimer: t.current_round_timer ?? "Round timer",
