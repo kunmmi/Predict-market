@@ -145,7 +145,70 @@ async function processWebhook(payload: TatumWebhookPayload): Promise<void> {
     return;
   }
 
-  // Step 4: Find matching pending deposit
+  const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
+  if (!systemAdminId) {
+    await updateLog(supabase, logId, "error", "SYSTEM_ADMIN_PROFILE_ID env var not set");
+    console.error("[tatum-webhook] SYSTEM_ADMIN_PROFILE_ID is not set");
+    return;
+  }
+
+  const amountReceived = parseFloat(String(payload.amount));
+
+  // Step 4a: Try unique deposit address match — fastest path, no form required.
+  // If this user's personal address received funds, credit them directly.
+  const { data: walletByAddress } = await supabase
+    .from("wallets")
+    .select("id, profile_id")
+    .eq("deposit_address", payload.address)
+    .maybeSingle();
+
+  if (walletByAddress) {
+    const assetSymbol = resolveAssetSymbol(payload.chain, payload.tokenSymbol) ?? "USDT";
+
+    // Insert a deposit record then immediately approve it
+    const { data: newDeposit, error: insertError } = await supabase
+      .from("deposits")
+      .insert({
+        profile_id: walletByAddress.profile_id,
+        asset_symbol: assetSymbol,
+        network_name: "BNB Smart Chain (BEP-20)",
+        amount_expected: amountReceived,
+        deposit_address: payload.address,
+        tx_hash: payload.txId,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (insertError) {
+      // Duplicate tx_hash — likely already processed
+      await updateLog(supabase, logId, "skipped", `Duplicate txId for unique address: ${insertError.message}`);
+      return;
+    }
+
+    const { error: rpcError } = await supabase.rpc("approve_deposit", {
+      p_deposit_id: newDeposit.id,
+      p_admin_profile_id: systemAdminId,
+      p_amount_received: amountReceived,
+      p_admin_notes: `Auto-credited via unique deposit address. txId: ${payload.txId}`,
+    });
+
+    if (rpcError) {
+      await updateLog(supabase, logId, "error", rpcError.message);
+      console.error(`[tatum-webhook] approve_deposit failed for ${newDeposit.id}:`, rpcError.message);
+      return;
+    }
+
+    await supabase
+      .from("tatum_webhook_logs")
+      .update({ processing_status: "approved", matched_deposit_id: newDeposit.id })
+      .eq("id", logId);
+
+    console.log(`[tatum-webhook] Auto-credited ${amountReceived} ${assetSymbol} to profile ${walletByAddress.profile_id as string} via unique address`);
+    return;
+  }
+
+  // Step 4b: Fall back to matching against a pending deposit the user submitted
   const deposit = await findMatchingDeposit(supabase, payload);
 
   if (!deposit) {
@@ -160,15 +223,6 @@ async function processWebhook(payload: TatumWebhookPayload): Promise<void> {
     .eq("id", logId);
 
   // Step 6: Call approve_deposit RPC
-  const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
-  if (!systemAdminId) {
-    await updateLog(supabase, logId, "error", "SYSTEM_ADMIN_PROFILE_ID env var not set");
-    console.error("[tatum-webhook] SYSTEM_ADMIN_PROFILE_ID is not set");
-    return;
-  }
-
-  const amountReceived = parseFloat(String(payload.amount));
-
   const { error: rpcError } = await supabase.rpc("approve_deposit", {
     p_deposit_id: deposit.id,
     p_admin_profile_id: systemAdminId,

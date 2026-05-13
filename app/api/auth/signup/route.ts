@@ -4,6 +4,7 @@ import { signupSchema, signupUsernameSchema } from "@/lib/validations/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validatePromoCode, linkReferral } from "@/lib/services/referral";
+import { getOrAssignDepositAddress } from "@/lib/services/deposit-address";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 /** Virtual email domain used for username-only accounts. Never exposed to users. */
@@ -131,6 +132,28 @@ export async function POST(request: Request) {
     } catch (referralError) {
       console.error("[signup] referral linkage failed:", referralError);
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Assign unique deposit address (non-blocking — failure doesn't block signup)
+  // The deposit address is created lazily by /api/wallet/deposit-address too,
+  // so assigning here is just an optimisation (address is ready immediately).
+  // ---------------------------------------------------------------------------
+  if (createData.user) {
+    (async () => {
+      try {
+        const { data: profile } = await adminClient
+          .from("profiles")
+          .select("id")
+          .eq("auth_user_id", createData.user!.id)
+          .maybeSingle();
+        if (profile?.id) {
+          await getOrAssignDepositAddress(profile.id);
+        }
+      } catch (err) {
+        console.warn("[signup] deposit address assignment failed:", err);
+      }
+    })();
   }
 
   return NextResponse.json({ success: true }, { status: 200 });
