@@ -142,7 +142,14 @@ async function createNextShortDurationRound(
   const baseSlug = deriveBaseSlug(market.slug);
 
   const durationMs = market.duration_minutes! * 60_000;
-  const nextCloseAt = new Date(Date.now() + durationMs);
+  const now = Date.now();
+  // Snap to the next clock-aligned boundary (e.g. :00, :05, :10 …).
+  // If that boundary is less than 60 s away, skip one ahead so the round
+  // always has a meaningful window for traders to enter.
+  let nextCloseAt = new Date((Math.floor(now / durationMs) + 1) * durationMs);
+  if (nextCloseAt.getTime() - now < 60_000) {
+    nextCloseAt = new Date(nextCloseAt.getTime() + durationMs);
+  }
   const nextSlug = baseSlug;
 
   let nextSpotPriceAtOpen: number;

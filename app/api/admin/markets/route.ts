@@ -90,10 +90,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: msg }, { status: 502 });
     }
 
-    const closeTime = new Date(Date.now() + duration_minutes * 60_000).toISOString();
+    const durationMs = duration_minutes * 60_000;
+    const now = Date.now();
+    let nextBoundary = (Math.floor(now / durationMs) + 1) * durationMs;
+    if (nextBoundary - now < 60_000) nextBoundary += durationMs;
+    const closeTime = new Date(nextBoundary).toISOString();
     close_at = closeTime;
     settle_at = closeTime;
-    cutoff_at = new Date(new Date(closeTime).getTime() - 15_000).toISOString();
+    cutoff_at = new Date(nextBoundary - 15_000).toISOString();
   }
 
   if (!close_at || !settle_at) {
