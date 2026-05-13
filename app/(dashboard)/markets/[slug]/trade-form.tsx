@@ -38,7 +38,7 @@ type Props = {
   t: T["trade"];
 };
 
-const FEE_RATE = 0.02;
+const FEE_RATE = 0.01;
 
 function formatCountdown(totalSeconds: number | null): string {
   if (totalSeconds == null) return "--:--";
