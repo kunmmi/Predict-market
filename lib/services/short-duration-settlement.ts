@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getBinanceSpotPrice } from "@/lib/services/binance-price";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { insertInitialMarketPrice } from "@/lib/services/market-initial-prices";
+import { shortDurationTitle, shortDurationTitleZh } from "@/lib/short-duration-predictions";
 
 type ShortDurationMarketRow = {
   id: string;
@@ -174,15 +175,15 @@ async function createNextShortDurationRound(
   const { data: nextMarket, error: nextMarketErr } = await supabase
     .from("markets")
     .insert({
-      title: market.title,
-      title_zh: market.title_zh ?? null,
+      title: shortDurationTitle(market.asset_symbol, market.duration_minutes!),
+      title_zh: shortDurationTitleZh(market.asset_symbol, market.duration_minutes!),
       slug: nextSlug,
       description: market.description ?? null,
       description_zh: market.description_zh ?? null,
       category: market.category ?? null,
       asset_symbol: market.asset_symbol,
-      question_text: market.question_text,
-      question_text_zh: market.question_text_zh ?? null,
+      question_text: shortDurationTitle(market.asset_symbol, market.duration_minutes!),
+      question_text_zh: shortDurationTitleZh(market.asset_symbol, market.duration_minutes!),
       rules_text: market.rules_text ?? null,
       rules_text_zh: market.rules_text_zh ?? null,
       close_at: nextCloseAt.toISOString(),

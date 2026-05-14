@@ -11,6 +11,7 @@ import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { statusLabel } from "@/lib/i18n/labels";
+import { resolveMarketTitle } from "@/lib/short-duration-predictions";
 import LiveCryptoChart from "@/components/ui/live-crypto-chart";
 import { TradeForm } from "./trade-form";
 import { PriceHistoryChart } from "./price-history-chart";
@@ -128,11 +129,11 @@ export default async function MarketDetailPage({ params }: Props) {
           )}
         </div>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-          {locale === "zh" && market.titleZh ? market.titleZh : market.title}
+          {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
         </h1>
         {market.questionText && market.questionText !== market.title && (
           <p className="mt-1.5 text-base text-slate-500">
-            {locale === "zh" && market.questionTextZh ? market.questionTextZh : market.questionText}
+            {resolveMarketTitle(locale, market.questionText, market.questionTextZh, market.durationMinutes, market.assetSymbol)}
           </p>
         )}
       </div>
