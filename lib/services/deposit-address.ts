@@ -36,22 +36,27 @@ export async function getOrAssignDepositAddress(profileId: string): Promise<stri
 
   const address = deriveAddress(index as number);
 
+  // Update the wallet row. We omit the `IS NULL` guard here because
+  // PostgREST silently returns no error when 0 rows match — instead we
+  // verify the write succeeded by re-fetching.
   const { error: updateError } = await supabase
     .from("wallets")
     .update({ deposit_address: address, deposit_address_index: index })
-    .eq("profile_id", profileId)
-    .is("deposit_address", null); // guard: only update if still unset
+    .eq("profile_id", profileId);
 
   if (updateError) {
-    // Another concurrent request may have beaten us — re-fetch
-    const { data: refetched } = await supabase
-      .from("wallets")
-      .select("deposit_address")
-      .eq("profile_id", profileId)
-      .maybeSingle();
-
-    if (refetched?.deposit_address) return refetched.deposit_address;
     throw new Error(`Failed to assign deposit address: ${updateError.message}`);
+  }
+
+  // Verify the update actually persisted (defensive — catches 0-row edge cases)
+  const { data: verified } = await supabase
+    .from("wallets")
+    .select("deposit_address")
+    .eq("profile_id", profileId)
+    .maybeSingle();
+
+  if (!verified?.deposit_address) {
+    throw new Error("Deposit address update did not persist — wallet row may not exist yet.");
   }
 
   // Subscribe the new address to Tatum (non-blocking — failure is non-fatal)
