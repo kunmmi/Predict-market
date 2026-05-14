@@ -1,4 +1,33 @@
 export const SHORT_DURATION_CUTOFF_SECONDS = 15;
+
+/** Canonical title for a short-duration UP/DOWN round. */
+export function shortDurationTitle(asset: string, durationMinutes: number): string {
+  return `Will ${asset} go UP or DOWN in the next ${durationMinutes} minutes?`;
+}
+
+/** Canonical Chinese title for a short-duration UP/DOWN round. */
+export function shortDurationTitleZh(asset: string, durationMinutes: number): string {
+  return `${asset} 在接下来的 ${durationMinutes} 分钟内，价格会上涨还是下跌？`;
+}
+
+/**
+ * Returns the display title for a market, using the canonical short-duration
+ * template for Chinese when the stored title_zh may be wrong/missing.
+ */
+export function resolveMarketTitle(
+  locale: string,
+  title: string,
+  titleZh: string | null,
+  durationMinutes: number | null,
+  assetSymbol: string,
+): string {
+  if (locale !== "zh") return title;
+  if (durationMinutes != null) {
+    // Always use the canonical template — ignores any bad stored title_zh
+    return shortDurationTitleZh(assetSymbol, durationMinutes);
+  }
+  return titleZh ?? title;
+}
 export const SHORT_DURATION_HEAVY_REDUCTION_SECONDS = 30;
 
 // --- Binary option pricing (Black-Scholes digital, simplified) ---
