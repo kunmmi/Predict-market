@@ -14,7 +14,13 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-const BSC_RPC = "https://bsc-rpc.publicnode.com";
+// Multiple public BSC RPC endpoints — tried in order until one succeeds
+const BSC_RPCS = [
+  "https://bsc-rpc.publicnode.com",
+  "https://binance.llamarpc.com",
+  "https://1rpc.io/bnb",
+  "https://bsc-dataseed4.ninicoin.io",
+];
 const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
 // keccak256("Transfer(address,address,uint256)")
 const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
@@ -29,14 +35,24 @@ function decodeUsdtAmount(data: string): number {
 }
 
 async function rpc(method: string, params: unknown[]): Promise<unknown> {
-  const res = await fetch(BSC_RPC, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
-  });
-  const json = (await res.json()) as { result?: unknown; error?: { message: string } };
-  if (json.error) throw new Error(`RPC ${method}: ${json.error.message}`);
-  return json.result;
+  let lastErr: Error = new Error("No RPC endpoints available");
+  for (const endpoint of BSC_RPCS) {
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+      });
+      if (!res.ok) continue;
+      const json = (await res.json()) as { result?: unknown; error?: { message: string } };
+      if (json.error) { lastErr = new Error(`RPC ${method}: ${json.error.message}`); continue; }
+      if (json.result === undefined) continue;
+      return json.result;
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+    }
+  }
+  throw lastErr;
 }
 
 export async function GET(request: Request) {
