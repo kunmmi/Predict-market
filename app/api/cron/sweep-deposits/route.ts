@@ -42,6 +42,9 @@ export async function GET(request: Request) {
   const apiKey = process.env.TATUM_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "TATUM_API_KEY not set" }, { status: 500 });
 
+  const debug = new URL(request.url).searchParams.get("debug") === "1";
+  const debugLog: unknown[] = [];
+
   let totalCredited = 0;
   const errors: string[] = [];
 
@@ -56,10 +59,12 @@ export async function GET(request: Request) {
         { headers: { "x-api-key": apiKey } },
       );
 
+      const rawJson = await res.json();
+      if (debug) debugLog.push({ address, status: res.status, response: rawJson });
       if (!res.ok) continue;
 
       type TxRow = { hash: string; amount: string; tokenAddress?: string; transactionSubtype?: string };
-      const json = (await res.json()) as { result?: TxRow[] };
+      const json = rawJson as { result?: TxRow[] };
       const txs = json.result ?? [];
 
       for (const tx of txs) {
@@ -122,5 +127,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ credited: totalCredited, errors });
+  return NextResponse.json({ credited: totalCredited, errors, ...(debug ? { debug: debugLog } : {}) });
 }
