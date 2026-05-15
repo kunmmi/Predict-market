@@ -81,6 +81,9 @@ export async function GET(request: Request) {
   }
   const fromBlock = "0x" + Math.max(0, latestBlock - BLOCK_LOOKBACK).toString(16);
 
+  const debug = new URL(request.url).searchParams.get("debug") === "1";
+  const debugInfo: unknown[] = [];
+
   let totalCredited = 0;
   const errors: string[] = [];
 
@@ -100,6 +103,8 @@ export async function GET(request: Request) {
           topics: [TRANSFER_TOPIC, null, paddedAddress],
         },
       ])) as Log[];
+
+      if (debug) debugInfo.push({ address, fromBlock, logsFound: logs.length, hashes: logs.map(l => l.transactionHash) });
 
       for (const log of logs) {
         if (log.removed) continue; // reorged-out tx
@@ -159,5 +164,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ credited: totalCredited, errors });
+  return NextResponse.json({ credited: totalCredited, errors, ...(debug ? { debug: debugInfo } : {}) });
 }
