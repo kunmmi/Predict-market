@@ -3,6 +3,7 @@
  *
  * Polls Tatum for recent USDT transfers to every assigned deposit address
  * and credits any that weren't already handled by the webhook.
+ * v2
  *
  * Call this on a schedule (e.g. every 2 minutes via Vercel Cron or an
  * external cron service).  Protected by CRON_SECRET.
