@@ -1,12 +1,12 @@
 /**
  * GET /api/cron/sweep-deposits
  *
- * Polls Tatum for recent USDT transfers to every assigned deposit address
- * and credits any that weren't already handled by the webhook.
- * v2
+ * Polls the BSC chain directly (via PublicNode RPC) for incoming USDT
+ * transfers to every assigned deposit address and credits any that weren't
+ * already handled by the webhook.
  *
- * Call this on a schedule (e.g. every 2 minutes via Vercel Cron or an
- * external cron service).  Protected by CRON_SECRET.
+ * Call this on a schedule (e.g. every minute via cron-job.org).
+ * Protected by CRON_SECRET.
  */
 
 import { NextResponse } from "next/server";
@@ -14,7 +14,30 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-const USDT_BSC = "0x55d398326f99059ff775485246999027b3197955";
+const BSC_RPC = "https://bsc-rpc.publicnode.com";
+const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
+// keccak256("Transfer(address,address,uint256)")
+const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+// BSC produces ~3 blocks/second; 7200 blocks ≈ 6 hours — safe overlap window
+const BLOCK_LOOKBACK = 7200;
+
+/** Convert a 32-byte ABI-encoded uint256 to a USDT float (18 decimals). */
+function decodeUsdtAmount(data: string): number {
+  const raw = BigInt(data);
+  // Divide in two steps to stay within safe integer range (supports up to ~9M USDT)
+  return Number(raw / BigInt(1e12)) / 1e6;
+}
+
+async function rpc(method: string, params: unknown[]): Promise<unknown> {
+  const res = await fetch(BSC_RPC, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const json = (await res.json()) as { result?: unknown; error?: { message: string } };
+  if (json.error) throw new Error(`RPC ${method}: ${json.error.message}`);
+  return json.result;
+}
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -39,50 +62,60 @@ export async function GET(request: Request) {
     return NextResponse.json({ credited: 0, message: "No deposit addresses found" });
   }
 
-  const apiKey = process.env.TATUM_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "TATUM_API_KEY not set" }, { status: 500 });
+  // Deduplicate addresses (edge case: multiple wallet rows for same address)
+  const seen = new Set<string>();
+  const uniqueWallets = wallets.filter((w) => {
+    const addr = (w.deposit_address as string).toLowerCase();
+    if (seen.has(addr)) return false;
+    seen.add(addr);
+    return true;
+  });
 
-  const debug = new URL(request.url).searchParams.get("debug") === "1";
-  const debugLog: unknown[] = [];
+  // Get current block number
+  let latestBlock: number;
+  try {
+    const blockHex = (await rpc("eth_blockNumber", [])) as string;
+    latestBlock = parseInt(blockHex, 16);
+  } catch (err) {
+    return NextResponse.json({ error: `Failed to get block number: ${String(err)}` }, { status: 500 });
+  }
+  const fromBlock = "0x" + Math.max(0, latestBlock - BLOCK_LOOKBACK).toString(16);
 
   let totalCredited = 0;
   const errors: string[] = [];
 
-  for (const wallet of wallets) {
+  for (const wallet of uniqueWallets) {
     const address = wallet.deposit_address as string;
     const profileId = wallet.profile_id as string;
+    // Pad address to 32 bytes for topic filter
+    const paddedAddress = "0x000000000000000000000000" + address.toLowerCase().slice(2);
 
     try {
-      // Fetch recent incoming USDT transactions for this address
-      const res = await fetch(
-        `https://api.tatum.io/v4/data/transactions?chain=bsc&addresses=${address}&transactionTypes=fungible&pageSize=20`,
-        { headers: { "x-api-key": apiKey } },
-      );
+      type Log = { transactionHash: string; data: string; removed?: boolean };
+      const logs = (await rpc("eth_getLogs", [
+        {
+          fromBlock,
+          toBlock: "latest",
+          address: USDT_CONTRACT,
+          topics: [TRANSFER_TOPIC, null, paddedAddress],
+        },
+      ])) as Log[];
 
-      const rawJson = await res.json();
-      if (debug) debugLog.push({ address, status: res.status, response: rawJson });
-      if (!res.ok) continue;
+      for (const log of logs) {
+        if (log.removed) continue; // reorged-out tx
 
-      type TxRow = { hash: string; amount: string; tokenAddress?: string; transactionSubtype?: string };
-      const json = rawJson as { result?: TxRow[] };
-      const txs = json.result ?? [];
-
-      for (const tx of txs) {
-        // Only incoming USDT
-        if (tx.transactionSubtype !== "incoming") continue;
-        if (tx.tokenAddress?.toLowerCase() !== USDT_BSC) continue;
-
-        const amount = parseFloat(tx.amount);
+        const txHash = log.transactionHash;
+        const amount = decodeUsdtAmount(log.data);
         if (!amount || amount <= 0) continue;
 
-        // Check if already processed (deposit record with this tx_hash exists)
+        // Check if already processed
         const { data: existing } = await supabase
           .from("deposits")
           .select("id")
-          .eq("tx_hash", tx.hash)
+          .eq("tx_hash", txHash)
           .maybeSingle();
 
-        if (existing) continue; // Already handled
+        if (existing) continue;
 
         // Create + approve deposit
         const { data: dep, error: insertErr } = await supabase
@@ -93,16 +126,15 @@ export async function GET(request: Request) {
             network_name: "BNB Smart Chain (BEP-20)",
             amount_expected: amount,
             deposit_address: address,
-            tx_hash: tx.hash,
+            tx_hash: txHash,
             status: "pending",
           })
           .select("id")
           .single();
 
         if (insertErr) {
-          // 23505 = duplicate tx_hash — race condition, safe to skip
           if (insertErr.code !== "23505") {
-            errors.push(`Insert failed for ${tx.hash}: ${insertErr.message}`);
+            errors.push(`Insert failed for ${txHash}: ${insertErr.message}`);
           }
           continue;
         }
@@ -111,21 +143,21 @@ export async function GET(request: Request) {
           p_deposit_id: dep.id,
           p_admin_profile_id: adminId,
           p_amount_received: amount,
-          p_admin_notes: `Auto-credited by deposit sweep. txHash: ${tx.hash}`,
+          p_admin_notes: `Auto-credited by deposit sweep. txHash: ${txHash}`,
         });
 
         if (rpcErr) {
-          errors.push(`Approve failed for ${tx.hash}: ${rpcErr.message}`);
+          errors.push(`Approve failed for ${txHash}: ${rpcErr.message}`);
           continue;
         }
 
         totalCredited++;
-        console.log(`[sweep-deposits] Credited ${amount} USDT to ${profileId} — tx ${tx.hash}`);
+        console.log(`[sweep-deposits] Credited ${amount} USDT to ${profileId} — tx ${txHash}`);
       }
     } catch (err) {
       errors.push(`Error processing ${address}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  return NextResponse.json({ credited: totalCredited, errors, ...(debug ? { debug: debugLog } : {}) });
+  return NextResponse.json({ credited: totalCredited, errors });
 }
