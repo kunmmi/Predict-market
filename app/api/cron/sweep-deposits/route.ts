@@ -1,9 +1,8 @@
 /**
  * GET /api/cron/sweep-deposits
  *
- * Polls the BSC chain directly (via PublicNode RPC) for incoming USDT
- * transfers to every assigned deposit address and credits any that weren't
- * already handled by the webhook.
+ * Uses the Moralis API to fetch incoming USDT transfers for every assigned
+ * deposit address and credits any that weren't already handled by the webhook.
  *
  * Call this on a schedule (e.g. every minute via cron-job.org).
  * Protected by CRON_SECRET.
@@ -14,45 +13,34 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-// Multiple public BSC RPC endpoints — tried in order until one succeeds
-const BSC_RPCS = [
-  "https://bsc-rpc.publicnode.com",
-  "https://binance.llamarpc.com",
-  "https://1rpc.io/bnb",
-  "https://bsc-dataseed4.ninicoin.io",
-];
 const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
-// keccak256("Transfer(address,address,uint256)")
-const TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-// BSC produces ~3 blocks/second; 7200 blocks ≈ 6 hours — safe overlap window
-const BLOCK_LOOKBACK = 7200;
 
-/** Convert a 32-byte ABI-encoded uint256 to a USDT float (18 decimals). */
-function decodeUsdtAmount(data: string): number {
-  const raw = BigInt(data);
-  // Divide in two steps to stay within safe integer range (supports up to ~9M USDT)
-  return Number(raw / BigInt(1e12)) / 1e6;
-}
+type MoralisTransfer = {
+  transaction_hash: string;
+  to_address: string;
+  value_decimal: string;
+  block_timestamp: string;
+};
 
-async function rpc(method: string, params: unknown[]): Promise<unknown> {
-  let lastErr: Error = new Error("No RPC endpoints available");
-  for (const endpoint of BSC_RPCS) {
-    try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
-      });
-      if (!res.ok) continue;
-      const json = (await res.json()) as { result?: unknown; error?: { message: string } };
-      if (json.error) { lastErr = new Error(`RPC ${method}: ${json.error.message}`); continue; }
-      if (json.result === undefined) continue;
-      return json.result;
-    } catch (e) {
-      lastErr = e instanceof Error ? e : new Error(String(e));
-    }
-  }
-  throw lastErr;
+async function getIncomingUsdtTransfers(address: string, apiKey: string): Promise<MoralisTransfer[]> {
+  const url = new URL(`https://deep-index.moralis.io/api/v2.2/${address}/erc20/transfers`);
+  url.searchParams.set("chain", "bsc");
+  url.searchParams.append("token_addresses", USDT_CONTRACT);
+  url.searchParams.set("limit", "50");
+
+  const res = await fetch(url.toString(), {
+    headers: { "X-API-Key": apiKey },
+  });
+
+  if (!res.ok) throw new Error(`Moralis API error ${res.status}: ${await res.text()}`);
+
+  const json = (await res.json()) as { result?: MoralisTransfer[] };
+  const transfers = json.result ?? [];
+
+  // Only return incoming transfers to this address
+  return transfers.filter(
+    (t) => t.to_address.toLowerCase() === address.toLowerCase()
+  );
 }
 
 export async function GET(request: Request) {
@@ -63,6 +51,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
+
+  const apiKey = process.env.MORALIS_API_KEY;
+  if (!apiKey) return NextResponse.json({ error: "MORALIS_API_KEY not set" }, { status: 500 });
 
   const supabase = createSupabaseAdminClient();
   const adminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
@@ -87,50 +78,22 @@ export async function GET(request: Request) {
     return true;
   });
 
-  // Get current block number
-  let latestBlock: number;
-  try {
-    const blockHex = (await rpc("eth_blockNumber", [])) as string;
-    latestBlock = parseInt(blockHex, 16);
-  } catch (err) {
-    return NextResponse.json({ error: `Failed to get block number: ${String(err)}` }, { status: 500 });
-  }
-  const fromBlock = "0x" + Math.max(0, latestBlock - BLOCK_LOOKBACK).toString(16);
-
-  const debug = new URL(request.url).searchParams.get("debug") === "1";
-  const debugInfo: unknown[] = [];
-
   let totalCredited = 0;
   const errors: string[] = [];
 
   for (const wallet of uniqueWallets) {
     const address = wallet.deposit_address as string;
     const profileId = wallet.profile_id as string;
-    // Pad address to 32 bytes for topic filter
-    const paddedAddress = "0x000000000000000000000000" + address.toLowerCase().slice(2);
 
     try {
-      type Log = { transactionHash: string; data: string; removed?: boolean };
-      const logs = (await rpc("eth_getLogs", [
-        {
-          fromBlock,
-          toBlock: "latest",
-          address: USDT_CONTRACT,
-          topics: [TRANSFER_TOPIC, null, paddedAddress],
-        },
-      ])) as Log[];
+      const transfers = await getIncomingUsdtTransfers(address, apiKey);
 
-      if (debug) debugInfo.push({ address, fromBlock, logsFound: logs.length, hashes: logs.map(l => l.transactionHash) });
-
-      for (const log of logs) {
-        if (log.removed) continue; // reorged-out tx
-
-        const txHash = log.transactionHash;
-        const amount = decodeUsdtAmount(log.data);
+      for (const tx of transfers) {
+        const txHash = tx.transaction_hash;
+        const amount = parseFloat(tx.value_decimal);
         if (!amount || amount <= 0) continue;
 
-        // Check if already processed (use count to avoid maybeSingle() blowing up
-        // when duplicate rows exist from a previous bug)
+        // Check if already processed
         const { count } = await supabase
           .from("deposits")
           .select("id", { count: "exact", head: true })
@@ -180,5 +143,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ credited: totalCredited, errors, ...(debug ? { debug: debugInfo } : {}) });
+  return NextResponse.json({ credited: totalCredited, errors });
 }
