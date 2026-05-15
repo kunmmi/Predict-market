@@ -108,14 +108,14 @@ export async function GET(request: Request) {
         const amount = decodeUsdtAmount(log.data);
         if (!amount || amount <= 0) continue;
 
-        // Check if already processed
-        const { data: existing } = await supabase
+        // Check if already processed (use count to avoid maybeSingle() blowing up
+        // when duplicate rows exist from a previous bug)
+        const { count } = await supabase
           .from("deposits")
-          .select("id")
-          .eq("tx_hash", txHash)
-          .maybeSingle();
+          .select("id", { count: "exact", head: true })
+          .eq("tx_hash", txHash);
 
-        if (existing) continue;
+        if (count && count > 0) continue;
 
         // Create + approve deposit
         const { data: dep, error: insertErr } = await supabase
