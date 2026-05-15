@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { Copy, Check, RefreshCw } from "lucide-react";
+import { Copy, Check, RefreshCw, CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,11 @@ type DepositRow = {
   status: DepositStatus;
   adminNotes: string | null;
   createdAt: string;
+};
+
+type WalletInfo = {
+  balance: string;
+  availableBalance: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -80,7 +85,6 @@ function UniqueAddressDeposit({ t, locale }: { t: T["deposit"]; locale: Locale }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for browsers without clipboard API
       const el = document.createElement("textarea");
       el.value = address;
       document.body.appendChild(el);
@@ -238,23 +242,64 @@ function DepositHistory({ deposits, t, locale }: {
 // Page root
 // ---------------------------------------------------------------------------
 
+const POLL_INTERVAL_MS = 30_000; // 30 seconds
+
 export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Locale }) {
   const [deposits, setDeposits] = React.useState<DepositRow[]>([]);
+  const [wallet, setWallet] = React.useState<WalletInfo | null>(null);
   const [loading, setLoading] = React.useState(true);
 
-  async function loadDeposits() {
+  // Track the set of approved deposit IDs we've already seen so we can
+  // detect newly-credited ones and show the success banner.
+  const seenApprovedIds = React.useRef<Set<string>>(new Set());
+  const [newlyApproved, setNewlyApproved] = React.useState<DepositRow | null>(null);
+
+  async function fetchData(isFirstLoad = false) {
     try {
-      const res = await fetch("/api/deposits");
-      if (res.ok) {
-        const json = (await res.json()) as { deposits?: DepositRow[] };
-        setDeposits(json.deposits ?? []);
+      const [depRes, walletRes] = await Promise.all([
+        fetch("/api/deposits"),
+        fetch("/api/wallet"),
+      ]);
+
+      const depJson = depRes.ok
+        ? ((await depRes.json()) as { deposits?: DepositRow[] })
+        : null;
+      const walletJson = walletRes.ok
+        ? ((await walletRes.json()) as { wallet?: WalletInfo })
+        : null;
+
+      const incoming = depJson?.deposits ?? [];
+
+      if (!isFirstLoad) {
+        // Look for any newly-approved deposit we haven't shown a banner for yet
+        for (const dep of incoming) {
+          if (dep.status === "approved" && !seenApprovedIds.current.has(dep.id)) {
+            setNewlyApproved(dep);
+            // Auto-hide the banner after 10 seconds
+            setTimeout(() => setNewlyApproved(null), 10_000);
+            break;
+          }
+        }
       }
+
+      // Update seen-set after diff
+      for (const dep of incoming) {
+        if (dep.status === "approved") seenApprovedIds.current.add(dep.id);
+      }
+
+      setDeposits(incoming);
+      if (walletJson?.wallet) setWallet(walletJson.wallet);
     } finally {
-      setLoading(false);
+      if (isFirstLoad) setLoading(false);
     }
   }
 
-  React.useEffect(() => { void loadDeposits(); }, []);
+  React.useEffect(() => {
+    void fetchData(true);
+    const timer = setInterval(() => void fetchData(false), POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -262,6 +307,49 @@ export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Loca
         <h1 className="page-title">{t.title}</h1>
         <p className="page-subtitle">{t.subtitle}</p>
       </div>
+
+      {/* ── Success banner ── */}
+      {newlyApproved && (
+        <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 shadow-sm">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+          <div className="space-y-0.5">
+            <p className="font-semibold text-green-800">
+              {locale === "zh" ? "充值成功！" : "Deposit confirmed!"}
+            </p>
+            <p className="text-sm text-green-700">
+              {locale === "zh"
+                ? `${newlyApproved.amountReceived ?? newlyApproved.amountExpected} USDT 已到账。`
+                : `${newlyApproved.amountReceived ?? newlyApproved.amountExpected} USDT has been credited to your wallet.`}
+            </p>
+            {wallet && (
+              <p className="text-sm font-medium text-green-800">
+                {locale === "zh"
+                  ? `当前余额：${parseFloat(wallet.balance).toFixed(2)} USDT`
+                  : `Your new balance: ${parseFloat(wallet.balance).toFixed(2)} USDT`}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Balance card ── */}
+      {wallet && (
+        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-5 py-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              {locale === "zh" ? "当前钱包余额" : "Current wallet balance"}
+            </p>
+            <p className="mt-0.5 text-2xl font-bold text-slate-900">
+              {parseFloat(wallet.balance).toFixed(2)}{" "}
+              <span className="text-base font-semibold text-slate-500">USDT</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-slate-400">
+            <RefreshCw className="h-3 w-3" />
+            {locale === "zh" ? "每 30 秒自动更新" : "Auto-refreshes every 30s"}
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
