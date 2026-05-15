@@ -1,12 +1,1 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/sweep-deposits",
-      "schedule": "*/2 * * * *"
-    },
-    {
-      "path": "/api/cron/settle-short-markets",
-      "schedule": "* * * * *"
-    }
-  ]
-}
+{}
