@@ -1,4 +1,4 @@
-export const SHORT_DURATION_CUTOFF_SECONDS = 15;
+export const SHORT_DURATION_CUTOFF_SECONDS = 30;
 
 /** Canonical title for a short-duration UP/DOWN round. */
 export function shortDurationTitle(asset: string, durationMinutes: number): string {
@@ -69,9 +69,11 @@ export function computeBinaryYesPrice(params: BinaryOptionPriceParams): number {
   const { currentSpotPrice, openingSpotPrice, secondsRemaining, recentCandles } = params;
   if (openingSpotPrice <= 0 || currentSpotPrice <= 0) return 0.5;
   const vol1m = estimateVol1m(recentCandles);
-  const remainingMinutes = Math.max(1 / 60, secondsRemaining / 60);
+  // Use at least 5 minutes worth of vol so the denominator doesn't collapse near
+  // expiry and push probabilities to extreme 1%/99% values.
+  const remainingMinutes = Math.max(5, secondsRemaining / 60);
   const d2 = Math.log(currentSpotPrice / openingSpotPrice) / (vol1m * Math.sqrt(remainingMinutes));
-  return Math.min(0.99, Math.max(0.01, normalCdf(d2)));
+  return Math.min(0.92, Math.max(0.08, normalCdf(d2)));
 }
 
 export type PredictionDirection = "up" | "down";

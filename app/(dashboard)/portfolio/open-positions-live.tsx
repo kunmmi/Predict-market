@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import type { T } from "@/lib/i18n/translations";
 import type { PortfolioPosition } from "@/lib/services/portfolio-data";
+import { useVisibilityPoll } from "@/lib/hooks/use-visibility-poll";
 import { SellPositionControl } from "./sell-position-control";
 
 type Props = {
@@ -31,7 +32,6 @@ function isExpiredShortDuration(position: PortfolioPosition): boolean {
 
 export function OpenPositionsLive({ initialPositions, locale, t }: Props) {
   const [positions, setPositions] = useState(initialPositions);
-  const [pollingActive, setPollingActive] = useState(true);
   const settlingMarketsRef = useRef<Set<string>>(new Set());
 
   const fetchPositions = useCallback(async (): Promise<PortfolioPosition[] | null> => {
@@ -92,26 +92,20 @@ export function OpenPositionsLive({ initialPositions, locale, t }: Props) {
     setPositions(initialPositions);
   }, [initialPositions]);
 
-  useEffect(() => {
-    setPollingActive(true);
-
-    const poll = async () => {
-      const nextPositions = await fetchPositions();
-      if (nextPositions) {
-        await settleExpiredMarkets(nextPositions);
-      }
-    };
-
-    void poll();
-    const intervalId = setInterval(() => {
-      void poll();
-    }, 15_000);
-
-    return () => {
-      setPollingActive(false);
-      clearInterval(intervalId);
-    };
+  const poll = useCallback(async () => {
+    const nextPositions = await fetchPositions();
+    if (nextPositions) {
+      await settleExpiredMarkets(nextPositions);
+    }
   }, [fetchPositions, settleExpiredMarkets]);
+
+  // Initial fetch on mount
+  useEffect(() => {
+    void poll();
+  }, [poll]);
+
+  // Visibility-aware polling — pauses when tab is hidden
+  useVisibilityPoll(poll, 15_000);
 
   const rows = useMemo(
     () =>
@@ -144,12 +138,10 @@ export function OpenPositionsLive({ initialPositions, locale, t }: Props) {
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
             {positions.length}
           </span>
-          {pollingActive ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-green-200">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
-              Live
-            </span>
-          ) : null}
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-green-200">
+            <span className="h-2 w-2 rounded-full bg-green-500" />
+            Live
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>

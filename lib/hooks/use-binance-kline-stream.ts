@@ -82,14 +82,26 @@ function toLiveCandle(message: BinanceKlineEvent): LiveKlineCandle | null {
 function upsertCandles(previous: LiveKlineCandle[], next: LiveKlineCandle, limit: number): LiveKlineCandle[] {
   if (previous.length === 0) return [next];
 
-  const last = previous[previous.length - 1];
-  if (!last) return [next];
-
-  if (last.sourceTimeMs === next.sourceTimeMs) {
-    return [...previous.slice(0, -1), next];
+  // Look up by time across the whole array, not just the last entry.
+  // Otherwise polling that fetches recent N candles can append duplicates
+  // out-of-order, which lightweight-charts rejects with "Value is null".
+  const existingIdx = previous.findIndex((c) => c.sourceTimeMs === next.sourceTimeMs);
+  if (existingIdx >= 0) {
+    // Update in place
+    const copy = previous.slice();
+    copy[existingIdx] = next;
+    return copy;
   }
 
-  return [...previous, next].slice(-limit);
+  // Newer than everything we have → append, drop oldest beyond limit
+  const last = previous[previous.length - 1];
+  if (next.sourceTimeMs > last.sourceTimeMs) {
+    return [...previous, next].slice(-limit);
+  }
+
+  // Older than our latest but not already present (rare/corrupt data) — ignore
+  // rather than insert out of order.
+  return previous;
 }
 
 export function useBinanceKlineStream(
@@ -125,111 +137,99 @@ export function useBinanceKlineStream(
     const resolvedSymbol = symbol;
 
     let cancelled = false;
-    let socket: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
     const controller = new AbortController();
 
     setStatus("loading");
     setError(null);
 
+    async function fetchKlines(klimit: number): Promise<LiveKlineCandle[]> {
+      // Always go through our server proxy so users behind firewalls
+      // (e.g. China, blocking api.binance.com) still get chart data.
+      const response = await fetch(
+        `/api/market/klines?symbol=${encodeURIComponent(resolvedSymbol)}&interval=${interval}&limit=${klimit}`,
+        { signal: controller.signal, cache: "no-store" },
+      );
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const json = (await response.json()) as unknown[];
+      return json
+        .map((item) => (Array.isArray(item) ? toCandle(item) : null))
+        .filter((item): item is LiveKlineCandle => item != null);
+    }
+
     async function loadSnapshot() {
       try {
-        const response = await fetch(
-          `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(resolvedSymbol)}&interval=${interval}&limit=${limit}`,
-          {
-            signal: controller.signal,
-            cache: "no-store",
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const json = (await response.json()) as unknown[];
-        const snapshot = json
-          .map((item) => (Array.isArray(item) ? toCandle(item) : null))
-          .filter((item): item is LiveKlineCandle => item != null);
-
+        const snapshot = await fetchKlines(limit);
         if (cancelled) return;
-
         setCandles(snapshot);
         const last = snapshot[snapshot.length - 1] ?? null;
         setLatestCandle(last);
         setCurrentPrice(last?.close ?? null);
         setSeedVersion((value) => value + 1);
-      } catch (streamError) {
+        setStatus("connected");
+        setError(null);
+        reconnectAttemptRef.current = 0;
+      } catch (err) {
         if (cancelled) return;
-
-        const message =
-          streamError instanceof Error ? streamError.message : "Failed to load initial Binance candles.";
+        const message = err instanceof Error ? err.message : "Failed to load chart data.";
         setError(message);
+        setStatus("reconnecting");
       }
     }
 
-    function scheduleReconnect() {
+    async function pollUpdate() {
       if (cancelled) return;
-
-      reconnectAttemptRef.current += 1;
-      const delay = Math.min(8_000, 1_000 * 2 ** Math.min(reconnectAttemptRef.current, 3));
-      setStatus("reconnecting");
-
-      reconnectTimer = setTimeout(() => {
-        void loadSnapshot().finally(connectSocket);
-      }, delay);
-    }
-
-    function connectSocket() {
-      if (cancelled) return;
-
-      socket = new WebSocket(
-        `wss://stream.binance.com:9443/ws/${encodeURIComponent(resolvedSymbol.toLowerCase())}@kline_${interval}`,
-      );
-
-      socket.onopen = () => {
-        if (cancelled) return;
-        reconnectAttemptRef.current = 0;
-        setStatus("connected");
-        setError(null);
-      };
-
-      socket.onmessage = (event) => {
-        if (cancelled) return;
-
-        try {
-          const payload = JSON.parse(event.data) as BinanceKlineEvent;
-          const candle = toLiveCandle(payload);
-          if (!candle) return;
-
-          setLatestCandle(candle);
-          setCurrentPrice(candle.close);
-          setCandles((previous) => upsertCandles(previous, candle, limit));
-        } catch {
-          setError("Received an invalid Binance stream payload.");
+      // Skip the network call entirely when tab isn't visible — saves
+      // bandwidth, Vercel function invocations, and battery on mobile.
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+        pollTimer = setTimeout(pollUpdate, 2_000);
+        return;
+      }
+      try {
+        // Fetch the last 2 candles — enough to update both the current
+        // forming candle and confirm the previous closed one.
+        const recent = await fetchKlines(2);
+        if (cancelled || recent.length === 0) return;
+        const last = recent[recent.length - 1];
+        setLatestCandle(last);
+        setCurrentPrice(last.close);
+        setCandles((prev) => {
+          let next = prev;
+          for (const c of recent) {
+            next = upsertCandles(next, c, limit);
+          }
+          return next;
+        });
+        if (status !== "connected") {
+          setStatus("connected");
+          setError(null);
         }
-      };
-
-      socket.onerror = () => {
-        if (cancelled) return;
-        setError("The live Binance stream is unavailable right now.");
-      };
-
-      socket.onclose = () => {
-        if (cancelled) return;
-        scheduleReconnect();
-      };
+        reconnectAttemptRef.current = 0;
+      } catch {
+        // Soft-fail; retry on next tick
+        reconnectAttemptRef.current += 1;
+        if (reconnectAttemptRef.current > 3) {
+          setStatus("reconnecting");
+        }
+      } finally {
+        if (!cancelled) {
+          pollTimer = setTimeout(pollUpdate, 2_000);
+        }
+      }
     }
 
-    void loadSnapshot().finally(connectSocket);
+    void loadSnapshot().then(() => {
+      if (!cancelled) {
+        pollTimer = setTimeout(pollUpdate, 2_000);
+      }
+    });
 
     return () => {
       cancelled = true;
       controller.abort();
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
-        socket.close();
-      }
+      if (pollTimer) clearTimeout(pollTimer);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interval, limit, reloadKey, symbol]);
 
   return useMemo(

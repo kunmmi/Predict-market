@@ -37,6 +37,57 @@ async function fetchFromCoinGecko(binanceSymbol: string): Promise<number> {
 }
 
 /**
+ * Get the exact price at a specific minute boundary (e.g., the price at
+ * 12:05:00). Returns the `open` of the 1-minute kline that begins at that
+ * timestamp — this is the price Binance shows on its chart at that moment.
+ *
+ * Falls back to current spot price if klines are unavailable (rare).
+ */
+export async function getBinanceMinuteOpenPrice(
+  binanceSymbol: string,
+  timestampMs: number,
+): Promise<number> {
+  // Snap to the start of the minute, just in case
+  const minuteMs = Math.floor(timestampMs / 60_000) * 60_000;
+  const path =
+    `/api/v3/klines?symbol=${encodeURIComponent(binanceSymbol)}` +
+    `&interval=1m&startTime=${minuteMs}&endTime=${minuteMs + 59_000}&limit=1`;
+
+  const hosts = [
+    "https://data-api.binance.vision",
+    ...BINANCE_HOSTS,
+  ];
+
+  for (const host of hosts) {
+    try {
+      const res = await fetch(`${host}${path}`, {
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8_000),
+      });
+      if (!res.ok) continue;
+
+      const data = (await res.json()) as unknown[];
+      if (!Array.isArray(data) || data.length === 0) continue;
+
+      const row = data[0];
+      if (!Array.isArray(row)) continue;
+
+      // Kline shape: [openTime, open, high, low, close, ...]
+      const open = parseFloat(String(row[1] ?? ""));
+      if (!isFinite(open) || open <= 0) continue;
+
+      return open;
+    } catch {
+      // try next host
+    }
+  }
+
+  // Fallback to current spot price — at least returns *a* price
+  return getBinanceSpotPrice(binanceSymbol);
+}
+
+/**
  * Server-side spot price fetcher.
  * Tries all Binance base URLs first; falls back to CoinGecko if Binance is
  * geo-blocked (HTTP 451) or otherwise unreachable.

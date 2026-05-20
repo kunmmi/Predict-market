@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { useBinanceKlineStream } from "@/lib/hooks/use-binance-kline-stream";
+import { useWallet } from "@/lib/contexts/wallet-context";
 import type { Locale, T } from "@/lib/i18n/translations";
 import { sideLabel } from "@/lib/i18n/labels";
 import {
@@ -18,11 +20,6 @@ import {
 } from "@/lib/short-duration-predictions";
 
 type TradeSide = "yes" | "no";
-
-type WalletData = {
-  availableBalance: string;
-  status: string;
-};
 
 type Props = {
   marketId: string;
@@ -38,7 +35,13 @@ type Props = {
   t: T["trade"];
 };
 
-const FEE_RATE = 0.01;
+// House economics:
+//   • FEE_RATE      — added on top of the stake (visible to the user)
+//   • OVERROUND     — multiplier on YES/NO prices so they sum to >1.0
+//                      (built-in spread, what real sportsbooks do)
+// Combined, these give the house ~6-7% edge per trade.
+const FEE_RATE = 0.025;
+const OVERROUND = 0.04;
 
 function formatCountdown(totalSeconds: number | null): string {
   if (totalSeconds == null) return "--:--";
@@ -64,48 +67,61 @@ export function TradeForm({
 }: Props) {
   const [side, setSide] = useState<TradeSide>("yes");
   const [amount, setAmount] = useState("");
-  const [wallet, setWallet] = useState<WalletData | null>(null);
-  const [walletLoading, setWalletLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [successOrderType, setSuccessOrderType] = useState<"market" | "limit">("market");
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Order type: "market" (fill at current price now) or "limit" (fill when price hits target)
+  const [orderType, setOrderType] = useState<"market" | "limit">("market");
+  const [limitPrice, setLimitPrice] = useState("");
+
+  // Shared wallet state across the dashboard — one fetch, many consumers
+  const { wallet, loading: walletLoading, refetch: refetchWallet } = useWallet();
+
+  useEffect(() => setMounted(true), []);
 
   const binanceSymbol = isShortDuration ? ASSET_TO_BINANCE[assetSymbol] ?? null : null;
   const { currentPrice: liveSpotPrice, candles } = useBinanceKlineStream(binanceSymbol);
 
+  // Helper: apply the house overround margin to a fair probability.
+  // Both YES and NO prices get scaled by (1 + OVERROUND), so they sum to
+  // 1 + OVERROUND instead of 1.0 — a built-in spread on each trade.
+  const applyOverround = (p: number): number => Math.max(0.01, Math.min(0.99, p * (1 + OVERROUND)));
+
   const liveYesPrice = useMemo(() => {
-    if (!isShortDuration || liveSpotPrice == null || spotPriceAtOpen == null || now == null) return yesPrice;
+    if (!isShortDuration || liveSpotPrice == null || spotPriceAtOpen == null || now == null) {
+      // For non-short-duration markets, apply overround directly to admin-set price
+      if (yesPrice == null) return yesPrice;
+      const fair = parseFloat(yesPrice);
+      return String(applyOverround(fair));
+    }
     const secondsRemaining = Math.max(0, Math.floor((new Date(closeAt).getTime() - now) / 1000));
-    return String(computeBinaryYesPrice({
+    const fair = computeBinaryYesPrice({
       currentSpotPrice: liveSpotPrice,
       openingSpotPrice: Number(spotPriceAtOpen),
       secondsRemaining,
       recentCandles: candles,
-    }));
+    });
+    return String(applyOverround(fair));
   }, [isShortDuration, liveSpotPrice, spotPriceAtOpen, now, closeAt, yesPrice, candles]);
 
   const liveNoPrice = useMemo(() => {
     if (liveYesPrice == null) return noPrice;
     const yes = parseFloat(liveYesPrice);
-    return String(Math.max(0.01, Math.min(0.99, 1 - yes)));
+    // Recover fair YES from displayed YES, then compute displayed NO with overround
+    const fairYes = yes / (1 + OVERROUND);
+    return String(applyOverround(1 - fairYes));
   }, [liveYesPrice, noPrice]);
 
+  // Refresh shared wallet when a trade succeeds so the new balance shows
   useEffect(() => {
-    async function fetchWallet() {
-      try {
-        const res = await fetch("/api/wallet");
-        if (res.ok) {
-          const json = await res.json();
-          setWallet(json.wallet);
-        }
-      } finally {
-        setWalletLoading(false);
-      }
+    if (success) {
+      void refetchWallet();
     }
-
-    void fetchWallet();
-  }, [success]);
+  }, [success, refetchWallet]);
 
   useEffect(() => {
     setNow(Date.now());
@@ -172,6 +188,12 @@ export function TradeForm({
     return null;
   }
 
+  // Validate the limit price input (only when in limit mode)
+  const limitPriceNum = parseFloat(limitPrice);
+  const isValidLimitPrice = orderType === "limit"
+    ? Number.isFinite(limitPriceNum) && limitPriceNum > 0 && limitPriceNum < 1
+    : true;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -193,10 +215,27 @@ export function TradeForm({
       setError(uiText.predictionsClosedMessage);
       return;
     }
+    if (orderType === "limit" && !isValidLimitPrice) {
+      setError(locale === "zh" ? "请输入有效的限价 (0–1 之间)" : "Enter a valid limit price between 0 and 1.");
+      return;
+    }
 
     setLoading(true);
     try {
-      const res = await fetch("/api/trades", {
+      let res: Response;
+      if (orderType === "limit") {
+        res = await fetch("/api/limit-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            market_id: marketId,
+            side,
+            amount: amountNum,
+            target_price: limitPriceNum,
+          }),
+        });
+      } else {
+        res = await fetch("/api/trades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -207,13 +246,16 @@ export function TradeForm({
           fee_amount: fee ?? "0",
         }),
       });
+      }
       const json = await res.json();
       if (!res.ok) {
         setError(json.message ?? "Trade failed. Please try again.");
         return;
       }
+      setSuccessOrderType(orderType);
       setSuccess(true);
       setAmount("");
+      setLimitPrice("");
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -230,7 +272,7 @@ export function TradeForm({
         {success ? (
           <div className="space-y-4">
             <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-              {t.success}
+              {successOrderType === "limit" ? (t.limit_order_success ?? t.success) : t.success}
             </div>
             <Button
               variant="outline"
@@ -243,7 +285,7 @@ export function TradeForm({
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form id={`trade-form-${marketId}`} onSubmit={handleSubmit} className="space-y-4">
             {isShortDuration && rewardPreview && now != null ? (
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -304,67 +346,6 @@ export function TradeForm({
               </div>
             ) : null}
 
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">{t.side}</label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSide("yes")}
-                  disabled={isPredictionClosed}
-                  className={`flex-1 rounded-md border py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                    side === "yes"
-                      ? "border-green-500 bg-green-500 text-white"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  {upLabel} {liveYesPrice != null ? `@ $${parseFloat(liveYesPrice).toFixed(2)}` : ""}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSide("no")}
-                  disabled={isPredictionClosed}
-                  className={`flex-1 rounded-md border py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                    side === "no"
-                      ? "border-red-500 bg-red-500 text-white"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  {downLabel} {liveNoPrice != null ? `@ $${parseFloat(liveNoPrice).toFixed(2)}` : ""}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700">{t.amount_label}</label>
-              <Input
-                type="number"
-                min="0.01"
-                max="100"
-                step="0.01"
-                placeholder="10.00"
-                value={amount}
-                onChange={(e) => {
-                  setAmount(e.target.value);
-                  setError(null);
-                }}
-                required
-                disabled={isPredictionClosed}
-              />
-              {!Number.isNaN(amountNum) && amountNum > 100 && (
-                <p className="text-xs font-medium text-red-600">Maximum bet is $100.</p>
-              )}
-              {walletLoading ? (
-                <p className="text-xs text-slate-400">{t.loading_balance}</p>
-              ) : availableBalance != null ? (
-                <p className="text-xs text-slate-500">
-                  {t.available} ${availableBalance.toFixed(2)}
-                  {insufficientFunds ? (
-                    <span className="ml-1 font-medium text-red-600">{t.insufficient}</span>
-                  ) : null}
-                </p>
-              ) : null}
-            </div>
-
             {isValidAmount && priceNum != null ? (
               <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
                 <div className="space-y-1 text-slate-700">
@@ -392,23 +373,157 @@ export function TradeForm({
 
             {priceNum == null ? <p className="text-sm text-amber-600">{t.no_price}</p> : null}
 
-            <Button
-              type="submit"
-              disabled={submitDisabled}
-              className="w-full"
-            >
-              {loading
-                ? t.placing
-                : isPredictionClosed
-                  ? uiText.predictionsClosed
-                  : `${activeLabel} - $${isValidAmount ? amountNum.toFixed(2) : "0.00"}`}
-            </Button>
-
             {isShortDuration ? (
               <p className="text-xs text-slate-500">
                 {uiText.cutoffNote.replace("{seconds}", String(SHORT_DURATION_CUTOFF_SECONDS))}
               </p>
             ) : null}
+
+            {/* Spacer so content above isn't hidden by the sticky action bar + bottom nav on mobile */}
+            <div className="h-64 lg:hidden" aria-hidden />
+
+            {/* ── Sticky bottom action bar — rendered via Portal on mobile so it ───
+                  escapes any ancestor `transform` (animations) that would break
+                  position:fixed. On desktop it renders inline inside the card. */}
+            {(() => {
+              const actionBar = (
+                <div className="mx-auto max-w-3xl space-y-3">
+                {/* Order type toggle: Market vs Limit */}
+                <div className="flex gap-1 rounded-md bg-slate-100 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("market")}
+                    className={`flex-1 rounded py-1 text-xs font-semibold transition-colors ${
+                      orderType === "market"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {locale === "zh" ? "市价单" : "Market"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrderType("limit")}
+                    className={`flex-1 rounded py-1 text-xs font-semibold transition-colors ${
+                      orderType === "limit"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    {locale === "zh" ? "限价单" : "Limit"}
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSide("yes")}
+                    disabled={isPredictionClosed}
+                    className={`flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      side === "yes"
+                        ? "border-green-500 bg-green-500 text-white"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {upLabel} {liveYesPrice != null ? `@ $${parseFloat(liveYesPrice).toFixed(2)}` : ""}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSide("no")}
+                    disabled={isPredictionClosed}
+                    className={`flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      side === "no"
+                        ? "border-red-500 bg-red-500 text-white"
+                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {downLabel} {liveNoPrice != null ? `@ $${parseFloat(liveNoPrice).toFixed(2)}` : ""}
+                  </button>
+                </div>
+
+                {/* Limit price input — only shown in limit mode */}
+                {orderType === "limit" && (
+                  <Input
+                    type="number"
+                    min="0.01"
+                    max="0.99"
+                    step="0.01"
+                    placeholder={locale === "zh" ? "限价 (例如 0.40)" : "Target price (e.g. 0.40)"}
+                    value={limitPrice}
+                    onChange={(e) => {
+                      setLimitPrice(e.target.value);
+                      setError(null);
+                    }}
+                    disabled={isPredictionClosed}
+                    form={`trade-form-${marketId}`}
+                  />
+                )}
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0.01"
+                    max="100"
+                    step="0.01"
+                    placeholder={t.amount_label}
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      setError(null);
+                    }}
+                    required
+                    disabled={isPredictionClosed}
+                    className="flex-1"
+                    form={`trade-form-${marketId}`}
+                  />
+                  <Button
+                    type="submit"
+                    disabled={submitDisabled || (orderType === "limit" && !isValidLimitPrice)}
+                    className="shrink-0"
+                    form={`trade-form-${marketId}`}
+                  >
+                    {loading
+                      ? t.placing
+                      : isPredictionClosed
+                        ? uiText.predictionsClosed
+                        : orderType === "limit"
+                          ? `${locale === "zh" ? "下限价单" : "Place limit"} $${isValidAmount ? amountNum.toFixed(2) : "0"}`
+                          : `${activeLabel} $${isValidAmount ? amountNum.toFixed(2) : "0"}`}
+                  </Button>
+                </div>
+
+                {walletLoading ? (
+                  <p className="text-xs text-slate-400">{t.loading_balance}</p>
+                ) : availableBalance != null ? (
+                  <p className="text-xs text-slate-500">
+                    {t.available} ${availableBalance.toFixed(2)}
+                    {insufficientFunds ? (
+                      <span className="ml-1 font-medium text-red-600">{t.insufficient}</span>
+                    ) : null}
+                    {!Number.isNaN(amountNum) && amountNum > 100 && (
+                      <span className="ml-2 font-medium text-red-600">Max $100.</span>
+                    )}
+                  </p>
+                ) : null}
+                </div>
+              );
+
+              return (
+                <>
+                  {/* Mobile: render via portal so position:fixed works correctly */}
+                  {mounted &&
+                    createPortal(
+                      <div className="fixed bottom-[calc(theme(spacing.16)+env(safe-area-inset-bottom))] left-0 right-0 z-40 border-t border-slate-200 bg-white px-4 pt-3 pb-3 shadow-[0_-6px_18px_rgba(15,23,42,0.08)] lg:hidden">
+                        {actionBar}
+                      </div>,
+                      document.body,
+                    )}
+
+                  {/* Desktop: inline inside the card */}
+                  <div className="hidden lg:block">{actionBar}</div>
+                </>
+              );
+            })()}
           </form>
         )}
       </CardContent>

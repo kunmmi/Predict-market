@@ -1,8 +1,12 @@
 /**
  * GET /api/cron/sweep-deposits
  *
- * Uses the Moralis API to fetch incoming USDT transfers for every assigned
- * deposit address and credits any that weren't already handled by the webhook.
+ * Queries BSC directly via public RPC nodes (eth_getLogs) to find incoming
+ * USDT transfers to every assigned deposit address, then credits any that
+ * weren't already handled.
+ *
+ * Uses multiple RPC fallbacks and always picks the node with the highest
+ * block number to avoid stale-node issues.
  *
  * Call this on a schedule (e.g. every minute via cron-job.org).
  * Protected by CRON_SECRET.
@@ -14,34 +18,118 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 export const dynamic = "force-dynamic";
 
 const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
+const TRANSFER_SIG   = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const USDT_DECIMALS  = 18;
+const BLOCKS_TO_SCAN = 100; // ~5 min of BSC blocks (3 s/block) — stays within public RPC limits
 
-type MoralisTransfer = {
-  transaction_hash: string;
-  to_address: string;
-  value_decimal: string;
-  block_timestamp: string;
+const BSC_RPCS = [
+  "https://rpc.ankr.com/bsc",
+  "https://bsc-dataseed.binance.org",
+  "https://bsc-dataseed1.ninicoin.io",
+  "https://bsc-dataseed2.defibit.io",
+];
+
+// ---------------------------------------------------------------------------
+// RPC helpers
+// ---------------------------------------------------------------------------
+
+async function jsonRpc(rpc: string, method: string, params: unknown[]): Promise<unknown> {
+  const res = await fetch(rpc, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    cache: "no-store" as RequestCache,
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = (await res.json()) as { result?: unknown; error?: { message: string } };
+  if (json.error) throw new Error(json.error.message);
+  return json.result;
+}
+
+/** Query all RPCs in parallel, return the one with the highest block number. */
+async function getBestRpc(): Promise<{ rpc: string; blockNumber: number }> {
+  const results = await Promise.allSettled(
+    BSC_RPCS.map(async (rpc) => {
+      const hex = (await jsonRpc(rpc, "eth_blockNumber", [])) as string;
+      return { rpc, blockNumber: parseInt(hex, 16) };
+    })
+  );
+
+  let best = { rpc: BSC_RPCS[0], blockNumber: 0 };
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value.blockNumber > best.blockNumber) {
+      best = r.value;
+    }
+  }
+  if (best.blockNumber === 0) throw new Error("All BSC RPCs failed");
+  return best;
+}
+
+// ---------------------------------------------------------------------------
+// Log entry type
+// ---------------------------------------------------------------------------
+
+type EvmLog = {
+  transactionHash: string;
+  topics: string[];
+  data: string;
 };
 
-async function getIncomingUsdtTransfers(address: string, apiKey: string): Promise<MoralisTransfer[]> {
-  const url = new URL(`https://deep-index.moralis.io/api/v2.2/${address}/erc20/transfers`);
-  url.searchParams.set("chain", "bsc");
-  url.searchParams.append("token_addresses", USDT_CONTRACT);
-  url.searchParams.set("limit", "50");
+type Transfer = {
+  txHash: string;
+  toAddress: string; // lowercase
+  amount: number;
+};
 
-  const res = await fetch(url.toString(), {
-    headers: { "X-API-Key": apiKey },
-  });
+// ---------------------------------------------------------------------------
+// Fetch all incoming USDT transfers to any of our deposit addresses
+// in the last BLOCKS_TO_SCAN blocks — single RPC call.
+// ---------------------------------------------------------------------------
 
-  if (!res.ok) throw new Error(`Moralis API error ${res.status}: ${await res.text()}`);
+async function fetchIncomingTransfers(addresses: string[]): Promise<Transfer[]> {
+  const { rpc, blockNumber } = await getBestRpc();
+  const fromBlock = Math.max(0, blockNumber - BLOCKS_TO_SCAN);
 
-  const json = (await res.json()) as { result?: MoralisTransfer[] };
-  const transfers = json.result ?? [];
-
-  // Only return incoming transfers to this address
-  return transfers.filter(
-    (t) => t.to_address.toLowerCase() === address.toLowerCase()
+  // Pad each address to 32-byte topic format
+  const paddedAddresses = addresses.map(
+    (a) => "0x" + a.replace(/^0x/i, "").toLowerCase().padStart(64, "0")
   );
+
+  const filter = {
+    address: USDT_CONTRACT,
+    topics: [TRANSFER_SIG, null, paddedAddresses],
+    fromBlock: "0x" + fromBlock.toString(16),
+    toBlock: "latest",
+  };
+
+  // Try each RPC until one succeeds for getLogs
+  let logs: EvmLog[] | null = null;
+  let usedRpc = rpc;
+  for (const candidate of [rpc, ...BSC_RPCS.filter(r => r !== rpc)]) {
+    try {
+      logs = (await jsonRpc(candidate, "eth_getLogs", [filter])) as EvmLog[];
+      usedRpc = candidate;
+      break;
+    } catch {
+      // try next
+    }
+  }
+  if (logs === null) throw new Error("All RPCs failed for eth_getLogs");
+
+  console.log(
+    `[sweep] RPC ${usedRpc} block=${blockNumber} scanned last ${BLOCKS_TO_SCAN} blocks → ${logs.length} USDT transfers to our addresses`
+  );
+
+  return logs.map((log) => ({
+    txHash: log.transactionHash,
+    toAddress: "0x" + log.topics[2].slice(26).toLowerCase(),
+    amount: Number(BigInt(log.data)) / Math.pow(10, USDT_DECIMALS),
+  }));
 }
+
+// ---------------------------------------------------------------------------
+// Route handler
+// ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -52,24 +140,27 @@ export async function GET(request: Request) {
     }
   }
 
-  const apiKey = process.env.MORALIS_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "MORALIS_API_KEY not set" }, { status: 500 });
-
   const supabase = createSupabaseAdminClient();
   const adminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
   if (!adminId) return NextResponse.json({ error: "SYSTEM_ADMIN_PROFILE_ID not set" }, { status: 500 });
 
-  // Fetch all wallets that have a unique deposit address assigned
-  const { data: wallets, error: walletsErr } = await supabase
+  // Fetch all wallets — filter in JS to avoid a PostgREST bug where
+  // .not("deposit_address","is",null) silently excludes some rows.
+  const { data: allWallets, error: walletsErr } = await supabase
     .from("wallets")
-    .select("profile_id, deposit_address")
-    .not("deposit_address", "is", null);
+    .select("profile_id, deposit_address");
 
-  if (walletsErr || !wallets?.length) {
+  if (walletsErr) return NextResponse.json({ credited: 0, error: walletsErr.message });
+
+  const wallets = (allWallets ?? []).filter(
+    (w) => w.deposit_address != null && w.deposit_address !== ""
+  );
+
+  if (!wallets.length) {
     return NextResponse.json({ credited: 0, message: "No deposit addresses found" });
   }
 
-  // Deduplicate addresses (edge case: multiple wallet rows for same address)
+  // Deduplicate addresses
   const seen = new Set<string>();
   const uniqueWallets = wallets.filter((w) => {
     const addr = (w.deposit_address as string).toLowerCase();
@@ -78,70 +169,79 @@ export async function GET(request: Request) {
     return true;
   });
 
+  const addresses = uniqueWallets.map((w) => w.deposit_address as string);
+  console.log(`[sweep] Checking ${uniqueWallets.length} unique deposit addresses`);
+
   let totalCredited = 0;
   const errors: string[] = [];
 
-  for (const wallet of uniqueWallets) {
-    const address = wallet.deposit_address as string;
-    const profileId = wallet.profile_id as string;
+  try {
+    const transfers = await fetchIncomingTransfers(addresses);
 
-    try {
-      const transfers = await getIncomingUsdtTransfers(address, apiKey);
+    for (const tx of transfers) {
+      if (!tx.amount || tx.amount <= 0) continue;
 
-      for (const tx of transfers) {
-        const txHash = tx.transaction_hash;
-        const amount = parseFloat(tx.value_decimal);
-        if (!amount || amount <= 0) continue;
+      // Find which wallet owns this address
+      const wallet = uniqueWallets.find(
+        (w) => (w.deposit_address as string).toLowerCase() === tx.toAddress
+      );
+      if (!wallet) continue;
 
-        // Check if already processed
-        const { count } = await supabase
-          .from("deposits")
-          .select("id", { count: "exact", head: true })
-          .eq("tx_hash", txHash);
+      const profileId = wallet.profile_id as string;
+      const txHash = tx.txHash;
 
-        if (count && count > 0) continue;
+      // Skip if already processed
+      const { count } = await supabase
+        .from("deposits")
+        .select("id", { count: "exact", head: true })
+        .eq("tx_hash", txHash);
 
-        // Create + approve deposit
-        const { data: dep, error: insertErr } = await supabase
-          .from("deposits")
-          .insert({
-            profile_id: profileId,
-            asset_symbol: "USDT",
-            network_name: "BNB Smart Chain (BEP-20)",
-            amount_expected: amount,
-            deposit_address: address,
-            tx_hash: txHash,
-            status: "pending",
-          })
-          .select("id")
-          .single();
+      if (count && count > 0) continue;
 
-        if (insertErr) {
-          if (insertErr.code !== "23505") {
-            errors.push(`Insert failed for ${txHash}: ${insertErr.message}`);
-          }
-          continue;
+      // Insert pending deposit
+      const { data: dep, error: insertErr } = await supabase
+        .from("deposits")
+        .insert({
+          profile_id: profileId,
+          asset_symbol: "USDT",
+          network_name: "BNB Smart Chain (BEP-20)",
+          amount_expected: tx.amount,
+          deposit_address: wallet.deposit_address,
+          tx_hash: txHash,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (insertErr) {
+        if (insertErr.code !== "23505") {
+          errors.push(`Insert failed for ${txHash}: ${insertErr.message}`);
         }
-
-        const { error: rpcErr } = await supabase.rpc("approve_deposit", {
-          p_deposit_id: dep.id,
-          p_admin_profile_id: adminId,
-          p_amount_received: amount,
-          p_admin_notes: `Auto-credited by deposit sweep. txHash: ${txHash}`,
-        });
-
-        if (rpcErr) {
-          errors.push(`Approve failed for ${txHash}: ${rpcErr.message}`);
-          continue;
-        }
-
-        totalCredited++;
-        console.log(`[sweep-deposits] Credited ${amount} USDT to ${profileId} — tx ${txHash}`);
+        continue;
       }
-    } catch (err) {
-      errors.push(`Error processing ${address}: ${err instanceof Error ? err.message : String(err)}`);
+
+      // Approve deposit
+      const { error: rpcErr } = await supabase.rpc("approve_deposit", {
+        p_deposit_id: dep.id,
+        p_admin_profile_id: adminId,
+        p_amount_received: tx.amount,
+        p_admin_notes: `Auto-credited by deposit sweep. txHash: ${txHash}`,
+      });
+
+      if (rpcErr) {
+        errors.push(`Approve failed for ${txHash}: ${rpcErr.message}`);
+        continue;
+      }
+
+      totalCredited++;
+      console.log(`[sweep] Credited ${tx.amount} USDT to ${profileId} — tx ${txHash}`);
     }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[sweep] Fatal error: ${msg}`);
+    errors.push(msg);
   }
 
+  console.log(`[sweep] Done. credited=${totalCredited} errors=${errors.length}`, errors.length ? errors : "");
   return NextResponse.json({ credited: totalCredited, errors });
 }
