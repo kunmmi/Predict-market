@@ -3,8 +3,14 @@ import { NextResponse } from "next/server";
 import { requireUserForApi } from "@/lib/auth/require-user-for-api";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { updatePriceAfterTrade } from "@/lib/services/dynamic-pricing";
+import { getBinanceSpotPrice } from "@/lib/services/binance-price";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { computeBinaryYesPrice } from "@/lib/short-duration-predictions";
+import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { tradeSellSchema } from "@/lib/validations/trade";
+
+// Must match trade-form.tsx
+const OVERROUND = 0.04;
 
 type PositionRow = {
   id: string;
@@ -19,6 +25,10 @@ type PositionRow = {
     | {
         status: "draft" | "active" | "closed" | "settled" | "cancelled";
         close_at: string;
+        duration_minutes: number | null;
+        asset_symbol: string;
+        spot_price_at_open: string | number | null;
+        market_prices: { yes_price: string | number; no_price: string | number }[];
       }
     | null;
 };
@@ -62,9 +72,14 @@ export async function POST(request: Request) {
     .from("positions")
     .select(
       `id, profile_id, market_id, yes_units, no_units, status, avg_yes_price, avg_no_price,
-       markets ( status, close_at )`,
+       markets (
+         status, close_at, duration_minutes, asset_symbol, spot_price_at_open,
+         market_prices ( yes_price, no_price )
+       )`,
     )
     .eq("id", parsed.data.position_id)
+    .order("created_at", { referencedTable: "markets.market_prices", ascending: false })
+    .limit(1, { referencedTable: "markets.market_prices" })
     .maybeSingle();
 
   if (positionError || !positionData) {
@@ -94,14 +109,16 @@ export async function POST(request: Request) {
     );
   }
 
-  if (new Date(position.markets.close_at).getTime() <= Date.now()) {
+  const closeAt = new Date(position.markets.close_at);
+  if (closeAt.getTime() <= Date.now()) {
     return NextResponse.json(
       { success: false, message: "This market is closed for selling." },
       { status: 400 },
     );
   }
 
-  const currentUnits = parsed.data.side === "yes" ? Number(position.yes_units) : Number(position.no_units);
+  const currentUnits =
+    parsed.data.side === "yes" ? Number(position.yes_units) : Number(position.no_units);
   if (unitsToSell > currentUnits) {
     return NextResponse.json(
       { success: false, message: "You cannot sell more units than you currently hold." },
@@ -109,24 +126,50 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: latestPrice, error: latestPriceError } = await supabaseAdmin
-    .from("market_prices")
-    .select("yes_price, no_price")
-    .eq("market_id", position.market_id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // ── Price resolution ───────────────────────────────────────────────────────
+  // For short-duration markets: compute live Black-Scholes price from Binance
+  // so the sell price matches what the user sees on screen exactly.
+  // For regular markets: fall back to the latest stored market_prices entry.
+  let sidePrice: number;
 
-  if (latestPriceError || !latestPrice) {
-    return NextResponse.json(
-      { success: false, message: "Current market price is unavailable." },
-      { status: 400 },
-    );
+  const isShortDuration = position.markets.duration_minutes != null;
+  if (isShortDuration) {
+    const binanceSymbol = ASSET_TO_BINANCE[position.markets.asset_symbol] ?? null;
+    const spotPriceAtOpen = position.markets.spot_price_at_open != null
+      ? Number(position.markets.spot_price_at_open)
+      : null;
+
+    if (binanceSymbol && spotPriceAtOpen != null) {
+      try {
+        const liveSpot = await getBinanceSpotPrice(binanceSymbol);
+        const secondsRemaining = Math.max(
+          0,
+          Math.floor((closeAt.getTime() - Date.now()) / 1_000),
+        );
+        const fairYes = computeBinaryYesPrice({
+          currentSpotPrice: liveSpot,
+          openingSpotPrice: spotPriceAtOpen,
+          secondsRemaining,
+          recentCandles: [],
+        });
+        const liveYes = Math.max(0.01, Math.min(0.99, fairYes * (1 + OVERROUND)));
+        const fairYesUnrounded = liveYes / (1 + OVERROUND);
+        const liveNo  = Math.max(0.01, Math.min(0.99, (1 - fairYesUnrounded) * (1 + OVERROUND)));
+        sidePrice = parsed.data.side === "yes" ? liveYes : liveNo;
+      } catch {
+        // Binance unavailable — fall back to DB price
+        sidePrice = getFallbackPrice(position, parsed.data.side);
+      }
+    } else {
+      sidePrice = getFallbackPrice(position, parsed.data.side);
+    }
+  } else {
+    sidePrice = getFallbackPrice(position, parsed.data.side);
   }
 
-  const sidePrice = parsed.data.side === "yes" ? Number(latestPrice.yes_price) : Number(latestPrice.no_price);
   const payout = Number((unitsToSell * sidePrice).toFixed(8));
 
+  // ── Update position ────────────────────────────────────────────────────────
   const nextYesUnits =
     parsed.data.side === "yes"
       ? Number((Number(position.yes_units) - unitsToSell).toFixed(8))
@@ -197,4 +240,10 @@ export async function POST(request: Request) {
   void updatePriceAfterTrade(position.market_id);
 
   return NextResponse.json({ success: true, payout }, { status: 200 });
+}
+
+function getFallbackPrice(position: PositionRow, side: "yes" | "no"): number {
+  const latest = position.markets?.market_prices?.[0];
+  if (!latest) return 0.5;
+  return side === "yes" ? Number(latest.yes_price) : Number(latest.no_price);
 }
