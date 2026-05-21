@@ -141,6 +141,7 @@ export default function LiveCryptoChart({
     initialRoundEndAt: closeAt ?? null,
   });
 
+  const [seriesReady, setSeriesReady] = useState(false);
   const [pulseDirection, setPulseDirection] = useState<"up" | "down" | null>(null);
   const [settling, setSettling] = useState(false);
   const settlingRef = useRef(false);
@@ -310,6 +311,7 @@ export default function LiveCryptoChart({
 
     chartRef.current = chart;
     seriesRef.current = series;
+    setSeriesReady(true);
 
     const resizeObserver = new ResizeObserver(() => {
       chart.applyOptions({
@@ -331,6 +333,7 @@ export default function LiveCryptoChart({
       chartRef.current = null;
       seriesRef.current = null;
       hasSeededRef.current = false;
+      setSeriesReady(false);
     };
   }, [hasData]);
 
@@ -384,7 +387,7 @@ export default function LiveCryptoChart({
       axisLabelVisible: true,
       title: labels.priceToBeat,
     });
-  }, [labels.priceToBeat, round.openingPrice, tone.line]);
+  }, [labels.priceToBeat, round.openingPrice, seriesReady, tone.line]);
 
   return (
     <Card

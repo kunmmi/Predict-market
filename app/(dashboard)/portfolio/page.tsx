@@ -12,6 +12,7 @@ import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { OpenPositionsLive } from "./open-positions-live";
+import { LimitOrdersPanel } from "./limit-orders-panel";
 
 export default async function PortfolioPage() {
   const { profile } = await requireUser();
@@ -91,6 +92,8 @@ export default async function PortfolioPage() {
         locale={locale}
         t={t}
       />
+
+      <LimitOrdersPanel locale={locale} t={t} />
 
       {settledPositions.length > 0 && (
         <Card>

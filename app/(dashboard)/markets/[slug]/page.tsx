@@ -5,7 +5,7 @@ import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
 import { getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
-import { settleShortDurationMarketById } from "@/lib/services/short-duration-settlement";
+import { settleShortDurationMarketById, ensureRoundOpeningPrice } from "@/lib/services/short-duration-settlement";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,8 @@ import LiveCryptoChart from "@/components/ui/live-crypto-chart";
 import { TradeForm } from "./trade-form";
 import { PriceHistoryChart } from "./price-history-chart";
 import { LiveProbabilityBar } from "./live-probability-bar";
+import { RoundClosedBanner } from "./round-closed-banner";
+import { OrderBookPanel } from "./order-book-panel";
 
 type Props = {
   params: { slug: string };
@@ -71,12 +73,26 @@ export default async function MarketDetailPage({ params }: Props) {
       }
     } else if (market.status !== "active") {
       // Already settled/cancelled — look up the current active round and redirect.
-      // settleShortDurationMarketById handles non-active markets by finding the
-      // active round without re-settling, so it's safe to call here.
       const result = await settleShortDurationMarketById(market.id);
       const nextSlug = result.success ? result.nextMarketSlug : null;
       if (nextSlug && nextSlug !== params.slug) {
         redirect(`/markets/${nextSlug}`);
+      }
+    }
+
+    // For the active round now in hand, silently validate that spot_price_at_open
+    // matches the real Binance price for the round's start minute. Repairs any stale
+    // value in the DB before it reaches the chart, probability bar, or trade API.
+    if (market.status === "active" && market.durationMinutes != null) {
+      const validatedPrice = await ensureRoundOpeningPrice({
+        id: market.id,
+        assetSymbol: market.assetSymbol,
+        closeAt: market.closeAt,
+        durationMinutes: market.durationMinutes,
+        spotPriceAtOpen: market.spotPriceAtOpen,
+      });
+      if (validatedPrice != null) {
+        market = { ...market, spotPriceAtOpen: String(validatedPrice) };
       }
     }
   }
@@ -96,6 +112,14 @@ export default async function MarketDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Round-closed banner (only appears once the close_at time passes) */}
+      <RoundClosedBanner
+        marketId={market.id}
+        closeAt={market.closeAt}
+        isShortDuration={isShortDuration}
+        locale={locale}
+      />
+
       {/* Header */}
       <div>
         <div className="flex flex-wrap items-center gap-2">
@@ -273,6 +297,16 @@ export default async function MarketDetailPage({ params }: Props) {
         locale={locale}
         t={t.trade}
       />
+
+      {/* Order book — only renders when ≥3 open limit orders exist */}
+      {isActive && (
+        <OrderBookPanel
+          marketId={market.id}
+          currentPrice={market.latestYesPrice != null ? parseFloat(market.latestYesPrice) : null}
+          isShortDuration={isShortDuration}
+          locale={locale}
+        />
+      )}
 
       {/* Price history chart */}
       <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />

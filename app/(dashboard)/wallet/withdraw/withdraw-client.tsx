@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import type { WithdrawalSummary } from "@/lib/services/withdrawal-data";
 import type { Locale, T } from "@/lib/i18n/translations";
 import { statusLabel } from "@/lib/i18n/labels";
+import { useWallet } from "@/lib/contexts/wallet-context";
 import {
   FIXED_WITHDRAWAL_ASSET,
   FIXED_WITHDRAWAL_NETWORK,
@@ -36,9 +37,6 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
   const [address, setAddress] = React.useState("");
   const [notes, setNotes] = React.useState("");
 
-  const [availableBalance, setAvailableBalance] = React.useState<number | null>(null);
-  const [walletLoading, setWalletLoading] = React.useState(true);
-
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<{
@@ -50,14 +48,14 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
   const [history, setHistory] = React.useState<WithdrawalSummary[]>([]);
   const [historyLoading, setHistoryLoading] = React.useState(true);
 
+  // Shared wallet state — no per-component fetch
+  const { wallet, loading: walletLoading, refetch: refetchWallet } = useWallet();
+  const availableBalance = wallet ? Number(wallet.availableBalance) : null;
+
+  // After a successful withdrawal, refresh the shared wallet so balance updates
   React.useEffect(() => {
-    fetch("/api/wallet")
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.wallet) setAvailableBalance(Number(j.wallet.availableBalance));
-      })
-      .finally(() => setWalletLoading(false));
-  }, [result]);
+    if (result) void refetchWallet();
+  }, [result, refetchWallet]);
 
   const loadHistory = React.useCallback(() => {
     setHistoryLoading(true);

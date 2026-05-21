@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DepositStatus } from "@/types/enums";
 import type { Locale, T } from "@/lib/i18n/translations";
+import { useVisibilityPoll } from "@/lib/hooks/use-visibility-poll";
+import { useWallet } from "@/lib/contexts/wallet-context";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,10 +27,6 @@ type DepositRow = {
   createdAt: string;
 };
 
-type WalletInfo = {
-  balance: string;
-  availableBalance: string;
-};
 
 // ---------------------------------------------------------------------------
 // Status badge
@@ -242,12 +240,17 @@ function DepositHistory({ deposits, t, locale }: {
 // Page root
 // ---------------------------------------------------------------------------
 
-const POLL_INTERVAL_MS = 30_000; // 30 seconds
+// Moralis webhooks credit deposits in real-time, so we don't need to poll
+// often — this is just a safety-net refresh for any user who landed on the
+// page just before their deposit confirmed.
+const POLL_INTERVAL_MS = 60_000; // 1 minute (only when tab is visible)
 
 export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Locale }) {
   const [deposits, setDeposits] = React.useState<DepositRow[]>([]);
-  const [wallet, setWallet] = React.useState<WalletInfo | null>(null);
   const [loading, setLoading] = React.useState(true);
+
+  // Wallet comes from shared dashboard context — no need to fetch it here
+  const { wallet, refetch: refetchWallet } = useWallet();
 
   // Track the set of approved deposit IDs we've already seen so we can
   // detect newly-credited ones and show the success banner.
@@ -256,25 +259,20 @@ export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Loca
 
   async function fetchData(isFirstLoad = false) {
     try {
-      const [depRes, walletRes] = await Promise.all([
-        fetch("/api/deposits"),
-        fetch("/api/wallet"),
-      ]);
-
+      const depRes = await fetch("/api/deposits");
       const depJson = depRes.ok
         ? ((await depRes.json()) as { deposits?: DepositRow[] })
         : null;
-      const walletJson = walletRes.ok
-        ? ((await walletRes.json()) as { wallet?: WalletInfo })
-        : null;
 
       const incoming = depJson?.deposits ?? [];
+      let sawNewApproval = false;
 
       if (!isFirstLoad) {
         // Look for any newly-approved deposit we haven't shown a banner for yet
         for (const dep of incoming) {
           if (dep.status === "approved" && !seenApprovedIds.current.has(dep.id)) {
             setNewlyApproved(dep);
+            sawNewApproval = true;
             // Auto-hide the banner after 10 seconds
             setTimeout(() => setNewlyApproved(null), 10_000);
             break;
@@ -288,7 +286,8 @@ export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Loca
       }
 
       setDeposits(incoming);
-      if (walletJson?.wallet) setWallet(walletJson.wallet);
+      // Only refresh wallet from shared context when something changed
+      if (sawNewApproval) void refetchWallet();
     } finally {
       if (isFirstLoad) setLoading(false);
     }
@@ -296,10 +295,11 @@ export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Loca
 
   React.useEffect(() => {
     void fetchData(true);
-    const timer = setInterval(() => void fetchData(false), POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Visibility-aware poll: only runs when the tab is in front
+  useVisibilityPoll(() => fetchData(false), POLL_INTERVAL_MS);
 
   return (
     <div className="space-y-8">

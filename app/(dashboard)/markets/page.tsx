@@ -9,6 +9,7 @@ import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
+import { resolveMarketTitle } from "@/lib/short-duration-predictions";
 import { Card } from "@/components/ui/card";
 
 function ProbabilityBar({
@@ -106,7 +107,7 @@ export default async function MarketsPage() {
                       </div>
 
                       <h3 className="mt-4 line-clamp-2 text-lg font-semibold leading-snug text-white">
-                        {locale === "zh" && market.titleZh ? market.titleZh : market.title}
+                        {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
                       </h3>
 
                       <p className="mt-2 text-sm text-slate-400">
@@ -137,7 +138,7 @@ export default async function MarketsPage() {
                     </div>
 
                     <h3 className="mt-3 text-sm font-semibold leading-snug text-slate-900 line-clamp-2">
-                      {locale === "zh" && market.titleZh ? market.titleZh : market.title}
+                      {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
                     </h3>
 
                     <div className="mt-4 flex gap-4">

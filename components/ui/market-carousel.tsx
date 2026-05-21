@@ -8,6 +8,7 @@ import type { Locale, T } from "@/lib/i18n/translations";
 import { sideLabel } from "@/lib/i18n/labels";
 import { Badge } from "@/components/ui/badge";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
+import { resolveMarketTitle } from "@/lib/short-duration-predictions";
 import { useBinancePrice } from "@/lib/hooks/use-binance-price";
 
 export type CarouselMarket = {
@@ -161,7 +162,7 @@ function ShortDurationCard({
 
       <div className="mt-4">
         <p className="text-sm font-semibold leading-snug text-white">
-          {locale === "zh" && market.titleZh ? market.titleZh : market.title}
+          {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
         </p>
         <p className="mt-1 text-xs text-slate-400">
           {tc.target_price_label}{" "}
@@ -251,7 +252,7 @@ function StandardCard({
       </div>
 
       <p className="mt-3 min-h-[2.5rem] text-sm font-semibold leading-snug text-white line-clamp-2">
-        {locale === "zh" && market.titleZh ? market.titleZh : market.title}
+        {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
       </p>
 
       {market.yesPrice != null && (

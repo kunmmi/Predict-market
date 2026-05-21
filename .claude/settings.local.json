@@ -64,7 +64,29 @@
       "Bash(node node_modules/tsx/dist/cli.mjs scripts/set-admin-role.ts)",
       "Bash(curl -s -X POST https://predict-market-xi.vercel.app/api/webhooks/tatum -H 'Content-Type: application/json' -d '{ *)",
       "Bash(xargs grep *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Bash(Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue)",
+      "Bash(pnpm dev *)",
+      "Bash(git fetch *)",
+      "Bash(curl -s -H \"Authorization: Bearer elemental-cron-secret-2026\" https://predict-market-xi.vercel.app/api/cron/sweep-deposits)",
+      "Bash(curl -s -H \"Authorization: Bearer elemental-cron-secret-2026\" \"https://predict-market-xi.vercel.app/api/cron/sweep-deposits?debug=1\")",
+      "Bash(python -m json.tool)",
+      "Bash(curl -s -X POST \"https://bsc-rpc.publicnode.com\" -H \"Content-Type: application/json\" -d \"{\\\\\"jsonrpc\\\\\":\\\\\"2.0\\\\\",\\\\\"method\\\\\":\\\\\"eth_blockNumber\\\\\",\\\\\"params\\\\\":[],\\\\\"id\\\\\":1}\")",
+      "Bash(curl -s -X POST \"https://binance.llamarpc.com\" -H \"Content-Type: application/json\" -d \"{\\\\\"jsonrpc\\\\\":\\\\\"2.0\\\\\",\\\\\"method\\\\\":\\\\\"eth_blockNumber\\\\\",\\\\\"params\\\\\":[],\\\\\"id\\\\\":1}\")",
+      "Bash(curl -s -H \"Authorization: Bearer elemental-cron-secret-2026\" \"https://predict-market-xi.vercel.app/api/cron/sweep-deposits?debug=1&t=$\\(date +%s\\)\")",
+      "WebFetch(domain:domeapi.io)",
+      "Bash(curl -s \"https://deep-index.moralis.io/api/v2.2/0x4fA79F0E7b0c36906D57e68e39acC48245d30457/erc20/transfers?chain=bsc&token_addresses=0x55d398326f99059ff775485246999027b3197955&limit=10\" -H \"X-API-Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjY3MGExNzEzLTBhZDktNGFmZC05MjNiLWY4ODhkZjk1NGZmZSIsIm9yZ0lkIjoiNDY4NTAzIiwidXNlcklkIjoiNDgxOTYyIiwidHlwZSI6IlBST0pFQ1QiLCJ0eXBlSWQiOiI0NTViYjMxNi03OTVlLTQzYzktOGFjMy02OGUyMjgzY2QxOGYiLCJpYXQiOjE3NTcyMDQxNTcsImV4cCI6NDkxMjk2NDE1N30.X6pXBuXbWUvmGG4NP16I763X9T7HeHrpB_ojh7jSx-M\")",
+      "Bash(curl -s \"https://deep-index.moralis.io/api/v2.2/0x4fA79F0E7b0c36906D57e68e39acC48245d30457/erc20/transfers?chain=bsc&token_addresses=0x55d398326f99059ff775485246999027b3197955&limit=50\" -H \"X-API-Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjY3MGExNzEzLTBhZDktNGFmZC05MjNiLWY4ODhkZjk1NGZmZSIsIm9yZ0lkIjoiNDY4NTAzIiwidXNlcklkIjoiNDgxOTYyIiwidHlwZSI6IlBST0pFQ1QiLCJ0eXBlSWQiOiI0NTViYjMxNi03OTVlLTQzYzktOGFjMy02OGUyMjgzY2QxOGYiLCJpYXQiOjE3NTcyMDQxNTcsImV4cCI6NDkxMjk2NDE1N30.X6pXBuXbWUvmGG4NP16I763X9T7HeHrpB_ojh7jSx-M\")",
+      "Bash(curl -s \"https://deep-index.moralis.io/api/v2.2/0x8C3090F54F0d5cE4dA3B94B84A994b809f2aBdcf/erc20/transfers?chain=bsc&token_addresses=0x55d398326f99059ff775485246999027b3197955&limit=10\" -H \"X-API-Key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjY3MGExNzEzLTBhZDktNGFmZC05MjNiLWY4ODhkZjk1NGZmZSIsIm9yZ0lkIjoiNDY4NTAzIiwidXNlcklkIjoiNDgxOTYyIiwidHlwZSI6IlBST0pFQ1QiLCJ0eXBlSWQiOiI0NTViYjMxNi03OTVlLTQzYzktOGFjMy02OGUyMjgzY2QxOGYiLCJpYXQiOjE3NTcyMDQxNTcsImV4cCI6NDkxMjk2NDE1N30.X6pXBuXbWUvmGG4NP16I763X9T7HeHrpB_ojh7jSx-M\")",
+      "WebFetch(domain:predict.fun)",
+      "Bash(curl -sI https://predict.fun)",
+      "Bash(nslookup predict.fun)",
+      "Bash(curl -sI -A \"Mozilla/5.0\" https://predict.fun/)",
+      "Bash(grep -r \"console\\\\\\\\.log\" /c/elemental-work/.claude/worktrees/pensive-torvalds-62a950/app/api --include=\"*.ts\")",
+      "Bash(python -c \"import sys, json; lines = sys.stdin.read\\(\\).strip\\(\\).split\\('\\\\n'\\); [print\\(json.loads\\(l\\).get\\('content',''\\)[:500] if isinstance\\(json.loads\\(l\\).get\\('content',''\\), str\\) else str\\(json.loads\\(l\\).get\\('content',''\\)\\)[:500]\\) for l in lines[-20:] if l.strip\\(\\)]\")",
+      "Bash(npx next *)"
     ]
   }
 }

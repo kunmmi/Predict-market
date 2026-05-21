@@ -59,52 +59,30 @@ export async function getOrAssignDepositAddress(profileId: string): Promise<stri
     throw new Error("Deposit address update did not persist — wallet row may not exist yet.");
   }
 
-  // Subscribe the new address to Tatum (non-blocking — failure is non-fatal)
-  subscribeAddressToTatum(address).catch((err: unknown) => {
-    console.warn("[deposit-address] Tatum subscription failed for", address, err);
+  // Subscribe the new address to Moralis Streams (non-blocking — failure is non-fatal)
+  subscribeAddressToMoralisStream(address).catch((err: unknown) => {
+    console.warn("[deposit-address] Moralis stream subscription failed for", address, err);
   });
 
   return address;
 }
 
-async function subscribeAddressToTatum(address: string): Promise<void> {
-  const apiKey = process.env.TATUM_API_KEY;
-  const secret = process.env.TATUM_WEBHOOK_SECRET;
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/$/, "");
+async function subscribeAddressToMoralisStream(address: string): Promise<void> {
+  const apiKey = process.env.MORALIS_API_KEY;
+  const streamId = process.env.MORALIS_STREAM_ID;
 
-  if (!apiKey || !appUrl) return;
+  if (!apiKey || !streamId) return;
 
-  const body: Record<string, unknown> = {
-    type: "INCOMING_FUNGIBLE_TX",
-    attr: {
-      address,
-      chain: "BSC",
-      url: `${appUrl}/api/webhooks/tatum`,
+  const res = await fetch(
+    `https://api.moralis-streams.com/streams/evm/${streamId}/address`,
+    {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ address: [address.toLowerCase()] }),
     },
-  };
-
-  const res = await fetch("https://api.tatum.io/v4/subscription", {
-    method: "POST",
-    headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  );
 
   if (!res.ok) {
-    throw new Error(`Tatum subscription failed (${res.status}): ${await res.text()}`);
-  }
-
-  // Set HMAC secret on the new subscription if configured
-  if (secret) {
-    const result = (await res.json()) as { id?: string };
-    const subId = result.id;
-    if (subId) {
-      await fetch(`https://api.tatum.io/v4/subscription/${subId}/hmac`, {
-        method: "PUT",
-        headers: { "x-api-key": apiKey, "Content-Type": "application/json" },
-        body: JSON.stringify({ hmacSecret: secret }),
-      }).catch(() => {
-        // HMAC endpoint may not exist on all Tatum plans — non-fatal
-      });
-    }
+    throw new Error(`Moralis stream add-address failed (${res.status}): ${await res.text()}`);
   }
 }

@@ -40,7 +40,7 @@ export default function AdminMarketNewPage() {
   });
   const [slugManual, setSlugManual] = useState(false);
   const [isShortDuration, setIsShortDuration] = useState(false);
-  const [durationMinutes, setDurationMinutes] = useState<3 | 5 | 10 | 15>(5);
+  const [durationMinutes, setDurationMinutes] = useState<3 | 5 | 10 | 15 | 30>(5);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -204,7 +204,7 @@ export default function AdminMarketNewPage() {
                     <div className="space-y-2">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Duration</p>
                       <div className="flex flex-wrap gap-2">
-                        {([3, 5, 10, 15] as const).map((minutes) => (
+                        {([3, 5, 10, 15, 30] as const).map((minutes) => (
                           <button
                             key={minutes}
                             type="button"

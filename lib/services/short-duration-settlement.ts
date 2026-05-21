@@ -1,8 +1,9 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { getBinanceSpotPrice } from "@/lib/services/binance-price";
+import { getBinanceSpotPrice, getBinanceMinuteOpenPrice } from "@/lib/services/binance-price";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { insertInitialMarketPrice } from "@/lib/services/market-initial-prices";
-import { shortDurationTitle, shortDurationTitleZh } from "@/lib/short-duration-predictions";
+import { shortDurationTitle, shortDurationTitleZh, SHORT_DURATION_CUTOFF_SECONDS } from "@/lib/short-duration-predictions";
+import { seedMarketMakerOrders } from "@/lib/services/market-maker";
 
 type ShortDurationMarketRow = {
   id: string;
@@ -144,11 +145,20 @@ async function createNextShortDurationRound(
 
   const durationMs = market.duration_minutes! * 60_000;
   const now = Date.now();
-  // Snap to the next clock-aligned boundary (e.g. :00, :05, :10 …).
-  // If that boundary is less than 60 s away, skip one ahead so the round
-  // always has a meaningful window for traders to enter.
-  let nextCloseAt = new Date((Math.floor(now / durationMs) + 1) * durationMs);
-  if (nextCloseAt.getTime() - now < 60_000) {
+
+  // The next round closes exactly `durationMs` after the previous round.
+  // Anchoring to `market.close_at` (not `now`) prevents drift when the cron
+  // runs late — e.g. previous round closed at 12:05:00 → next round always
+  // closes at 12:10:00, regardless of whether we're processing this at
+  // 12:05:30 or 12:08:00.
+  const previousCloseMs = new Date(market.close_at).getTime();
+  let nextCloseAt = new Date(previousCloseMs + durationMs);
+
+  // If the cron was severely delayed (more than one round's worth) and the
+  // target time is already in the past or too close to the present to give
+  // traders meaningful entry time (< 30 s), skip forward in `durationMs`
+  // steps until we land on a future, clock-aligned slot.
+  while (nextCloseAt.getTime() - now < 30_000) {
     nextCloseAt = new Date(nextCloseAt.getTime() + durationMs);
   }
   const nextSlug = baseSlug;
@@ -156,7 +166,13 @@ async function createNextShortDurationRound(
   let nextSpotPriceAtOpen: number;
   let rolloverPriceError: string | undefined;
   try {
-    nextSpotPriceAtOpen = await getBinanceSpotPrice(binanceSymbol);
+    // Use the price at the EXACT moment the new round starts.
+    // For contiguous rounds: newRoundStartMs == previousCloseMs (same as before).
+    // For skipped rounds (e.g. first market of the day): nextCloseAt has been
+    // fast-forwarded past the gap, so newRoundStartMs resolves to approximately
+    // "now", fetching today's live price instead of a stale historical one.
+    const newRoundStartMs = nextCloseAt.getTime() - durationMs;
+    nextSpotPriceAtOpen = await getBinanceMinuteOpenPrice(binanceSymbol, newRoundStartMs);
   } catch (err) {
     // Binance unavailable — fall back to the settled round's opening price so
     // the new round still gets created rather than leaving a gap at the base slug.
@@ -188,7 +204,7 @@ async function createNextShortDurationRound(
       rules_text_zh: market.rules_text_zh ?? null,
       close_at: nextCloseAt.toISOString(),
       settle_at: nextCloseAt.toISOString(),
-      cutoff_at: new Date(nextCloseAt.getTime() - 15_000).toISOString(),
+      cutoff_at: new Date(nextCloseAt.getTime() - SHORT_DURATION_CUTOFF_SECONDS * 1_000).toISOString(),
       status: "active",
       created_by: market.created_by,
       resolution_outcome: "unresolved",
@@ -240,6 +256,10 @@ async function createNextShortDurationRound(
         err instanceof Error ? err.message : "Failed to create next round initial price.",
     };
   }
+
+  // Seed house market-maker orders. Non-blocking — a failure here must never
+  // prevent the round from starting.
+  void seedMarketMakerOrders(nextMarket.id, nextSpotPriceAtOpen).catch(() => undefined);
 
   return {
     success: true,
@@ -322,7 +342,11 @@ export async function settleShortDurationMarketById(
 
   let finalPrice: number;
   try {
-    finalPrice = await getBinanceSpotPrice(binanceSymbol);
+    // Capture the price at the EXACT round-close minute boundary, so the
+    // recorded final price matches what Binance's chart shows at that time
+    // — not the (possibly later) moment the cron actually ran.
+    const closeAtMs = new Date(market.close_at).getTime();
+    finalPrice = await getBinanceMinuteOpenPrice(binanceSymbol, closeAtMs);
   } catch (err) {
     return {
       success: false,
@@ -410,6 +434,60 @@ export async function settleShortDurationMarketById(
     rolloverError: rollover.success ? rollover.rolloverError : undefined,
     rolloverPriceError: rollover.success ? rollover.rolloverPriceError : undefined,
   };
+}
+
+/**
+ * Ensures a short-duration market's spot_price_at_open matches the actual
+ * Binance minute-open price for the round's start time. Silently repairs stale
+ * values in the DB and returns the authoritative opening price.
+ *
+ * Call this on every active short-duration market page load — it's idempotent
+ * and fast (single Binance kline request, skipped entirely if price is fresh).
+ */
+export async function ensureRoundOpeningPrice(market: {
+  id: string;
+  assetSymbol: string;
+  closeAt: string;
+  durationMinutes: number;
+  spotPriceAtOpen: string | null;
+}): Promise<number | null> {
+  const binanceSymbol = ASSET_TO_BINANCE[market.assetSymbol];
+  if (!binanceSymbol) return market.spotPriceAtOpen != null ? Number(market.spotPriceAtOpen) : null;
+
+  const roundStartMs =
+    new Date(market.closeAt).getTime() - market.durationMinutes * 60_000;
+
+  let freshPrice: number;
+  try {
+    freshPrice = await getBinanceMinuteOpenPrice(binanceSymbol, roundStartMs);
+  } catch {
+    // Binance unreachable — trust whatever is in the DB.
+    return market.spotPriceAtOpen != null ? Number(market.spotPriceAtOpen) : null;
+  }
+
+  const storedPrice = market.spotPriceAtOpen != null ? Number(market.spotPriceAtOpen) : null;
+
+  // If stored price is within 0.05% of fresh, it's fine — avoid noisy DB writes.
+  if (
+    storedPrice != null &&
+    Math.abs(storedPrice - freshPrice) / freshPrice < 0.0005
+  ) {
+    return storedPrice;
+  }
+
+  // Price is missing or stale — update silently.
+  try {
+    const supabase = createSupabaseAdminClient();
+    await supabase
+      .from("markets")
+      .update({ spot_price_at_open: freshPrice })
+      .eq("id", market.id)
+      .eq("status", "active");
+  } catch {
+    // Non-critical — return the fresh price anyway so this render is correct.
+  }
+
+  return freshPrice;
 }
 
 export async function settleExpiredShortDurationMarkets(
