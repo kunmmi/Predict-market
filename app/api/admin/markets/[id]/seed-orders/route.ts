@@ -25,13 +25,15 @@ export async function POST(
 
   const supabase = createSupabaseAdminClient();
 
-  const { data: market } = await supabase
+  const { data: market, error: marketError } = await supabase
     .from("markets")
-    .select("id, status, latest_yes_price, duration_minutes")
+    .select("id, status, duration_minutes, market_prices(yes_price, created_at)")
     .eq("id", params.id)
+    .order("created_at", { referencedTable: "market_prices", ascending: false })
+    .limit(1, { referencedTable: "market_prices" })
     .maybeSingle();
 
-  if (!market) {
+  if (marketError || !market) {
     return NextResponse.json({ success: false, message: "Market not found." }, { status: 404 });
   }
   if (market.status !== "active") {
@@ -40,7 +42,10 @@ export async function POST(
 
   const body = await request.json().catch(() => ({}));
   const providedPrice = typeof body?.current_yes_price === "number" ? body.current_yes_price : null;
-  const yesPrice = providedPrice ?? (market.latest_yes_price != null ? Number(market.latest_yes_price) : 0.5);
+  const latestPrice = Array.isArray(market.market_prices) && market.market_prices.length > 0
+    ? Number(market.market_prices[0].yes_price)
+    : null;
+  const yesPrice = providedPrice ?? latestPrice ?? 0.5;
 
   const result = await seedMarketMakerOrders(params.id, yesPrice);
 
