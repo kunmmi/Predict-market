@@ -33,6 +33,7 @@ type Props = {
   spotPriceAtOpen?: string | null;
   locale: Locale;
   t: T["trade"];
+  onTradeSuccess?: () => void;
 };
 
 // House economics:
@@ -64,6 +65,7 @@ export function TradeForm({
   spotPriceAtOpen,
   locale,
   t,
+  onTradeSuccess,
 }: Props) {
   const [side, setSide] = useState<TradeSide>("yes");
   const [amount, setAmount] = useState("");
@@ -256,6 +258,7 @@ export function TradeForm({
       setSuccess(true);
       setAmount("");
       setLimitPrice("");
+      onTradeSuccess?.();
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -306,7 +309,11 @@ export function TradeForm({
                   <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.potentialPayout}</p>
                     <p className="mt-1 text-lg font-semibold text-green-600">
-                      {payoutMultiplier != null ? `${payoutMultiplier}x` : "—"}
+                      {isValidAmount && potentialPayout != null
+                        ? `$${potentialPayout}`
+                        : payoutMultiplier != null
+                          ? `${payoutMultiplier}x`
+                          : "—"}
                     </p>
                   </div>
                 </div>
