@@ -18,6 +18,7 @@ import {
   getShortDurationCutoffAt,
   SHORT_DURATION_CUTOFF_SECONDS,
 } from "@/lib/short-duration-predictions";
+import { BUY_FEE_RATE, OVERROUND } from "@/lib/config/trading-constants";
 
 type TradeSide = "yes" | "no";
 
@@ -36,13 +37,8 @@ type Props = {
   onTradeSuccess?: () => void;
 };
 
-// House economics:
-//   • FEE_RATE      — added on top of the stake (visible to the user)
-//   • OVERROUND     — multiplier on YES/NO prices so they sum to >1.0
-//                      (built-in spread, what real sportsbooks do)
-// Combined, these give the house ~6-7% edge per trade.
-const FEE_RATE = 0.025;
-const OVERROUND = 0.04;
+// House economics imported from lib/config/trading-constants.ts
+const FEE_RATE = BUY_FEE_RATE;
 
 function formatCountdown(totalSeconds: number | null): string {
   if (totalSeconds == null) return "--:--";

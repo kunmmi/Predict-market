@@ -7,10 +7,8 @@ import { getBinanceSpotPrice } from "@/lib/services/binance-price";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { computeBinaryYesPrice } from "@/lib/short-duration-predictions";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
+import { OVERROUND, SELL_FEE_RATE } from "@/lib/config/trading-constants";
 import { tradeSellSchema } from "@/lib/validations/trade";
-
-// Must match trade-form.tsx
-const OVERROUND = 0.04;
 
 type PositionRow = {
   id: string;
@@ -167,7 +165,9 @@ export async function POST(request: Request) {
     sidePrice = getFallbackPrice(position, parsed.data.side);
   }
 
-  const payout = Number((unitsToSell * sidePrice).toFixed(8));
+  const grossPayout = Number((unitsToSell * sidePrice).toFixed(8));
+  const sellFee     = Number((grossPayout * SELL_FEE_RATE).toFixed(8));
+  const payout      = Number((grossPayout - sellFee).toFixed(8));
 
   // ── Update position ────────────────────────────────────────────────────────
   const nextYesUnits =
@@ -206,7 +206,7 @@ export async function POST(request: Request) {
       side: parsed.data.side,
       amount: payout,
       price: sidePrice,
-      fee_amount: 0,
+      fee_amount: sellFee,
       position_units: unitsToSell,
       status: "executed",
     })
