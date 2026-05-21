@@ -6,10 +6,8 @@ import { useBinanceKlineStream } from "@/lib/hooks/use-binance-kline-stream";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { computeBinaryYesPrice } from "@/lib/short-duration-predictions";
 import { useWallet } from "@/lib/contexts/wallet-context";
+import { OVERROUND, SELL_FEE_RATE } from "@/lib/config/trading-constants";
 import type { Locale } from "@/lib/i18n/translations";
-
-// Must match FEE_RATE and OVERROUND in trade-form.tsx
-const OVERROUND = 0.04;
 
 type Position = {
   hasPosition: false;
@@ -142,8 +140,11 @@ export function MarketPositionPanel({
   const sellUnitsNum = parseFloat(sellUnits);
   const maxSellUnits = sellSide === "yes" ? yesUnits : noUnits;
   const sellPrice    = sellSide === "yes" ? yesPriceForCalc : noPriceForCalc;
-  const estimatedPayout = !isNaN(sellUnitsNum) && sellUnitsNum > 0 && sellPrice != null
+  const estimatedGross = !isNaN(sellUnitsNum) && sellUnitsNum > 0 && sellPrice != null
     ? sellUnitsNum * sellPrice
+    : null;
+  const estimatedPayout = estimatedGross != null
+    ? estimatedGross * (1 - SELL_FEE_RATE)
     : null;
 
   const handleSell = async (e: React.FormEvent) => {

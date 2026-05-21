@@ -23,20 +23,22 @@ type Result = {
   outcome?: "yes" | "no" | "void";
 };
 
+const AUTO_REDIRECT_SECONDS = 5;
+
 /**
  * Polymarket-style "round closed" banner. Once the close_at time passes:
- *   • Shows that the round is over
- *   • Polls for the user's result (if they participated)
- *   • Displays win / loss + updated balance
- *   • Provides a manual "Trade next round →" button
- *
- * No auto-redirect — user stays on the page until they choose to leave.
+ *   • Scrolls to top so the user sees the banner immediately
+ *   • Shows "Settling…" then win / loss result + updated balance
+ *   • Auto-redirects to the next round after AUTO_REDIRECT_SECONDS
+ *   • "Stay" button cancels the auto-redirect
  */
 export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }: Props) {
   const router = useRouter();
   const { wallet, refetch: refetchWallet } = useWallet();
   const [isClosed, setIsClosed] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [countdown, setCountdown] = useState(AUTO_REDIRECT_SECONDS);
+  const [autoRedirect, setAutoRedirect] = useState(true);
 
   // Detect when the round closes
   useEffect(() => {
@@ -46,6 +48,7 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
     const check = () => {
       if (Date.now() >= closeMs) {
         setIsClosed(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return true;
       }
       return false;
@@ -96,6 +99,18 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
       if (timer) clearTimeout(timer);
     };
   }, [isClosed, marketId, refetchWallet]);
+
+  // Auto-redirect countdown once result is final (or if user didn't participate)
+  const resultFinal = result != null && (!result.participated || (result.settled && !result.pending));
+  useEffect(() => {
+    if (!isClosed || !resultFinal || !autoRedirect) return;
+    if (countdown <= 0) {
+      router.refresh();
+      return;
+    }
+    const id = window.setTimeout(() => setCountdown((c) => c - 1), 1_000);
+    return () => window.clearTimeout(id);
+  }, [isClosed, resultFinal, autoRedirect, countdown, router]);
 
   if (!isClosed) return null;
 
@@ -170,14 +185,27 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
             {subtitle && <p className="text-sm text-slate-600">{subtitle}</p>}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => router.refresh()}
-          className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
-        >
-          {locale === "zh" ? "交易下一轮" : "Trade next round"}
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {resultFinal && autoRedirect && (
+            <button
+              type="button"
+              onClick={() => setAutoRedirect(false)}
+              className="text-xs font-medium text-slate-500 hover:text-slate-700"
+            >
+              {locale === "zh" ? "留在此页" : "Stay"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+          >
+            {locale === "zh" ? "交易下一轮" : "Trade next round"}
+            {resultFinal && autoRedirect
+              ? <span className="ml-1 tabular-nums opacity-70">{countdown}s</span>
+              : <ChevronRight className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
     </div>
   );
