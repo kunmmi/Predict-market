@@ -31,6 +31,9 @@ export function TradeArea(props: Props) {
       <MarketPositionPanel
         marketId={props.marketId}
         isShortDuration={props.isShortDuration}
+        assetSymbol={props.assetSymbol}
+        closeAt={props.closeAt}
+        spotPriceAtOpen={props.spotPriceAtOpen}
         locale={props.locale}
         refreshTick={tick}
       />

@@ -25,7 +25,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
   const { data: position } = await supabase
     .from("positions")
-    .select("yes_units, no_units, avg_yes_price, avg_no_price, status")
+    .select("id, yes_units, no_units, avg_yes_price, avg_no_price, status")
     .eq("market_id", params.id)
     .eq("profile_id", profileId)
     .eq("status", "open")
@@ -38,6 +38,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   return NextResponse.json({
     success: true,
     hasPosition: true,
+    positionId: position.id,
     yesUnits: Number(position.yes_units ?? 0),
     noUnits: Number(position.no_units ?? 0),
     avgYesPrice: position.avg_yes_price != null ? Number(position.avg_yes_price) : null,
