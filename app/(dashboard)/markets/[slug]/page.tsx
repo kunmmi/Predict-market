@@ -13,7 +13,7 @@ import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { statusLabel } from "@/lib/i18n/labels";
 import { resolveMarketTitle } from "@/lib/short-duration-predictions";
 import LiveCryptoChart from "@/components/ui/live-crypto-chart";
-import { TradeForm } from "./trade-form";
+import { TradeArea } from "./trade-area";
 import { PriceHistoryChart } from "./price-history-chart";
 import { LiveProbabilityBar } from "./live-probability-bar";
 import { RoundClosedBanner } from "./round-closed-banner";
@@ -283,8 +283,8 @@ export default async function MarketDetailPage({ params }: Props) {
         </Card>
       </div>
 
-      {/* Trade form */}
-      <TradeForm
+      {/* Trade form + live position */}
+      <TradeArea
         marketId={market.id}
         yesPrice={market.latestYesPrice}
         noPrice={market.latestNoPrice}
