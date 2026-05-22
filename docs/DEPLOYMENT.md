@@ -45,7 +45,7 @@ Set all of the following in Vercel project settings → Environment Variables (a
 
 | Variable | Description |
 |---|---|
-| `NEXT_PUBLIC_APP_URL` | Full URL of the deployment (e.g. `https://predict-market-xi.vercel.app`) |
+| `NEXT_PUBLIC_APP_URL` | Full URL of the deployment (e.g. `https://www.predictmarket.live`) |
 | `APP_REGION` | `global` (default) or `cn` — region feature flag |
 | `SYSTEM_ADMIN_PROFILE_ID` | Profile ID of the system admin user for internal operations |
 | `NEXT_PUBLIC_ANALYTICS_PROVIDER` | Analytics provider identifier |

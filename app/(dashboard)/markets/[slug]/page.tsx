@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
-import { getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
+import { getMarketByIdAdmin, getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
 import { settleShortDurationMarketById, ensureRoundOpeningPrice } from "@/lib/services/short-duration-settlement";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
@@ -60,30 +60,23 @@ export default async function MarketDetailPage({ params }: Props) {
     const isExpired = new Date(market.closeAt) <= new Date();
 
     if (market.status === "active" && isExpired) {
-      // Active but window closed — settle and redirect to the new round.
+      // Active but window closed: settle it, then keep the user on the
+      // ended-round experience instead of redirecting them away.
       const result = await settleShortDurationMarketById(market.id);
-      const nextSlug = result.success ? result.nextMarketSlug : null;
-      if (nextSlug && nextSlug !== params.slug) {
-        redirect(`/markets/${nextSlug}`);
-      }
-      // Re-fetch in case the new round reuses the same base slug.
-      const refreshed = await getMarketBySlug(params.slug);
-      if (refreshed && new Date(refreshed.closeAt) > new Date()) {
+      const refreshed = result.success ? await getMarketByIdAdmin(market.id) : null;
+      if (refreshed) {
         market = refreshed;
-      }
-    } else if (market.status !== "active") {
-      // Already settled/cancelled — look up the current active round and redirect.
-      const result = await settleShortDurationMarketById(market.id);
-      const nextSlug = result.success ? result.nextMarketSlug : null;
-      if (nextSlug && nextSlug !== params.slug) {
-        redirect(`/markets/${nextSlug}`);
       }
     }
 
     // For the active round now in hand, silently validate that spot_price_at_open
     // matches the real Binance price for the round's start minute. Repairs any stale
     // value in the DB before it reaches the chart, probability bar, or trade API.
-    if (market.status === "active" && market.durationMinutes != null) {
+    if (
+      market.status === "active" &&
+      market.durationMinutes != null &&
+      new Date(market.closeAt) > new Date()
+    ) {
       const validatedPrice = await ensureRoundOpeningPrice({
         id: market.id,
         assetSymbol: market.assetSymbol,
@@ -114,7 +107,9 @@ export default async function MarketDetailPage({ params }: Props) {
     <div className="space-y-6">
       {/* Round-closed banner (only appears once the close_at time passes) */}
       <RoundClosedBanner
+        key={market.id}
         marketId={market.id}
+        assetSymbol={market.assetSymbol}
         closeAt={market.closeAt}
         isShortDuration={isShortDuration}
         locale={locale}

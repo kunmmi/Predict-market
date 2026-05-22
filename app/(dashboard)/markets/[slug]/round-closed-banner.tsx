@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, TrendingUp, TrendingDown, MinusCircle, Loader2 } from "lucide-react";
+import { ChevronRight, Loader2, MinusCircle, TrendingDown, TrendingUp } from "lucide-react";
 
 import { useWallet } from "@/lib/contexts/wallet-context";
 import type { Locale } from "@/lib/i18n/translations";
 
 type Props = {
   marketId: string;
+  assetSymbol: string;
   closeAt: string;
   isShortDuration: boolean;
   locale: Locale;
@@ -20,27 +21,23 @@ type Result = {
   settled?: boolean;
   isWin?: boolean;
   pnlAmount?: string;
-  outcome?: "yes" | "no" | "void";
+  outcome?: "yes" | "no" | "void" | "cancelled";
 };
 
-const AUTO_REDIRECT_SECONDS = 5;
-
 /**
- * Polymarket-style "round closed" banner. Once the close_at time passes:
- *   • Scrolls to top so the user sees the banner immediately
- *   • Shows "Settling…" then win / loss result + updated balance
- *   • Auto-redirects to the next round after AUTO_REDIRECT_SECONDS
- *   • "Stay" button cancels the auto-redirect
+ * Permanent ended-round banner. It shows settlement/result state and lets the
+ * user explicitly jump into the current live market for the same asset.
  */
-export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }: Props) {
+export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDuration, locale }: Props) {
   const router = useRouter();
   const { wallet, refetch: refetchWallet } = useWallet();
-  const [isClosed, setIsClosed] = useState(false);
+  const [isClosed, setIsClosed] = useState(() => (
+    isShortDuration && Date.now() >= new Date(closeAt).getTime()
+  ));
   const [result, setResult] = useState<Result | null>(null);
-  const [countdown, setCountdown] = useState(AUTO_REDIRECT_SECONDS);
-  const [autoRedirect, setAutoRedirect] = useState(true);
+  const [isFindingLiveMarket, setIsFindingLiveMarket] = useState(false);
+  const [liveMarketError, setLiveMarketError] = useState<string | null>(null);
 
-  // Detect when the round closes
   useEffect(() => {
     if (!isShortDuration) return;
     const closeMs = new Date(closeAt).getTime();
@@ -53,15 +50,22 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
       }
       return false;
     };
-    if (check()) return;
+
+    if (!check()) {
+      setIsClosed(false);
+      setResult(null);
+      setLiveMarketError(null);
+    } else {
+      return;
+    }
 
     const id = window.setInterval(() => {
       if (check()) window.clearInterval(id);
     }, 1_000);
-    return () => window.clearInterval(id);
-  }, [closeAt, isShortDuration]);
 
-  // Once closed, poll for the user's result until settled (or timeout after ~30s)
+    return () => window.clearInterval(id);
+  }, [closeAt, isShortDuration, marketId]);
+
   useEffect(() => {
     if (!isClosed) return;
 
@@ -77,16 +81,16 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
           const json = (await res.json()) as Result & { success: boolean };
           if (json.success) {
             setResult(json);
-            // If the user participated and result is final, refresh wallet
             if (json.participated && json.settled && !json.pending) {
               void refetchWallet();
-              return; // stop polling
+              return;
             }
           }
         }
       } catch {
-        // ignore
+        // Keep the banner visible even if result polling briefly fails.
       }
+
       attempts += 1;
       if (attempts < 15 && !stopped) {
         timer = setTimeout(fetchResult, 2_000);
@@ -94,37 +98,49 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
     };
 
     void fetchResult();
+
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);
     };
   }, [isClosed, marketId, refetchWallet]);
 
-  // Auto-redirect countdown once result is final (or if user didn't participate)
-  const resultFinal = result != null && (!result.participated || (result.settled && !result.pending));
-  useEffect(() => {
-    if (!isClosed || !resultFinal || !autoRedirect) return;
-    if (countdown <= 0) {
-      router.refresh();
-      return;
+  const goToLiveMarket = async () => {
+    setIsFindingLiveMarket(true);
+    setLiveMarketError(null);
+
+    try {
+      const res = await fetch(`/api/markets/active?asset=${encodeURIComponent(assetSymbol)}`, {
+        cache: "no-store",
+      });
+      const json = (await res.json()) as { success?: boolean; slug?: string; message?: string };
+
+      if (!res.ok || !json.success || !json.slug) {
+        throw new Error(json.message ?? "No live market is available yet.");
+      }
+
+      router.push(`/markets/${json.slug}`);
+    } catch (err) {
+      setLiveMarketError(
+        err instanceof Error
+          ? err.message
+          : locale === "zh"
+            ? "\u73b0\u5728\u6ca1\u6709\u53ef\u4ea4\u6613\u7684\u5e02\u573a\u3002"
+            : "No live market is available yet.",
+      );
+    } finally {
+      setIsFindingLiveMarket(false);
     }
-    const id = window.setTimeout(() => setCountdown((c) => c - 1), 1_000);
-    return () => window.clearTimeout(id);
-  }, [isClosed, resultFinal, autoRedirect, countdown, router]);
+  };
 
   if (!isClosed) return null;
-
-  // ---------------------------------------------------------------------------
-  // Result rendering
-  // ---------------------------------------------------------------------------
 
   const participated = result?.participated === true;
   const settling = result == null || (participated && result.pending === true);
   const isWin = result?.isWin === true;
-  const isVoid = result?.outcome === "void";
+  const isVoid = result?.outcome === "void" || result?.outcome === "cancelled";
   const pnlNum = result?.pnlAmount ? parseFloat(result.pnlAmount) : 0;
 
-  // Color scheme based on outcome
   const palette = !participated
     ? { border: "border-slate-200", bg: "from-slate-50 to-slate-100", icon: "text-slate-500", iconBg: "bg-slate-100" }
     : settling
@@ -135,36 +151,37 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
           ? { border: "border-slate-300", bg: "from-slate-50 to-slate-100", icon: "text-slate-600", iconBg: "bg-slate-100" }
           : { border: "border-red-300", bg: "from-red-50 to-rose-50", icon: "text-red-700", iconBg: "bg-red-100" };
 
-  // Title + subtitle based on state
   let title: string;
   let subtitle: string | null = null;
   let Icon: typeof TrendingUp = MinusCircle;
 
   if (!participated) {
-    title = locale === "zh" ? "本轮已结束" : "Round closed";
-    subtitle = locale === "zh" ? "下一轮已开始 — 立即交易" : "Next round is live — trade now";
+    title = locale === "zh" ? "\u672c\u8f6e\u5df2\u7ed3\u675f" : "Round ended";
+    subtitle = locale === "zh"
+      ? "\u70b9\u51fb\u8fdb\u5165\u5f53\u524d\u53ef\u4ea4\u6613\u7684\u8f6e\u6b21"
+      : "Choose when to enter the current live round.";
   } else if (settling) {
-    title = locale === "zh" ? "结算中..." : "Settling…";
-    subtitle = locale === "zh" ? "正在计算您的结果" : "Calculating your result";
+    title = locale === "zh" ? "\u7ed3\u7b97\u4e2d..." : "Settling...";
+    subtitle = locale === "zh" ? "\u6b63\u5728\u8ba1\u7b97\u60a8\u7684\u7ed3\u679c" : "Calculating your result";
   } else if (isVoid) {
-    title = locale === "zh" ? "本轮无效" : "Round voided";
-    subtitle = locale === "zh" ? "您的投注已退回" : "Your stake was refunded";
+    title = locale === "zh" ? "\u672c\u8f6e\u65e0\u6548" : "Round voided";
+    subtitle = locale === "zh" ? "\u60a8\u7684\u6295\u6ce8\u5df2\u9000\u56de" : "Your stake was refunded";
   } else if (isWin) {
     Icon = TrendingUp;
-    title = locale === "zh" ? `您赢了 $${pnlNum.toFixed(2)}` : `You won $${pnlNum.toFixed(2)}`;
+    title = locale === "zh" ? `\u60a8\u8d62\u4e86 $${pnlNum.toFixed(2)}` : `You won $${pnlNum.toFixed(2)}`;
     subtitle =
       wallet != null
         ? locale === "zh"
-          ? `新余额: $${parseFloat(wallet.balance).toFixed(2)}`
+          ? `\u65b0\u4f59\u989d: $${parseFloat(wallet.balance).toFixed(2)}`
           : `New balance: $${parseFloat(wallet.balance).toFixed(2)}`
         : null;
   } else {
     Icon = TrendingDown;
-    title = locale === "zh" ? `您输了 $${Math.abs(pnlNum).toFixed(2)}` : `You lost $${Math.abs(pnlNum).toFixed(2)}`;
+    title = locale === "zh" ? `\u60a8\u8f93\u4e86 $${Math.abs(pnlNum).toFixed(2)}` : `You lost $${Math.abs(pnlNum).toFixed(2)}`;
     subtitle =
       wallet != null
         ? locale === "zh"
-          ? `新余额: $${parseFloat(wallet.balance).toFixed(2)}`
+          ? `\u65b0\u4f59\u989d: $${parseFloat(wallet.balance).toFixed(2)}`
           : `New balance: $${parseFloat(wallet.balance).toFixed(2)}`
         : null;
   }
@@ -186,27 +203,26 @@ export function RoundClosedBanner({ marketId, closeAt, isShortDuration, locale }
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {resultFinal && autoRedirect && (
-            <button
-              type="button"
-              onClick={() => setAutoRedirect(false)}
-              className="text-xs font-medium text-slate-500 hover:text-slate-700"
-            >
-              {locale === "zh" ? "留在此页" : "Stay"}
-            </button>
-          )}
           <button
             type="button"
-            onClick={() => router.refresh()}
-            className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
+            onClick={goToLiveMarket}
+            disabled={isFindingLiveMarket}
+            className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {locale === "zh" ? "交易下一轮" : "Trade next round"}
-            {resultFinal && autoRedirect
-              ? <span className="ml-1 tabular-nums opacity-70">{countdown}s</span>
-              : <ChevronRight className="h-4 w-4" />}
+            {isFindingLiveMarket
+              ? locale === "zh" ? "\u67e5\u627e\u4e2d..." : "Finding live market..."
+              : locale === "zh" ? "\u4ea4\u6613\u5b9e\u65f6\u5e02\u573a" : "Trade live market"}
+            {isFindingLiveMarket ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
           </button>
         </div>
       </div>
+      {liveMarketError && (
+        <p className="mt-3 text-sm font-medium text-red-700">{liveMarketError}</p>
+      )}
     </div>
   );
 }

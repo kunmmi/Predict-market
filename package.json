@@ -14,7 +14,7 @@
     "generate:deposit-wallet": "npx tsx scripts/generate-deposit-wallet.ts",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:live": "cross-env TEST_BASE_URL=https://predict-market-xi.vercel.app playwright test",
+    "test:live": "cross-env TEST_BASE_URL=https://www.predictmarket.live playwright test",
     "test:report": "playwright show-report"
   },
   "dependencies": {

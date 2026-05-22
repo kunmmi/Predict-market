@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const requiredEnv = [
     "NEXT_PUBLIC_SUPABASE_URL",
