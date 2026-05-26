@@ -29,7 +29,7 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     if (systemAdminId && profileId === systemAdminId) continue;
 
     const pnl = parseFloat(String(row.pnl_amount ?? 0));
-    const profile = row.profiles as { display_name: string | null } | null;
+    const profile = row.profiles as unknown as { display_name: string | null } | null;
     const name = profile?.display_name ?? "Player";
 
     const existing = map.get(profileId);
