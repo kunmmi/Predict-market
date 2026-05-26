@@ -408,6 +408,14 @@ export async function settleShortDurationMarketById(
     };
   }
 
+  // Cancel all open limit orders for this market and refund reserved funds.
+  // Non-blocking — order cleanup must never prevent the round from settling.
+  void supabase
+    .rpc("expire_limit_orders_for_market", { p_market_id: marketId })
+    .then(({ error }) => {
+      if (error) console.error(`[settlement] expire_limit_orders_for_market(${marketId}):`, error.message);
+    });
+
   const archiveResult = await archiveSettledShortDurationMarket(market);
   if (archiveResult.error) {
     return {
