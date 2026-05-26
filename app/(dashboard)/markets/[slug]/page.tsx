@@ -199,8 +199,8 @@ export default async function MarketDetailPage({ params }: Props) {
             shortDurationBadge: tm.short_duration_badge,
           }}
           labels={{
-            title: locale === "zh" ? "5分钟实时价格" : "5-Minute Live Price",
-            subtitle: locale === "zh" ? "Binance实时K线演示" : "Live Binance candles with a local 5-minute demo round",
+            title: locale === "zh" ? `${market.durationMinutes}分钟实时价格` : `${market.durationMinutes}-Minute Live Price`,
+            subtitle: locale === "zh" ? "Binance实时K线" : `Live Binance candles · ${market.durationMinutes}-min round`,
             currentPrice: locale === "zh" ? "当前价格" : "Current price",
             openingPrice: locale === "zh" ? "开盘价格" : "Opening price",
             priceDifference: locale === "zh" ? "价格变化" : "Price difference",
