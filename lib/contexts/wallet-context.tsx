@@ -78,7 +78,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Poll every 15 s so balance stays current without a manual refresh.
   // Pauses automatically when the tab is hidden to avoid wasting requests.
-  useVisibilityPoll(refetch, 15_000);
+  useVisibilityPoll(() => { void refetch(); }, 15_000);
 
   const value = React.useMemo(
     () => ({ wallet, loading, error, refetch }),
