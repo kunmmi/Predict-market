@@ -20,6 +20,9 @@ export type PortfolioPosition = {
   marketCloseAt: string;
   durationMinutes: number | null;
   spotPriceAtOpen: string | null;
+  assetSymbol: string | null;
+  resolutionOutcome: string | null;
+  roundResult: string | null;
   yesUnits: string;
   noUnits: string;
   avgYesPrice: string | null;
@@ -75,6 +78,9 @@ type RawPosition = {
     close_at: string;
     duration_minutes: number | null;
     spot_price_at_open: string | null;
+    asset_symbol: string | null;
+    resolution_outcome: string | null;
+    round_result: string | null;
     market_prices?: Array<{
       yes_price: string | number;
       no_price: string | number;
@@ -136,11 +142,13 @@ export async function getPortfolioData(profileId: string): Promise<PortfolioData
   const extendedPositionsSelect = `id, market_id, yes_units, no_units, avg_yes_price, avg_no_price, status, pnl_amount, updated_at,
     markets (
       id, title, title_zh, slug, status, close_at, duration_minutes, spot_price_at_open,
+      asset_symbol, resolution_outcome, round_result,
       market_prices ( yes_price, no_price, created_at )
     )`;
   const fallbackPositionsSelect = `id, market_id, yes_units, no_units, avg_yes_price, avg_no_price, status, pnl_amount, updated_at,
     markets (
       id, title, title_zh, slug, status, close_at,
+      asset_symbol, resolution_outcome, round_result,
       market_prices ( yes_price, no_price, created_at )
     )`;
 
@@ -180,6 +188,9 @@ export async function getPortfolioData(profileId: string): Promise<PortfolioData
       marketCloseAt: row.markets?.close_at ?? "",
       durationMinutes: row.markets?.duration_minutes ?? null,
       spotPriceAtOpen: row.markets?.spot_price_at_open != null ? String(row.markets.spot_price_at_open) : null,
+      assetSymbol: row.markets?.asset_symbol ?? null,
+      resolutionOutcome: row.markets?.resolution_outcome ?? null,
+      roundResult: row.markets?.round_result ?? null,
       yesUnits: String(row.yes_units),
       noUnits: String(row.no_units),
       avgYesPrice: row.avg_yes_price != null ? String(row.avg_yes_price) : null,

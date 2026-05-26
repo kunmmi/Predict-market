@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { DollarSign, BarChart2, TrendingUp } from "lucide-react";
+import { DollarSign, BarChart2, TrendingUp, TrendingDown, Trophy } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
 import { getPortfolioData } from "@/lib/services/portfolio-data";
@@ -34,6 +34,10 @@ export default async function PortfolioPage() {
     return sum + yesVal + noVal;
   }, 0);
 
+  const totalPnl = settledPositions.reduce((sum, pos) => sum + parseFloat(pos.pnlAmount), 0);
+  const wins = settledPositions.filter((p) => parseFloat(p.pnlAmount) > 0).length;
+  const losses = settledPositions.filter((p) => parseFloat(p.pnlAmount) < 0).length;
+
   return (
     <div className="space-y-8">
       <div>
@@ -41,7 +45,7 @@ export default async function PortfolioPage() {
         <p className="page-subtitle">{t.subtitle}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6 pb-5">
             <div className="flex items-start justify-between">
@@ -85,6 +89,28 @@ export default async function PortfolioPage() {
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-6 pb-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  {locale === "zh" ? "历史盈亏" : "Total P&L"}
+                </p>
+                <p className={`mt-1.5 text-2xl font-bold tabular-nums ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {totalPnl >= 0 ? "+" : ""}${formatDecimal(Math.abs(totalPnl), 2)}
+                </p>
+                {settledPositions.length > 0 && (
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {wins}W – {losses}L
+                  </p>
+                )}
+              </div>
+              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${totalPnl >= 0 ? "bg-green-100" : "bg-red-100"}`}>
+                <Trophy className={`h-4 w-4 ${totalPnl >= 0 ? "text-green-600" : "text-red-500"}`} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <OpenPositionsLive
@@ -95,57 +121,121 @@ export default async function PortfolioPage() {
 
       <LimitOrdersPanel locale={locale} t={t} />
 
-      {settledPositions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">
-              {t.settled_positions}
+      {/* Round History */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-semibold">
+            {locale === "zh" ? "历史战绩" : "Round History"}
+            {settledPositions.length > 0 && (
               <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                 {settledPositions.length}
               </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    <th className="pb-3 pr-3 text-left">{t.col_market}</th>
-                    <th className="hidden pb-3 pr-3 text-left sm:table-cell">{t.col_outcome}</th>
-                    <th className="pb-3 pr-3 text-left">{t.col_status}</th>
-                    <th className="pb-3 text-right">{t.col_pnl}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {settledPositions.map((pos) => {
-                    const pnl = parseFloat(pos.pnlAmount);
-                    return (
-                      <tr key={pos.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3 pr-3 font-medium text-slate-800">
-                          {locale === "zh" && pos.marketTitleZh ? pos.marketTitleZh : pos.marketTitle}
-                        </td>
-                        <td className="hidden py-3 pr-3 text-slate-500 sm:table-cell">
-                          {parseFloat(pos.yesUnits) > 0 && `${formatDecimal(pos.yesUnits, 4)} ${sideLabel("yes", locale)}`}
-                          {parseFloat(pos.yesUnits) > 0 && parseFloat(pos.noUnits) > 0 && " / "}
-                          {parseFloat(pos.noUnits) > 0 && `${formatDecimal(pos.noUnits, 4)} ${sideLabel("no", locale)}`}
-                        </td>
-                        <td className="py-3 pr-3">
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${pos.status === "settled" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
-                            {statusLabel(pos.status, locale)}
-                          </span>
-                        </td>
-                        <td className={`py-3 text-right font-mono font-semibold tabular-nums ${pnl > 0 ? "text-green-600" : pnl < 0 ? "text-red-600" : "text-slate-500"}`}>
-                          {pnl >= 0 ? "+" : ""}${formatDecimal(pos.pnlAmount, 2)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {settledPositions.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-400">
+              {locale === "zh" ? "暂无历史战绩" : "No completed rounds yet — start trading!"}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {settledPositions.map((pos) => {
+                const pnl = parseFloat(pos.pnlAmount);
+                const isWin = pnl > 0;
+                const isVoid = pos.resolutionOutcome === "void" || pos.resolutionOutcome === "cancelled";
+                const isShort = pos.durationMinutes != null;
+                const playedYes = parseFloat(pos.yesUnits) > 0;
+                const playedNo = parseFloat(pos.noUnits) > 0;
+
+                // Direction label for short-duration markets
+                let directionLabel = "";
+                if (isShort) {
+                  if (playedYes && playedNo) directionLabel = locale === "zh" ? "UP + DOWN" : "UP + DOWN";
+                  else if (playedYes) directionLabel = locale === "zh" ? "看涨 UP" : "UP";
+                  else if (playedNo) directionLabel = locale === "zh" ? "看跌 DOWN" : "DOWN";
+                } else {
+                  if (playedYes) directionLabel = sideLabel("yes", locale);
+                  if (playedNo) directionLabel = sideLabel("no", locale);
+                }
+
+                // Round result label
+                const roundResultLabel = pos.roundResult
+                  ? pos.roundResult.toUpperCase()
+                  : pos.resolutionOutcome
+                    ? pos.resolutionOutcome.toUpperCase()
+                    : null;
+
+                return (
+                  <div
+                    key={pos.id}
+                    className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                      isVoid
+                        ? "border-slate-200 bg-slate-50"
+                        : isWin
+                          ? "border-green-200 bg-green-50"
+                          : "border-red-200 bg-red-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Win/loss icon */}
+                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                        isVoid ? "bg-slate-200" : isWin ? "bg-green-200" : "bg-red-200"
+                      }`}>
+                        {isVoid ? (
+                          <span className="text-xs font-bold text-slate-500">—</span>
+                        ) : isWin ? (
+                          <TrendingUp className="h-4 w-4 text-green-700" />
+                        ) : (
+                          <TrendingDown className="h-4 w-4 text-red-600" />
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {pos.assetSymbol && (
+                            <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                              {pos.assetSymbol}
+                            </span>
+                          )}
+                          {directionLabel && (
+                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                              playedYes ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
+                            }`}>
+                              {directionLabel}
+                            </span>
+                          )}
+                          {roundResultLabel && (
+                            <span className="text-[10px] font-medium text-slate-500">
+                              → {roundResultLabel}
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {new Date(pos.marketCloseAt).toLocaleDateString(dateLocale, {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <p className={`text-base font-bold tabular-nums ${
+                        isVoid ? "text-slate-500" : isWin ? "text-green-700" : "text-red-600"
+                      }`}>
+                        {isVoid ? "Refunded" : `${pnl >= 0 ? "+" : ""}$${Math.abs(pnl).toFixed(2)}`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-3">
