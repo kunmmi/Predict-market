@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useVisibilityPoll } from "@/lib/hooks/use-visibility-poll";
 
 /**
  * Shared wallet state for the dashboard.
@@ -74,6 +75,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     void refetch();
   }, [refetch]);
+
+  // Poll every 15 s so balance stays current without a manual refresh.
+  // Pauses automatically when the tab is hidden to avoid wasting requests.
+  useVisibilityPoll(() => { void refetch(); }, 15_000);
 
   const value = React.useMemo(
     () => ({ wallet, loading, error, refetch }),
