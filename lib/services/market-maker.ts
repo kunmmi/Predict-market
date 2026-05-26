@@ -11,12 +11,23 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-// Stake per price level in USD
-const STAKE_PER_LEVEL = 8;
 const FEE_RATE = 0.025;
 
 // How far below current price each level sits (in probability units)
 const LEVEL_OFFSETS = [0.07, 0.12, 0.17];
+
+// Stake ranges per level [min, max] in USD.
+// Closer levels (tighter spread) carry more liquidity — realistic for a real book.
+const STAKE_RANGES: [number, number][] = [
+  [12, 22], // level 1 — closest to market, most liquid
+  [7, 14],  // level 2 — mid spread
+  [4, 9],   // level 3 — furthest out, least liquid
+];
+
+/** Returns a random integer between min and max (inclusive). */
+function randBetween(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 export type SeedOrdersResult = {
   success: boolean;
@@ -73,26 +84,28 @@ export async function seedMarketMakerOrders(
   // 2. Build spread levels
   const noPrice = clamp(1 - currentYesPrice, 0.01, 0.99);
 
-  const levels: { side: "yes" | "no"; targetPrice: number }[] = [];
+  const levels: { side: "yes" | "no"; targetPrice: number; stake: number }[] = [];
 
-  for (const offset of LEVEL_OFFSETS) {
+  LEVEL_OFFSETS.forEach((offset, i) => {
+    const [min, max] = STAKE_RANGES[i] ?? [6, 12];
     const yesTarget = clamp(currentYesPrice - offset, 0.05, 0.94);
-    const noTarget = clamp(noPrice - offset, 0.05, 0.94);
-    levels.push({ side: "yes", targetPrice: Math.round(yesTarget * 1000) / 1000 });
-    levels.push({ side: "no",  targetPrice: Math.round(noTarget  * 1000) / 1000 });
-  }
+    const noTarget  = clamp(noPrice - offset, 0.05, 0.94);
+    // Each side gets its own random stake so the two sides look independent
+    levels.push({ side: "yes", targetPrice: Math.round(yesTarget * 1000) / 1000, stake: randBetween(min, max) });
+    levels.push({ side: "no",  targetPrice: Math.round(noTarget  * 1000) / 1000, stake: randBetween(min, max) });
+  });
 
   // 3. Place the orders
   let placed = 0;
   const errors: string[] = [];
 
-  for (const { side, targetPrice } of levels) {
-    const fee = Math.round(STAKE_PER_LEVEL * FEE_RATE * 1_000_000) / 1_000_000;
+  for (const { side, targetPrice, stake } of levels) {
+    const fee = Math.round(stake * FEE_RATE * 1_000_000) / 1_000_000;
     const { error } = await supabase.rpc("place_limit_order", {
       p_profile_id: profileId,
       p_market_id: marketId,
       p_side: side,
-      p_amount: STAKE_PER_LEVEL,
+      p_amount: stake,
       p_target_price: targetPrice,
       p_fee_amount: fee,
     });
