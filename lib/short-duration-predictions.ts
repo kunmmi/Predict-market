@@ -73,7 +73,7 @@ export function computeBinaryYesPrice(params: BinaryOptionPriceParams): number {
   // expiry and push probabilities to extreme 1%/99% values.
   const remainingMinutes = Math.max(5, secondsRemaining / 60);
   const d2 = Math.log(currentSpotPrice / openingSpotPrice) / (vol1m * Math.sqrt(remainingMinutes));
-  return Math.min(0.92, Math.max(0.08, normalCdf(d2)));
+  return Math.min(0.88, Math.max(0.12, normalCdf(d2)));
 }
 
 export type PredictionDirection = "up" | "down";
