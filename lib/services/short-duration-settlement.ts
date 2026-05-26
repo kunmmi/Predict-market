@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getBinanceSpotPrice, getBinanceMinuteOpenPrice } from "@/lib/services/binance-price";
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
-import { insertInitialMarketPrice } from "@/lib/services/market-initial-prices";
+import { insertInitialMarketPrice, DEFAULT_INITIAL_YES_PRICE } from "@/lib/services/market-initial-prices";
 import { shortDurationTitle, shortDurationTitleZh, SHORT_DURATION_CUTOFF_SECONDS } from "@/lib/short-duration-predictions";
 import { seedMarketMakerOrders } from "@/lib/services/market-maker";
 
@@ -259,7 +259,9 @@ async function createNextShortDurationRound(
 
   // Seed house market-maker orders. Non-blocking — a failure here must never
   // prevent the round from starting.
-  void seedMarketMakerOrders(nextMarket.id, nextSpotPriceAtOpen).catch(() => undefined);
+  // Pass the initial YES probability (0.5) — NOT the BTC spot price — since
+  // seedMarketMakerOrders expects a 0–1 probability, not a dollar value.
+  void seedMarketMakerOrders(nextMarket.id, DEFAULT_INITIAL_YES_PRICE).catch(() => undefined);
 
   return {
     success: true,
