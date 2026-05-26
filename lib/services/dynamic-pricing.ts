@@ -18,6 +18,7 @@
  */
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { matchLimitOrdersForMarket } from "@/lib/services/limit-order-matcher";
 
 /**
  * Virtual liquidity per side in USD.
@@ -80,6 +81,12 @@ export async function updatePriceAfterTrade(marketId: string): Promise<void> {
       no_price: noPrice,
       source: "volume",
     });
+
+    // Event-driven limit order matching: run immediately after every price
+    // update so orders fill near-instantly (vs. waiting up to 60 s for cron).
+    void matchLimitOrdersForMarket(marketId).catch((err) =>
+      console.error("[dynamic-pricing] limit order match error:", err),
+    );
   } catch (err) {
     // Non-fatal — price update failure must never break the trade response
     console.error("[dynamic-pricing] Failed to update price after trade:", err);
