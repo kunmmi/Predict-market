@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { BarChart3, LayoutDashboard, TrendingUp, Briefcase, Wallet, Users, User, Menu, X } from "lucide-react";
+import { BarChart3, LayoutDashboard, TrendingUp, Briefcase, Wallet, Users, User, Menu, X, Trophy } from "lucide-react";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import type { Locale, T } from "@/lib/i18n/translations";
@@ -30,12 +30,13 @@ export function DashboardNav({ locale, t }: Props) {
   }, [mobileOpen]);
 
   const NAV_ITEMS = [
-    { href: "/dashboard", label: t.dashboard, en: "Dashboard", icon: LayoutDashboard },
-    { href: "/markets",   label: t.markets,   en: "Markets",   icon: TrendingUp },
-    { href: "/portfolio", label: t.portfolio,  en: "Portfolio", icon: Briefcase },
-    { href: "/wallet",    label: t.wallet,     en: "Wallet",    icon: Wallet },
-    { href: "/promoter",  label: t.promoter,   en: "Promoter",  icon: Users },
-    { href: "/profile",   label: t.profile,    en: "Profile",   icon: User },
+    { href: "/dashboard",   label: t.dashboard,   en: "Dashboard",   icon: LayoutDashboard },
+    { href: "/markets",     label: t.markets,     en: "Markets",     icon: TrendingUp },
+    { href: "/portfolio",   label: t.portfolio,   en: "Portfolio",   icon: Briefcase },
+    { href: "/leaderboard", label: t.leaderboard, en: "Leaderboard", icon: Trophy },
+    { href: "/wallet",      label: t.wallet,      en: "Wallet",      icon: Wallet },
+    { href: "/promoter",    label: t.promoter,    en: "Promoter",    icon: Users },
+    { href: "/profile",     label: t.profile,     en: "Profile",     icon: User },
   ];
 
   return (
