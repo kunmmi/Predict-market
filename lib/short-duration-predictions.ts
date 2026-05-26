@@ -69,9 +69,10 @@ export function computeBinaryYesPrice(params: BinaryOptionPriceParams): number {
   const { currentSpotPrice, openingSpotPrice, secondsRemaining, recentCandles } = params;
   if (openingSpotPrice <= 0 || currentSpotPrice <= 0) return 0.5;
   const vol1m = estimateVol1m(recentCandles);
-  // Use at least 5 minutes worth of vol so the denominator doesn't collapse near
-  // expiry and push probabilities to extreme 1%/99% values.
-  const remainingMinutes = Math.max(5, secondsRemaining / 60);
+  // Use actual time remaining (floor: 0.5 min = 30 s) so the formula prices
+  // near-certain outcomes aggressively near expiry.  The hard clamp [0.12, 0.88]
+  // below is the safety net — we don't need to artificially inflate time.
+  const remainingMinutes = Math.max(0.5, secondsRemaining / 60);
   const d2 = Math.log(currentSpotPrice / openingSpotPrice) / (vol1m * Math.sqrt(remainingMinutes));
   return Math.min(0.88, Math.max(0.12, normalCdf(d2)));
 }
