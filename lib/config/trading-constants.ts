@@ -9,6 +9,6 @@
  * Combined house edge per buy-hold-to-expiry round: ~11-12%
  * Combined house edge per buy-sell-early cycle:     ~11-12% (sell fee closes the loophole)
  */
-export const BUY_FEE_RATE  = 0.025; // 2.5%
+export const BUY_FEE_RATE  = 0.02;  // 2%
 export const OVERROUND     = 0.08;  // 8%   (was 6%)
 export const SELL_FEE_RATE = 0.02;  // 2%

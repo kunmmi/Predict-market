@@ -365,8 +365,10 @@ export function TradeForm({
                     <span className="font-medium">{estimatedUnits}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{t.fee}</span>
-                    <span className="font-medium">${fee}</span>
+                    <span className="text-slate-500">
+                      {locale === "zh" ? "手续费 (2%)" : "Handling fee (2%)"}
+                    </span>
+                    <span className="font-medium text-slate-500">${fee}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>{uiText.potentialPayout}</span>
