@@ -304,13 +304,21 @@ export function TradeForm({
                   </div>
                   <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
                     <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.potentialPayout}</p>
-                    <p className="mt-1 text-lg font-semibold text-green-600">
-                      {isValidAmount && potentialPayout != null
-                        ? `$${potentialPayout}`
-                        : payoutMultiplier != null
-                          ? `${payoutMultiplier}x`
-                          : "—"}
-                    </p>
+                    {isValidAmount && liveYesPrice != null && liveNoPrice != null ? (
+                      <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+                        <span className="text-sm font-bold text-green-600">
+                          ↑ ${(amountNum / parseFloat(liveYesPrice)).toFixed(2)}
+                        </span>
+                        <span className="text-slate-300 text-xs">|</span>
+                        <span className="text-sm font-bold text-red-500">
+                          ↓ ${(amountNum / parseFloat(liveNoPrice)).toFixed(2)}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-lg font-semibold text-green-600">
+                        {payoutMultiplier != null ? `${payoutMultiplier}×` : "—"}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -417,31 +425,46 @@ export function TradeForm({
                   </button>
                 </div>
 
+                {/* Direction buttons — show price + multiplier for both sides so the
+                    contrast between the obvious and long-shot side is instantly visible */}
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSide("yes")}
-                    disabled={isPredictionClosed}
-                    className={`flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      side === "yes"
-                        ? "border-green-500 bg-green-500 text-white"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {upLabel} {liveYesPrice != null ? `@ $${parseFloat(liveYesPrice).toFixed(2)}` : ""}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSide("no")}
-                    disabled={isPredictionClosed}
-                    className={`flex-1 rounded-md border py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      side === "no"
-                        ? "border-red-500 bg-red-500 text-white"
-                        : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {downLabel} {liveNoPrice != null ? `@ $${parseFloat(liveNoPrice).toFixed(2)}` : ""}
-                  </button>
+                  {(
+                    [
+                      { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, sel: "green" },
+                      { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  sel: "red"   },
+                    ] as const
+                  ).map(({ s, label, livePrice, sel }) => {
+                    const p    = livePrice != null ? parseFloat(livePrice) : null;
+                    const mult = p != null && p > 0 ? (1 / p).toFixed(2) : null;
+                    const isSelected = side === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setSide(s)}
+                        disabled={isPredictionClosed}
+                        className={`flex-1 rounded-xl border-2 px-3 py-3 text-center transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                          isSelected
+                            ? sel === "green"
+                              ? "border-green-500 bg-green-500 text-white shadow-md"
+                              : "border-red-500 bg-red-500 text-white shadow-md"
+                            : sel === "green"
+                              ? "border-green-200 bg-green-50 text-green-800 hover:border-green-400 hover:bg-green-100"
+                              : "border-red-200 bg-red-50 text-red-800 hover:border-red-400 hover:bg-red-100"
+                        }`}
+                      >
+                        <div className="text-[11px] font-bold uppercase tracking-widest opacity-80">
+                          {label}
+                        </div>
+                        <div className="mt-0.5 text-2xl font-bold tabular-nums">
+                          {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
+                        </div>
+                        <div className={`mt-0.5 text-xs font-semibold tabular-nums ${isSelected ? "opacity-90" : "opacity-60"}`}>
+                          {mult != null ? `${mult}× payout` : ""}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {/* Limit price input — only shown in limit mode */}
