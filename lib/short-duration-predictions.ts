@@ -78,7 +78,7 @@ export function computeBinaryYesPrice(params: BinaryOptionPriceParams): number {
   // below is the safety net — we don't need to artificially inflate time.
   const remainingMinutes = Math.max(0.5, secondsRemaining / 60);
   const d2 = Math.log(currentSpotPrice / openingSpotPrice) / (vol1m * Math.sqrt(remainingMinutes));
-  return Math.min(0.88, Math.max(0.12, normalCdf(d2)));
+  return Math.min(0.97, Math.max(0.03, normalCdf(d2)));
 }
 
 export type PredictionDirection = "up" | "down";
