@@ -68,7 +68,11 @@ function estimateVol1m(candles: BinaryOptionPriceParams["recentCandles"]): numbe
 export function computeBinaryYesPrice(params: BinaryOptionPriceParams): number {
   const { currentSpotPrice, openingSpotPrice, secondsRemaining, recentCandles } = params;
   if (openingSpotPrice <= 0 || currentSpotPrice <= 0) return 0.5;
-  const vol1m = estimateVol1m(recentCandles);
+  // Scale vol down: candle-based estimates are too wide for a short-duration
+  // binary (they include mean-reversion uncertainty that inflates the denominator
+  // and keeps prices near 50/50 even when the outcome is fairly clear).
+  // 0.5× makes the formula respond more decisively to price moves.
+  const vol1m = estimateVol1m(recentCandles) * 0.5;
   // Use actual time remaining (floor: 0.5 min = 30 s) so the formula prices
   // near-certain outcomes aggressively near expiry.  The hard clamp [0.12, 0.88]
   // below is the safety net — we don't need to artificially inflate time.
