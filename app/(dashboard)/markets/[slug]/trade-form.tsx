@@ -32,6 +32,8 @@ type Props = {
   closeAt: string;
   cutoffAt?: string | null;
   spotPriceAtOpen?: string | null;
+  durationMinutes?: number;
+  isUpcoming?: boolean;
   locale: Locale;
   t: T["trade"];
   onTradeSuccess?: () => void;
@@ -59,6 +61,8 @@ export function TradeForm({
   closeAt,
   cutoffAt,
   spotPriceAtOpen,
+  durationMinutes,
+  isUpcoming = false,
   locale,
   t,
   onTradeSuccess,
@@ -285,7 +289,35 @@ export function TradeForm({
           </div>
         ) : (
           <form id={`trade-form-${marketId}`} onSubmit={handleSubmit} className="space-y-4">
-            {isShortDuration && rewardPreview && now != null ? (
+            {/* Upcoming round info banner */}
+            {isUpcoming && isShortDuration && durationMinutes != null && now != null && (
+              <div className="space-y-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-yellow-800">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
+                  Round not started yet — bet now at 50/50 odds
+                </div>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Opens in</p>
+                    <p className="mt-1 text-lg font-semibold text-yellow-700">
+                      {formatCountdown(Math.max(0, Math.floor((new Date(closeAt).getTime() - durationMinutes * 60_000 - now) / 1_000)))}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Price to Beat</p>
+                    <p className="mt-1 text-lg font-semibold text-slate-400">—</p>
+                  </div>
+                  <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.potentialPayout}</p>
+                    <p className="mt-1 text-lg font-semibold text-green-600">
+                      {payoutMultiplier != null ? `${payoutMultiplier}×` : "—"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isShortDuration && !isUpcoming && rewardPreview && now != null ? (
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">

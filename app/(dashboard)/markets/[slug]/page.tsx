@@ -13,7 +13,9 @@ import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { statusLabel } from "@/lib/i18n/labels";
 import { resolveMarketTitle } from "@/lib/short-duration-predictions";
 import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
+import { getRoundHistory, ensureUpcomingRound } from "@/lib/services/round-history";
 import LiveCryptoChart from "@/components/ui/live-crypto-chart";
+import { RoundSelectorBar } from "@/components/markets/round-selector-bar";
 import { TradeArea } from "./trade-area";
 import { PriceHistoryChart } from "./price-history-chart";
 import { LiveProbabilityBar } from "./live-probability-bar";
@@ -50,7 +52,7 @@ function ProbabilityBar({
 }
 
 export default async function MarketDetailPage({ params }: Props) {
-  const [, fetchedMarket] = await Promise.all([
+  const [{ profile }, fetchedMarket] = await Promise.all([
     requireUser(),
     getMarketBySlug(params.slug),
   ]);
@@ -104,6 +106,42 @@ export default async function MarketDetailPage({ params }: Props) {
   const isActive = market.status === "active";
   const isSettled = market.status === "settled";
 
+  // Detect if this is an upcoming (not-yet-started) round:
+  // active + short-duration + openAt still in the future
+  const roundOpenAtMs = isShortDuration && market.durationMinutes != null
+    ? new Date(market.closeAt).getTime() - market.durationMinutes * 60_000
+    : null;
+  const isUpcoming = isActive && isShortDuration && roundOpenAtMs != null && roundOpenAtMs > Date.now();
+
+  // Fetch round history + pre-create next upcoming round (non-blocking for page load)
+  const baseSlug = market.slug.replace(/-\d{14}$/, "");
+  const [roundHistory] = await Promise.all([
+    isShortDuration && market.durationMinutes != null
+      ? getRoundHistory(baseSlug, market.durationMinutes)
+      : Promise.resolve(null),
+    // Pre-create the upcoming round so the selector bar can link to it
+    isShortDuration && isActive && !isUpcoming && market.durationMinutes != null
+      ? ensureUpcomingRound({
+          baseSlug,
+          currentCloseAt: market.closeAt,
+          durationMinutes: market.durationMinutes,
+          assetSymbol: market.assetSymbol,
+          createdBy: profile.id,
+        }).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  // Build 1 extra calculated slot (no DB row) if we couldn't pre-create
+  const calculatedSlots = (() => {
+    if (!isShortDuration || !market.durationMinutes) return [];
+    const dur = market.durationMinutes * 60_000;
+    // Only add calculated slot if there's no pre-created upcoming in DB
+    const upcomingCount = (roundHistory?.upcoming.length ?? 0);
+    if (upcomingCount > 0) return [];
+    const nextCloseAt = new Date(new Date(market.closeAt).getTime() + dur);
+    return [{ closeAt: nextCloseAt.toISOString(), openAt: new Date(nextCloseAt.getTime() - dur).toISOString() }];
+  })();
+
   return (
     <div className="space-y-6">
       {/* Round-closed banner (only appears once the close_at time passes) */}
@@ -115,6 +153,17 @@ export default async function MarketDetailPage({ params }: Props) {
         isShortDuration={isShortDuration}
         locale={locale}
       />
+
+      {/* Round selector bar */}
+      {isShortDuration && roundHistory && (
+        <RoundSelectorBar
+          past={roundHistory.past}
+          current={roundHistory.current}
+          upcoming={roundHistory.upcoming}
+          calculatedSlots={calculatedSlots}
+          currentSlug={params.slug}
+        />
+      )}
 
       {/* Header */}
       <div>
@@ -302,6 +351,8 @@ export default async function MarketDetailPage({ params }: Props) {
         closeAt={market.closeAt}
         cutoffAt={market.cutoffAt}
         spotPriceAtOpen={market.spotPriceAtOpen}
+        durationMinutes={market.durationMinutes ?? undefined}
+        isUpcoming={isUpcoming}
         locale={locale}
         t={t.trade}
       />

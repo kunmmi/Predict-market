@@ -4,6 +4,7 @@ import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { insertInitialMarketPrice, DEFAULT_INITIAL_YES_PRICE } from "@/lib/services/market-initial-prices";
 import { shortDurationTitle, shortDurationTitleZh, SHORT_DURATION_CUTOFF_SECONDS } from "@/lib/short-duration-predictions";
 import { seedMarketMakerOrders } from "@/lib/services/market-maker";
+import { promoteUpcomingRound } from "@/lib/services/round-history";
 
 type ShortDurationMarketRow = {
   id: string;
@@ -161,6 +162,20 @@ async function createNextShortDurationRound(
   while (nextCloseAt.getTime() - now < 30_000) {
     nextCloseAt = new Date(nextCloseAt.getTime() + durationMs);
   }
+
+  // Check if a pre-created upcoming round already exists for this slot.
+  // If so, promote it to the base slug and skip fresh creation.
+  const promoted = await promoteUpcomingRound(baseSlug, nextCloseAt);
+  if (promoted) {
+    return {
+      success: true,
+      rolloverCreated: true,
+      nextMarketId: promoted.id,
+      nextMarketSlug: promoted.slug,
+      nextMarketCloseAt: nextCloseAt.toISOString(),
+    };
+  }
+
   const nextSlug = baseSlug;
 
   let nextSpotPriceAtOpen: number;
