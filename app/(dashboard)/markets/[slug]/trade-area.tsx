@@ -15,6 +15,8 @@ type Props = {
   closeAt: string;
   cutoffAt?: string | null;
   spotPriceAtOpen?: string | null;
+  durationMinutes?: number;
+  isUpcoming?: boolean;
   locale: Locale;
   t: T["trade"];
 };
