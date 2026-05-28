@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
@@ -12,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { statusLabel } from "@/lib/i18n/labels";
 import { resolveMarketTitle } from "@/lib/short-duration-predictions";
+import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
 import LiveCryptoChart from "@/components/ui/live-crypto-chart";
 import { TradeArea } from "./trade-area";
 import { PriceHistoryChart } from "./price-history-chart";
@@ -118,7 +120,16 @@ export default async function MarketDetailPage({ params }: Props) {
       {/* Header */}
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-md bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+            {hasCryptoIcon(market.assetSymbol) && (
+              <Image
+                src={cryptoIconUrl(market.assetSymbol)}
+                alt={market.assetSymbol}
+                width={16}
+                height={16}
+                className="rounded-full"
+              />
+            )}
             {market.assetSymbol}
           </span>
           <span

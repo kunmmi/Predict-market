@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowUp, ArrowDown, Clock } from "lucide-react";
 
@@ -8,6 +9,7 @@ import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { useBinanceKlineStream } from "@/lib/hooks/use-binance-kline-stream";
 import { computeBinaryYesPrice, getShortDurationCutoffAt } from "@/lib/short-duration-predictions";
 import { OVERROUND } from "@/lib/config/trading-constants";
+import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
 import type { DashboardLiveRound } from "@/lib/services/dashboard-data";
 import type { Locale } from "@/lib/i18n/translations";
 
@@ -69,7 +71,16 @@ function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
       {/* Header row */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="rounded bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white">
+          <span className="inline-flex items-center gap-1.5 rounded bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white">
+            {hasCryptoIcon(market.assetSymbol) && (
+              <Image
+                src={cryptoIconUrl(market.assetSymbol)}
+                alt={market.assetSymbol}
+                width={14}
+                height={14}
+                className="rounded-full"
+              />
+            )}
             {market.assetSymbol}
           </span>
           <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
