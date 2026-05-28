@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowUp, ArrowDown, Clock } from "lucide-react";
 
@@ -73,7 +72,8 @@ function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white">
             {hasCryptoIcon(market.assetSymbol) && (
-              <Image
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={cryptoIconUrl(market.assetSymbol)}
                 alt={market.assetSymbol}
                 width={14}

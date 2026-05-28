@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
@@ -122,7 +121,8 @@ export default async function MarketDetailPage({ params }: Props) {
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
             {hasCryptoIcon(market.assetSymbol) && (
-              <Image
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={cryptoIconUrl(market.assetSymbol)}
                 alt={market.assetSymbol}
                 width={16}

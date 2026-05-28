@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import Image from "next/image";
 import Link from "next/link";
 import { TrendingUp, Clock, ChevronRight } from "lucide-react";
 
@@ -105,7 +104,8 @@ export default async function MarketsPage() {
                         </span>
                         <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-100">
                           {hasCryptoIcon(market.assetSymbol) && (
-                            <Image
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                               src={cryptoIconUrl(market.assetSymbol)}
                               alt={market.assetSymbol}
                               width={14}
@@ -138,7 +138,8 @@ export default async function MarketsPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                         {hasCryptoIcon(market.assetSymbol) && (
-                          <Image
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
                             src={cryptoIconUrl(market.assetSymbol)}
                             alt={market.assetSymbol}
                             width={14}
