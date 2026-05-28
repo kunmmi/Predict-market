@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowUp, ArrowDown, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
@@ -21,8 +22,15 @@ function formatCountdown(seconds: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }
 
-function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
+function LiveRoundCard({
+  market,
+  onClosed,
+}: {
+  market: DashboardLiveRound;
+  onClosed: (id: string) => void;
+}) {
   const [now, setNow] = useState<number>(Date.now());
+  const firedRef = useRef(false);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1_000);
@@ -38,6 +46,14 @@ function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
   );
   const cutoffAt = market.cutoffAt ?? getShortDurationCutoffAt(market.closeAt).toISOString();
   const isClosed = Math.floor((new Date(cutoffAt).getTime() - now) / 1_000) <= 0;
+
+  // Notify parent once when this card first becomes closed
+  useEffect(() => {
+    if (isClosed && !firedRef.current) {
+      firedRef.current = true;
+      onClosed(market.id);
+    }
+  }, [isClosed, market.id, onClosed]);
 
   const fairYes = useMemo(() => {
     if (liveSpot == null || market.spotPriceAtOpen == null) return 0.5;
@@ -196,10 +212,32 @@ export function LiveRoundsWidget({
   markets: DashboardLiveRound[];
   locale: Locale;
 }) {
+  const router = useRouter();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const visibleCount = useVisibleCount();
   const autoRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const closedIdsRef = useRef<Set<string>>(new Set());
+
+  // Called by each card when its countdown hits zero.
+  // Once ALL current markets are closed we wait 15 s for the cron to settle
+  // & create the next round, then trigger a server-side refresh.
+  const handleCardClosed = useCallback(
+    (id: string) => {
+      closedIdsRef.current.add(id);
+      if (closedIdsRef.current.size >= markets.length) {
+        setTimeout(() => router.refresh(), 15_000);
+      }
+    },
+    [markets.length, router],
+  );
+
+  // Also refresh every 60 s so a newly-created round (e.g. from a different
+  // tab or an admin action) always surfaces without a manual page reload.
+  useEffect(() => {
+    const id = setInterval(() => router.refresh(), 60_000);
+    return () => clearInterval(id);
+  }, [router]);
 
   const total = markets.length;
   // Maximum valid starting index so we never show empty slots
@@ -282,7 +320,7 @@ export function LiveRoundsWidget({
                 className="min-w-0 shrink-0"
                 style={{ width: `calc(${100 / visibleCount}% - ${(12 * (visibleCount - 1)) / visibleCount}px)` }}
               >
-                <LiveRoundCard market={m} />
+                <LiveRoundCard market={m} onClosed={handleCardClosed} />
               </div>
             ))}
           </div>
