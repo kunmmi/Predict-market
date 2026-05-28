@@ -41,11 +41,24 @@ export type DashboardPromoter = {
   totalCommissionGenerated: string;
 };
 
+export type DashboardLiveRound = {
+  id: string;
+  title: string;
+  titleZh: string | null;
+  slug: string;
+  assetSymbol: string;
+  closeAt: string;
+  cutoffAt: string | null;
+  spotPriceAtOpen: string | null;
+  durationMinutes: number;
+};
+
 export type DashboardData = {
   openPositions: DashboardOpenPosition[];
   recentTrades: DashboardTrade[];
   recentDeposits: DashboardDeposit[];
   promoter: DashboardPromoter | null;
+  liveRounds: DashboardLiveRound[];
 };
 
 type MarketJoin = { title: string; titleZh: string | null; slug: string } | null;
@@ -88,7 +101,7 @@ function toStr(v: string | number | null | undefined): string | null {
 export async function getDashboardData(profileId: string): Promise<DashboardData> {
   const supabase = createSupabaseServerClient();
 
-  const [positionsRes, tradesRes, depositsRes, promoterRes] = await Promise.all([
+  const [positionsRes, tradesRes, depositsRes, promoterRes, liveRoundsRes] = await Promise.all([
     supabase
       .from("positions")
       .select(
@@ -121,6 +134,13 @@ export async function getDashboardData(profileId: string): Promise<DashboardData
       )
       .eq("profile_id", profileId)
       .maybeSingle(),
+    supabase
+      .from("markets")
+      .select("id, title, title_zh, slug, asset_symbol, close_at, cutoff_at, spot_price_at_open, duration_minutes")
+      .eq("status", "active")
+      .not("duration_minutes", "is", null)
+      .order("close_at", { ascending: true })
+      .limit(6),
   ]);
 
   const openPositions: DashboardOpenPosition[] = (positionsRes.data ?? [])
@@ -201,10 +221,36 @@ export async function getDashboardData(profileId: string): Promise<DashboardData
     };
   }
 
+  const liveRounds: DashboardLiveRound[] = (liveRoundsRes.data ?? []).map((row) => {
+    const r = row as {
+      id: string;
+      title: string;
+      title_zh: string | null;
+      slug: string;
+      asset_symbol: string;
+      close_at: string;
+      cutoff_at: string | null;
+      spot_price_at_open: string | number | null;
+      duration_minutes: number;
+    };
+    return {
+      id: r.id,
+      title: r.title,
+      titleZh: r.title_zh,
+      slug: r.slug,
+      assetSymbol: r.asset_symbol,
+      closeAt: r.close_at,
+      cutoffAt: r.cutoff_at,
+      spotPriceAtOpen: r.spot_price_at_open != null ? String(r.spot_price_at_open) : null,
+      durationMinutes: r.duration_minutes,
+    };
+  });
+
   return {
     openPositions,
     recentTrades,
     recentDeposits,
     promoter,
+    liveRounds,
   };
 }

@@ -14,6 +14,9 @@ import type {
   DashboardOpenPosition,
   DashboardTrade,
 } from "@/lib/services/dashboard-data";
+import type { LeaderboardEntry } from "@/app/api/leaderboard/route";
+import { LiveRoundsWidget } from "@/components/dashboard/live-rounds-widget";
+import { MiniLeaderboardWidget } from "@/components/dashboard/mini-leaderboard-widget";
 
 function depositStatusVariant(
   status: string,
@@ -237,6 +240,7 @@ export function DashboardOverview({
   walletAvailable,
   walletStatus,
   data,
+  topPlayers,
   showAdminLink,
   locale,
   t,
@@ -249,6 +253,7 @@ export function DashboardOverview({
   walletAvailable: string | null;
   walletStatus: string | null;
   data: DashboardData;
+  topPlayers: LeaderboardEntry[];
   showAdminLink: boolean;
   locale: Locale;
   t: T["dashboard"];
@@ -275,7 +280,13 @@ export function DashboardOverview({
         </div>
       </div>
 
-      {/* Balance stats */}
+      {/* Live rounds */}
+      {data.liveRounds.length > 0 && (
+        <LiveRoundsWidget markets={data.liveRounds} locale={locale} />
+      )}
+
+      {/* Balance stats + mini leaderboard */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label={t.total_balance}
@@ -298,6 +309,9 @@ export function DashboardOverview({
           icon={TrendingUp}
           accent="bg-yellow-100 text-yellow-700"
         />
+      </div>
+
+        <MiniLeaderboardWidget entries={topPlayers} zh={locale === "zh"} />
       </div>
 
       {/* Quick actions row */}

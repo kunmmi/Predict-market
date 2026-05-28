@@ -1,0 +1,32 @@
+## Summary
+
+- **Limit orders portfolio panel**: users can view and cancel their open limit orders from `/portfolio`
+- **Order book panel**: live aggregated depth on each market page, gated at 3+ orders so it only appears when there is meaningful liquidity
+- **House market-maker**: auto-seeds 6 real limit orders (3 YES + 3 NO at staggered offsets) on every round rollover using the SYSTEM_ADMIN_PROFILE_ID wallet, providing real order book depth from day one
+- **Chart + probability fixes**: price-to-beat line now reliably appears; probability clamped to [8%, 92%] to avoid extreme values
+- **Stale opening price fix**: ensureRoundOpeningPrice self-heals spot_price_at_open on every page load so first-visit users never see a stale price-to-beat driving a 99%/1% probability
+
+## New endpoints
+
+- GET /api/limit-orders - User's open limit orders
+- DELETE /api/limit-orders/[id] - Cancel a limit order
+- GET /api/markets/[id]/order-book - Public aggregated depth
+- POST /api/cron/match-limit-orders - Cron: match open orders against market price
+- POST /api/admin/markets/[id]/seed-orders - Admin: manually refresh house market-maker orders
+
+## Environment variable required
+
+Add SYSTEM_ADMIN_PROFILE_ID to Vercel (the UUID of the system admin profile that holds house wallet funds) before house market-maker orders will work in production.
+
+## Test plan
+
+- [ ] Apply supabase/migrations/20260515_limit_orders.sql to production DB
+- [ ] Set SYSTEM_ADMIN_PROFILE_ID in Vercel environment variables
+- [ ] Place a limit order on a market, confirm it appears in Portfolio > Limit Orders
+- [ ] Cancel the order from Portfolio, confirm it disappears
+- [ ] Open an active market, confirm order book panel appears once 3+ orders are seeded
+- [ ] Hit POST /api/admin/markets/[id]/seed-orders as admin, verify { placed: 6 } response and order book fills in
+- [ ] Open a market for the first time in a day and verify probability is not 99%/1%
+- [ ] Verify "price to beat" line appears on the chart immediately on load
+
+Generated with Claude Code
