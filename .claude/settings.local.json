@@ -86,7 +86,10 @@
       "Bash(curl -sI -A \"Mozilla/5.0\" https://predict.fun/)",
       "Bash(grep -r \"console\\\\\\\\.log\" /c/elemental-work/.claude/worktrees/pensive-torvalds-62a950/app/api --include=\"*.ts\")",
       "Bash(python -c \"import sys, json; lines = sys.stdin.read\\(\\).strip\\(\\).split\\('\\\\n'\\); [print\\(json.loads\\(l\\).get\\('content',''\\)[:500] if isinstance\\(json.loads\\(l\\).get\\('content',''\\), str\\) else str\\(json.loads\\(l\\).get\\('content',''\\)\\)[:500]\\) for l in lines[-20:] if l.strip\\(\\)]\")",
-      "Bash(npx next *)"
+      "Bash(npx next *)",
+      "Bash(git -C \"/c/elemental-work/.claude/worktrees/pensive-torvalds-62a950\" remote get-url origin)",
+      "WebFetch(domain:worldlegendscup.fun)",
+      "WebSearch"
     ]
   }
 }
