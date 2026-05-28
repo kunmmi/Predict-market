@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Image from "next/image";
 import Link from "next/link";
 import { TrendingUp, Clock, ChevronRight } from "lucide-react";
 
@@ -10,6 +11,7 @@ import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import { resolveMarketTitle } from "@/lib/short-duration-predictions";
+import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
 import { Card } from "@/components/ui/card";
 
 function ProbabilityBar({
@@ -101,7 +103,16 @@ export default async function MarketsPage() {
                         <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
                           {t.live_contract}
                         </span>
-                        <span className="rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-100">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-100">
+                          {hasCryptoIcon(market.assetSymbol) && (
+                            <Image
+                              src={cryptoIconUrl(market.assetSymbol)}
+                              alt={market.assetSymbol}
+                              width={14}
+                              height={14}
+                              className="rounded-full"
+                            />
+                          )}
                           {market.assetSymbol}
                         </span>
                       </div>
@@ -125,7 +136,16 @@ export default async function MarketsPage() {
                 ) : (
                   <Card className="h-full p-5 transition-colors hover:border-slate-300">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                      <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                        {hasCryptoIcon(market.assetSymbol) && (
+                          <Image
+                            src={cryptoIconUrl(market.assetSymbol)}
+                            alt={market.assetSymbol}
+                            width={14}
+                            height={14}
+                            className="rounded-full"
+                          />
+                        )}
                         {market.assetSymbol}
                       </span>
                       <span

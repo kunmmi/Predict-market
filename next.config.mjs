@@ -24,8 +24,13 @@ const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 3600,
-    // Add any external image hosts here if/when we use them (currently none)
-    remotePatterns: [],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.jsdelivr.net",
+        pathname: "/gh/atomiclabs/cryptocurrency-icons/**",
+      },
+    ],
   },
 };
 
