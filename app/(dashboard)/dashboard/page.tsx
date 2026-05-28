@@ -13,24 +13,41 @@ async function getTopPlayers(): Promise<LeaderboardEntry[]> {
   const supabase = createSupabaseAdminClient();
   const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
 
-  const { data } = await supabase
+  const { data: posData } = await supabase
     .from("positions")
-    .select("profile_id, pnl_amount, profiles ( display_name )")
+    .select("profile_id, pnl_amount")
     .eq("status", "settled");
 
-  if (!data) return [];
+  if (!posData) return [];
+
+  const profileIds = Array.from(
+    new Set(
+      posData
+        .map((r) => r.profile_id as string)
+        .filter((id) => !systemAdminId || id !== systemAdminId),
+    ),
+  );
+
+  const { data: profileData } = profileIds.length
+    ? await supabase.from("profiles").select("id, display_name").in("id", profileIds)
+    : { data: [] };
+
+  const nameMap = new Map<string, string>();
+  for (const p of profileData ?? []) {
+    const row = p as { id: string; display_name: string | null };
+    nameMap.set(row.id, row.display_name ?? "Player");
+  }
 
   const map = new Map<
     string,
     { displayName: string; totalPnl: number; wins: number; losses: number; total: number }
   >();
 
-  for (const row of data) {
+  for (const row of posData) {
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
     const pnl = parseFloat(String(row.pnl_amount ?? 0));
-    const profile = row.profiles as unknown as { display_name: string | null } | null;
-    const name = profile?.display_name ?? "Player";
+    const name = nameMap.get(profileId) ?? "Player";
     const existing = map.get(profileId);
     if (existing) {
       existing.totalPnl += pnl;
