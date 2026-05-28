@@ -69,26 +69,33 @@ function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
     >
       {/* Header row */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-white">
-            {hasCryptoIcon(market.assetSymbol) && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cryptoIconUrl(market.assetSymbol)}
-                alt={market.assetSymbol}
-                width={14}
-                height={14}
-                className="rounded-full"
-              />
-            )}
-            {market.assetSymbol}
-          </span>
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
-            {market.durationMinutes} min
-          </span>
-          {!isClosed && (
-            <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+        <div className="flex items-center gap-3">
+          {/* Large coin logo */}
+          {hasCryptoIcon(market.assetSymbol) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={cryptoIconUrl(market.assetSymbol)}
+              alt={market.assetSymbol}
+              width={40}
+              height={40}
+              className="rounded-full shadow-md"
+            />
+          ) : (
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
+              {market.assetSymbol.slice(0, 2)}
+            </span>
           )}
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-base font-extrabold text-slate-900">{market.assetSymbol}</span>
+              {!isClosed && (
+                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+              )}
+            </div>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+              {market.durationMinutes} min round
+            </span>
+          </div>
         </div>
         <div
           className={`flex items-center gap-1 text-sm font-bold tabular-nums ${

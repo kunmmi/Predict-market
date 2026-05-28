@@ -95,26 +95,33 @@ export default async function MarketsPage() {
                         </span>
                       </div>
 
-                      <div className="mt-4 flex flex-wrap items-center gap-2">
-                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
-                          {t.short_duration_badge}
-                        </span>
-                        <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
-                          {t.live_contract}
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-0.5 text-xs font-semibold text-slate-100">
-                          {hasCryptoIcon(market.assetSymbol) && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={cryptoIconUrl(market.assetSymbol)}
-                              alt={market.assetSymbol}
-                              width={14}
-                              height={14}
-                              className="rounded-full"
-                            />
-                          )}
-                          {market.assetSymbol}
-                        </span>
+                      {/* Large coin logo + symbol */}
+                      <div className="mt-4 flex items-center gap-3">
+                        {hasCryptoIcon(market.assetSymbol) ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={cryptoIconUrl(market.assetSymbol)}
+                            alt={market.assetSymbol}
+                            width={48}
+                            height={48}
+                            className="rounded-full shadow-lg ring-2 ring-white/20"
+                          />
+                        ) : (
+                          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white">
+                            {market.assetSymbol.slice(0, 2)}
+                          </span>
+                        )}
+                        <div>
+                          <p className="text-xl font-extrabold text-white">{market.assetSymbol}</p>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                            <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white">
+                              {t.short_duration_badge}
+                            </span>
+                            <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
+                              {t.live_contract}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
                       <h3 className="mt-4 line-clamp-2 text-lg font-semibold leading-snug text-white">
@@ -136,19 +143,23 @@ export default async function MarketsPage() {
                 ) : (
                   <Card className="h-full p-5 transition-colors hover:border-slate-300">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                        {hasCryptoIcon(market.assetSymbol) && (
+                      <div className="flex items-center gap-2.5">
+                        {hasCryptoIcon(market.assetSymbol) ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={cryptoIconUrl(market.assetSymbol)}
                             alt={market.assetSymbol}
-                            width={14}
-                            height={14}
-                            className="rounded-full"
+                            width={36}
+                            height={36}
+                            className="rounded-full shadow-sm"
                           />
+                        ) : (
+                          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
+                            {market.assetSymbol.slice(0, 2)}
+                          </span>
                         )}
-                        {market.assetSymbol}
-                      </span>
+                        <span className="text-sm font-bold text-slate-800">{market.assetSymbol}</span>
+                      </div>
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                           market.status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
