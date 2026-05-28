@@ -118,45 +118,47 @@ export default async function MarketDetailPage({ params }: Props) {
 
       {/* Header */}
       <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-            {hasCryptoIcon(market.assetSymbol) && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={cryptoIconUrl(market.assetSymbol)}
-                alt={market.assetSymbol}
-                width={16}
-                height={16}
-                className="rounded-full"
-              />
-            )}
-            {market.assetSymbol}
-          </span>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              isActive
-                ? "bg-green-100 text-green-700"
-                : isSettled
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            {statusLabel(market.status, locale)}
-          </span>
-          {market.resolutionOutcome !== "unresolved" && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                market.resolutionOutcome === "yes"
-                  ? "bg-green-100 text-green-800"
-                  : market.resolutionOutcome === "no"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-slate-100 text-slate-700"
-              }`}
-            >
-              <CheckCircle className="h-3 w-3" />
-              {tm.resolved_label} {market.resolutionOutcome.toUpperCase()}
-            </span>
+        <div className="flex flex-wrap items-center gap-3">
+          {hasCryptoIcon(market.assetSymbol) && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={cryptoIconUrl(market.assetSymbol)}
+              alt={market.assetSymbol}
+              width={48}
+              height={48}
+              className="rounded-full shadow-md"
+            />
           )}
+          <div>
+            <p className="text-lg font-extrabold text-slate-900">{market.assetSymbol}</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  isActive
+                    ? "bg-green-100 text-green-700"
+                    : isSettled
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-slate-100 text-slate-600"
+                }`}
+              >
+                {statusLabel(market.status, locale)}
+              </span>
+              {market.resolutionOutcome !== "unresolved" && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    market.resolutionOutcome === "yes"
+                      ? "bg-green-100 text-green-800"
+                      : market.resolutionOutcome === "no"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  <CheckCircle className="h-3 w-3" />
+                  {tm.resolved_label} {market.resolutionOutcome.toUpperCase()}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
           {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
