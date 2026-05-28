@@ -154,17 +154,6 @@ export default async function MarketDetailPage({ params }: Props) {
         locale={locale}
       />
 
-      {/* Round selector bar */}
-      {isShortDuration && roundHistory && (
-        <RoundSelectorBar
-          past={roundHistory.past}
-          current={roundHistory.current}
-          upcoming={roundHistory.upcoming}
-          calculatedSlots={calculatedSlots}
-          currentSlug={params.slug}
-        />
-      )}
-
       {/* Header */}
       <div>
         <div className="flex flex-wrap items-center gap-3">
@@ -369,6 +358,17 @@ export default async function MarketDetailPage({ params }: Props) {
 
       {/* Price history chart */}
       <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />
+
+      {/* Round selector bar — navigate between past/current/upcoming rounds */}
+      {isShortDuration && roundHistory && (
+        <RoundSelectorBar
+          past={roundHistory.past}
+          current={roundHistory.current}
+          upcoming={roundHistory.upcoming}
+          calculatedSlots={calculatedSlots}
+          currentSlug={params.slug}
+        />
+      )}
 
       {/* Description */}
       {(market.description || market.descriptionZh) && (
