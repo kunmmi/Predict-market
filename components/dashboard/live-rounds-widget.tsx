@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, ArrowDown, Clock } from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { useBinanceKlineStream } from "@/lib/hooks/use-binance-kline-stream";
@@ -61,7 +61,7 @@ function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
 
   return (
     <div
-      className={`flex flex-col rounded-xl border-2 p-4 transition-all ${
+      className={`flex h-full flex-col rounded-xl border-2 p-4 transition-all ${
         isClosed
           ? "border-slate-200 bg-slate-50 opacity-70"
           : "border-yellow-200 bg-white shadow-sm"
@@ -70,7 +70,6 @@ function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
       {/* Header row */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {/* Large coin logo */}
           {hasCryptoIcon(market.assetSymbol) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -174,20 +173,74 @@ function LiveRoundCard({ market }: { market: DashboardLiveRound }) {
   );
 }
 
+/** Number of cards visible at a time, per breakpoint. */
+function useVisibleCount() {
+  const [count, setCount] = useState(1);
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth;
+      if (w >= 1024) setCount(3);
+      else if (w >= 640) setCount(2);
+      else setCount(1);
+    }
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return count;
+}
+
 export function LiveRoundsWidget({
   markets,
 }: {
   markets: DashboardLiveRound[];
   locale: Locale;
 }) {
-  if (markets.length === 0) return null;
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const visibleCount = useVisibleCount();
+  const autoRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const total = markets.length;
+  // Maximum valid starting index so we never show empty slots
+  const maxIndex = Math.max(0, total - visibleCount);
+
+  const prev = useCallback(() => {
+    setIndex((i) => (i === 0 ? maxIndex : i - 1));
+  }, [maxIndex]);
+
+  const next = useCallback(() => {
+    setIndex((i) => (i >= maxIndex ? 0 : i + 1));
+  }, [maxIndex]);
+
+  // Auto-advance every 5 s, pauses on hover
+  useEffect(() => {
+    if (paused || total <= visibleCount) return;
+    autoRef.current = setInterval(next, 5_000);
+    return () => {
+      if (autoRef.current) clearInterval(autoRef.current);
+    };
+  }, [paused, next, total, visibleCount]);
+
+  // Clamp index if window resizes to show more cards
+  useEffect(() => {
+    setIndex((i) => Math.min(i, maxIndex));
+  }, [maxIndex]);
+
+  if (total === 0) return null;
+
+  const showArrows = total > visibleCount;
 
   return (
     <div>
+      {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <h2 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-slate-500">
           <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
           Live Rounds
+          <span className="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+            {total}
+          </span>
         </h2>
         <Link
           href="/markets"
@@ -196,19 +249,74 @@ export function LiveRoundsWidget({
           All markets →
         </Link>
       </div>
+
+      {/* Carousel */}
       <div
-        className={`grid gap-3 ${
-          markets.length === 1
-            ? "grid-cols-1 sm:max-w-xs"
-            : markets.length === 2
-              ? "sm:grid-cols-2"
-              : "sm:grid-cols-2 lg:grid-cols-3"
-        }`}
+        className="relative"
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
       >
-        {markets.map((m) => (
-          <LiveRoundCard key={m.id} market={m} />
-        ))}
+        {/* Left arrow */}
+        {showArrows && (
+          <button
+            onClick={prev}
+            className="absolute -left-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-1.5 shadow-md transition hover:bg-slate-50 active:scale-95"
+            aria-label="Previous"
+          >
+            <ChevronLeft className="h-4 w-4 text-slate-600" />
+          </button>
+        )}
+
+        {/* Sliding window — overflow hidden, items translate */}
+        <div className="overflow-hidden">
+          <div
+            className="flex gap-3 transition-transform duration-500 ease-in-out"
+            style={{
+              // Each card takes 1/visibleCount of the container width minus gaps
+              transform: `translateX(calc(-${index} * (100% / ${visibleCount}) - ${index} * (12px / ${visibleCount})))`,
+            }}
+          >
+            {markets.map((m) => (
+              <div
+                key={m.id}
+                className="min-w-0 shrink-0"
+                style={{ width: `calc(${100 / visibleCount}% - ${(12 * (visibleCount - 1)) / visibleCount}px)` }}
+              >
+                <LiveRoundCard market={m} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right arrow */}
+        {showArrows && (
+          <button
+            onClick={next}
+            className="absolute -right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-1.5 shadow-md transition hover:bg-slate-50 active:scale-95"
+            aria-label="Next"
+          >
+            <ChevronRight className="h-4 w-4 text-slate-600" />
+          </button>
+        )}
       </div>
+
+      {/* Dot indicators */}
+      {showArrows && (
+        <div className="mt-3 flex items-center justify-center gap-1.5">
+          {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setIndex(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              className={`rounded-full transition-all duration-300 ${
+                i === index
+                  ? "h-2 w-5 bg-yellow-400"
+                  : "h-2 w-2 bg-slate-200 hover:bg-slate-300"
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
