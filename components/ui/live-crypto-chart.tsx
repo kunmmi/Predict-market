@@ -180,19 +180,22 @@ export default function LiveCryptoChart({
 
         retryCountRef.current = 0;
 
+        // Wait 5 seconds before navigating so the win/loss result banner has
+        // time to poll, display the outcome and new balance, and let the user
+        // read it before the page moves to the next round.
         if (json.nextMarketSlug && json.nextMarketSlug !== marketSlug) {
-          router.replace(`/markets/${json.nextMarketSlug}`);
+          setTimeout(() => router.replace(`/markets/${json.nextMarketSlug}`), 5_000);
           return;
         }
 
-        router.refresh();
+        setTimeout(() => router.refresh(), 5_000);
       })
       .catch(() => undefined)
       .finally(() => {
         clearTimeout(timeoutId);
         settlingRef.current = false;
         setSettling(false);
-        if (controller.signal.aborted) router.refresh();
+        if (controller.signal.aborted) setTimeout(() => router.refresh(), 5_000);
       });
   }, [marketId, marketSlug, router]);
 
