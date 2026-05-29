@@ -94,6 +94,9 @@ export function TradeForm({
   const applyOverround = (p: number): number => Math.max(0.01, Math.min(0.99, p * (1 + OVERROUND)));
 
   const liveYesPrice = useMemo(() => {
+    // Upcoming rounds: opening price is unknown, so odds are always exactly 50/50
+    if (isUpcoming) return String(applyOverround(0.5));
+
     if (!isShortDuration || liveSpotPrice == null || spotPriceAtOpen == null || now == null) {
       // For non-short-duration markets, apply overround directly to admin-set price
       if (yesPrice == null) return yesPrice;
@@ -108,7 +111,7 @@ export function TradeForm({
       recentCandles: candles,
     });
     return String(applyOverround(fair));
-  }, [isShortDuration, liveSpotPrice, spotPriceAtOpen, now, closeAt, yesPrice, candles]);
+  }, [isUpcoming, isShortDuration, liveSpotPrice, spotPriceAtOpen, now, closeAt, yesPrice, candles]);
 
   const liveNoPrice = useMemo(() => {
     if (liveYesPrice == null) return noPrice;

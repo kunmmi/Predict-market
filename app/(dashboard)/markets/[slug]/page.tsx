@@ -284,11 +284,11 @@ export default async function MarketDetailPage({ params }: Props) {
         {isShortDuration ? (
           <LiveProbabilityBar
             assetSymbol={market.assetSymbol}
-            spotPriceAtOpen={market.spotPriceAtOpen}
+            spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
             closeAt={market.closeAt}
             upLabel={positiveLabel}
             downLabel={negativeLabel}
-            fallbackYesPrice={market.latestYesPrice}
+            fallbackYesPrice={isUpcoming ? "0.5" : market.latestYesPrice}
           />
         ) : (
           <ProbabilityBar
@@ -306,7 +306,7 @@ export default async function MarketDetailPage({ params }: Props) {
           assetSymbol={market.assetSymbol}
           closeAt={market.closeAt}
           durationMinutes={market.durationMinutes}
-          spotPriceAtOpen={market.spotPriceAtOpen}
+          spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
           settleLabels={{
             countdownClosesIn: tm.countdown_closes_in,
             countdownExpired: tm.countdown_expired,
@@ -411,14 +411,14 @@ export default async function MarketDetailPage({ params }: Props) {
       {/* Trade form + live position */}
       <TradeArea
         marketId={market.id}
-        yesPrice={market.latestYesPrice}
-        noPrice={market.latestNoPrice}
+        yesPrice={isUpcoming ? "0.5" : market.latestYesPrice}
+        noPrice={isUpcoming ? "0.5" : market.latestNoPrice}
         marketStatus={market.status}
         isShortDuration={isShortDuration}
         assetSymbol={market.assetSymbol}
         closeAt={market.closeAt}
         cutoffAt={market.cutoffAt}
-        spotPriceAtOpen={market.spotPriceAtOpen}
+        spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
         durationMinutes={market.durationMinutes ?? undefined}
         isUpcoming={isUpcoming}
         locale={locale}
