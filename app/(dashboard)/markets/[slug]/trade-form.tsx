@@ -164,6 +164,9 @@ export function TradeForm({
       t.predictions_closed_message ?? "Predictions closed for this round. Next round starts soon.",
     cutoffNote:
       t.cutoff_note ?? "Predictions close {seconds} seconds before the round ends.",
+    upcomingNotStarted: t.upcoming_not_started ?? "Round not started yet — bet now at 50/50 odds",
+    upcomingOpensIn: t.upcoming_opens_in ?? "Opens in",
+    upcomingPriceToBeat: t.upcoming_price_to_beat ?? "Price to Beat",
   };
 
   const rewardPreview = useMemo(() => {
@@ -266,17 +269,17 @@ export function TradeForm({
               <div className="space-y-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
                 <div className="flex items-center gap-2 text-sm font-semibold text-yellow-800">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
-                  Round not started yet — bet now at 50/50 odds
+                  {uiText.upcomingNotStarted}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Opens in</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.upcomingOpensIn}</p>
                     <p className="mt-1 text-lg font-semibold text-yellow-700">
                       {formatCountdown(Math.max(0, Math.floor((new Date(closeAt).getTime() - durationMinutes * 60_000 - now) / 1_000)))}
                     </p>
                   </div>
                   <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Price to Beat</p>
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.upcomingPriceToBeat}</p>
                     <p className="mt-1 text-lg font-semibold text-slate-400">—</p>
                   </div>
                   <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">

@@ -310,6 +310,9 @@ export const translations = {
       loading_balance: "Loading balance…",
       available: "Available:",
       insufficient: "— Insufficient funds",
+      upcoming_not_started: "Round not started yet — bet now at 50/50 odds",
+      upcoming_opens_in: "Opens in",
+      upcoming_price_to_beat: "Price to Beat",
     },
     portfolio: {
       title: "Portfolio",
@@ -714,6 +717,9 @@ export const translations = {
       loading_balance: "加载余额中…",
       available: "可用余额：",
       insufficient: "— 余额不足",
+      upcoming_not_started: "本轮尚未开始 — 以50/50赔率提前下注",
+      upcoming_opens_in: "开始倒计时",
+      upcoming_price_to_beat: "目标价格",
     },
     portfolio: {
       title: "持仓",
