@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
@@ -16,6 +16,7 @@ import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
 import { getRoundHistory, ensureUpcomingRound } from "@/lib/services/round-history";
 import LiveCryptoChart from "@/components/ui/live-crypto-chart";
 import { RoundSelectorBar } from "@/components/markets/round-selector-bar";
+import { UpcomingRoundRedirector } from "./upcoming-round-redirector";
 import { TradeArea } from "./trade-area";
 import { PriceHistoryChart } from "./price-history-chart";
 import { LiveProbabilityBar } from "./live-probability-bar";
@@ -56,7 +57,17 @@ export default async function MarketDetailPage({ params }: Props) {
     requireUser(),
     getMarketBySlug(params.slug),
   ]);
-  if (!fetchedMarket) notFound();
+  if (!fetchedMarket) {
+    // If the slug looks like a timestamped upcoming slug (e.g. btc-5min-20240528102000)
+    // it may have been promoted to the base slug when the round went live.
+    // Redirect to the base slug so the user doesn't get a hard 404.
+    const maybeBase = params.slug.replace(/-\d{14}$/, "");
+    if (maybeBase !== params.slug) {
+      const baseMarket = await getMarketBySlug(maybeBase);
+      if (baseMarket) redirect(`/markets/${maybeBase}`);
+    }
+    notFound();
+  }
   let market = fetchedMarket;
 
   if (market.durationMinutes != null) {
@@ -144,6 +155,14 @@ export default async function MarketDetailPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Silently redirect upcoming rounds to base slug the moment they go live */}
+      {isUpcoming && roundOpenAtMs != null && (
+        <UpcomingRoundRedirector
+          openAt={new Date(roundOpenAtMs).toISOString()}
+          baseSlug={baseSlug}
+        />
+      )}
+
       {/* Round-closed banner (only appears once the close_at time passes) */}
       <RoundClosedBanner
         key={market.id}
