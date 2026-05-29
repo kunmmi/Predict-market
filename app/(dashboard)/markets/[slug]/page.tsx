@@ -374,27 +374,29 @@ export default async function MarketDetailPage({ params }: Props) {
             </CardContent>
           </Card>
         )}
-        <Card>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tm.closes}</p>
-                <p className="mt-1.5 text-sm font-semibold text-slate-800">
-                  {new Date(market.closeAt).toLocaleDateString(dateLocale, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
+        {!isShortDuration && (
+          <Card>
+            <CardContent className="pt-5 pb-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{tm.closes}</p>
+                  <p className="mt-1.5 text-sm font-semibold text-slate-800">
+                    {new Date(market.closeAt).toLocaleDateString(dateLocale, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
+                  <Clock className="h-4 w-4 text-slate-500" />
+                </div>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
-                <Clock className="h-4 w-4 text-slate-500" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Round selector bar — navigate between past/current/upcoming rounds */}

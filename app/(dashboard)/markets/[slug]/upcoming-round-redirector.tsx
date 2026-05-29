@@ -26,8 +26,11 @@ export function UpcomingRoundRedirector({
     const delay = openMs - Date.now();
 
     if (delay <= 0) {
-      // Already open — redirect straight away
-      router.replace(`/markets/${baseSlug}`);
+      // The open time has already passed but the settlement cron may not have
+      // promoted this round to the base slug yet. Redirecting immediately would
+      // land the user on the OLD round at the base slug, which looks like
+      // "jumping back". Stay on this page — the 404 fallback handles the case
+      // where someone refreshes after promotion has completed.
       return;
     }
 
