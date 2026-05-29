@@ -51,9 +51,17 @@ function SettledPill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean 
   );
 }
 
-function LivePill({ slot }: { slot: RoundSlot }) {
+function LivePill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean }) {
+  const router = useRouter();
   return (
-    <div className="flex shrink-0 flex-col items-center gap-1 rounded-xl bg-slate-900 px-3 py-2 text-center shadow-md">
+    <button
+      onClick={() => router.push(`/markets/${slot.slug}`)}
+      className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 text-center shadow-md transition-all ${
+        isCurrent
+          ? "bg-slate-900"
+          : "bg-slate-700 hover:bg-slate-800"
+      }`}
+    >
       <span className="flex items-center gap-1">
         <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
         <span className="text-[10px] font-bold uppercase tracking-wide text-white">Live</span>
@@ -61,11 +69,11 @@ function LivePill({ slot }: { slot: RoundSlot }) {
       <span className="text-[10px] font-semibold tabular-nums text-slate-300">
         {formatTime(slot.closeAt)}
       </span>
-    </div>
+    </button>
   );
 }
 
-function UpcomingPill({ slot }: { slot: RoundSlot }) {
+function UpcomingPill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean }) {
   const router = useRouter();
   const countdown = useCountdown(slot.openAt);
   const isClickable = Boolean(slot.id);
@@ -74,17 +82,19 @@ function UpcomingPill({ slot }: { slot: RoundSlot }) {
     <button
       onClick={() => isClickable && router.push(`/markets/${slot.slug}`)}
       disabled={!isClickable}
-      className={`flex shrink-0 flex-col items-center gap-1 rounded-xl border border-dashed border-slate-200 px-3 py-2 text-center transition-all ${
-        isClickable
-          ? "cursor-pointer hover:border-yellow-300 hover:bg-yellow-50"
-          : "cursor-default opacity-50"
+      className={`flex shrink-0 flex-col items-center gap-1 rounded-xl border px-3 py-2 text-center transition-all ${
+        isCurrent
+          ? "border-yellow-400 bg-yellow-100 shadow-md"
+          : isClickable
+            ? "border-dashed border-slate-200 cursor-pointer hover:border-yellow-300 hover:bg-yellow-50"
+            : "border-dashed border-slate-200 cursor-default opacity-50"
       }`}
     >
-      <span className="flex items-center gap-1 text-slate-400">
+      <span className={`flex items-center gap-1 ${isCurrent ? "text-yellow-700" : "text-slate-400"}`}>
         <Clock className="h-3 w-3" />
         <span className="text-[10px] font-semibold tabular-nums">{countdown}</span>
       </span>
-      <span className="text-[10px] font-semibold tabular-nums text-slate-500">
+      <span className={`text-[10px] font-semibold tabular-nums ${isCurrent ? "text-yellow-800" : "text-slate-500"}`}>
         {formatTime(slot.closeAt)}
       </span>
     </button>
@@ -149,18 +159,18 @@ export function RoundSelectorBar({ past, current, upcoming, calculatedSlots = []
 
         {/* Current live round */}
         {current && (
-          <div data-active={current.phase === "live" ? "" : undefined}>
+          <div data-active={current.slug === currentSlug ? "" : undefined}>
             {current.phase === "live" ? (
-              <LivePill slot={current} />
+              <LivePill slot={current} isCurrent={current.slug === currentSlug} />
             ) : (
-              <UpcomingPill slot={current} />
+              <UpcomingPill slot={current} isCurrent={current.slug === currentSlug} />
             )}
           </div>
         )}
 
         {/* Pre-created upcoming rounds */}
         {upcoming.map((slot) => (
-          <UpcomingPill key={slot.id} slot={slot} />
+          <UpcomingPill key={slot.id} slot={slot} isCurrent={slot.slug === currentSlug} />
         ))}
 
         {/* Pure calculated future slots (no DB row yet) */}
