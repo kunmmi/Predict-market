@@ -129,6 +129,12 @@ export async function POST(request: Request) {
       ? Number(marketMeta.spot_price_at_open)
       : null;
 
+    // Detect upcoming (not-yet-started) round: openAt is still in the future
+    const roundOpenAtMs =
+      new Date(marketMeta.close_at).getTime() -
+      marketMeta.duration_minutes * 60_000;
+    const isUpcomingRound = roundOpenAtMs > Date.now();
+
     let currentSpotPrice: number | null = null;
     const binanceSymbol = ASSET_TO_BINANCE[marketMeta.asset_symbol];
     if (binanceSymbol) {
@@ -158,9 +164,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // For upcoming rounds spot_price_at_open is null (opening price not known yet).
+    // The DB place_trade function requires a non-null p_round_open_price, so fall
+    // back to the current live spot price as a placeholder. This value is stored
+    // for auditing only — the actual settlement outcome uses the real opening price
+    // recorded when the round starts.
+    const roundOpenPriceForDb = openingSpotPrice ?? (isUpcomingRound ? currentSpotPrice : null);
+
     antiGamingParams = {
-      p_entry_spot_price: currentSpotPrice ?? openingSpotPrice,
-      p_round_open_price: openingSpotPrice,
+      p_entry_spot_price: currentSpotPrice ?? roundOpenPriceForDb,
+      p_round_open_price: roundOpenPriceForDb,
       p_time_remaining_seconds: rewardPreview.secondsRemaining,
       p_reward_multiplier: rewardPreview.multiplier,
       p_prediction_direction: predictionDirection,
