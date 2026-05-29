@@ -149,40 +149,39 @@ export default async function MarketDetailPage({ params }: Props) {
       .then(() => undefined);
   }
 
-  // Fetch round history + pre-create the next 2 upcoming rounds (non-blocking)
+  // Pre-create the next 2 upcoming rounds FIRST, then fetch history so it
+  // always sees the newly-created rows. Running them in parallel meant the
+  // history query completed before the inserts, giving 0 upcoming rounds on
+  // the first visit and falling back to unclickable calculated slots.
   const baseSlug = market.slug.replace(/-\d{14}$/, "");
   const nextCloseAt1 = market.durationMinutes != null
     ? new Date(new Date(market.closeAt).getTime() + market.durationMinutes * 60_000).toISOString()
     : null;
-  const nextCloseAt2 = market.durationMinutes != null && nextCloseAt1 != null
-    ? new Date(new Date(nextCloseAt1).getTime() + market.durationMinutes * 60_000).toISOString()
-    : null;
 
-  const [roundHistory] = await Promise.all([
-    isShortDuration && market.durationMinutes != null
-      ? getRoundHistory(baseSlug, market.durationMinutes)
-      : Promise.resolve(null),
-    // Pre-create N+1 round
-    isShortDuration && isActive && !isUpcoming && market.durationMinutes != null
-      ? ensureUpcomingRound({
-          baseSlug,
-          currentCloseAt: market.closeAt,
-          durationMinutes: market.durationMinutes,
-          assetSymbol: market.assetSymbol,
-          createdBy: profile.id,
-        }).catch(() => null)
-      : Promise.resolve(null),
-    // Pre-create N+2 round
-    isShortDuration && isActive && !isUpcoming && market.durationMinutes != null && nextCloseAt1 != null
-      ? ensureUpcomingRound({
-          baseSlug,
-          currentCloseAt: nextCloseAt1,
-          durationMinutes: market.durationMinutes,
-          assetSymbol: market.assetSymbol,
-          createdBy: profile.id,
-        }).catch(() => null)
-      : Promise.resolve(null),
-  ]);
+  if (isShortDuration && isActive && !isUpcoming && market.durationMinutes != null) {
+    await Promise.all([
+      ensureUpcomingRound({
+        baseSlug,
+        currentCloseAt: market.closeAt,
+        durationMinutes: market.durationMinutes,
+        assetSymbol: market.assetSymbol,
+        createdBy: profile.id,
+      }).catch(() => null),
+      nextCloseAt1 != null
+        ? ensureUpcomingRound({
+            baseSlug,
+            currentCloseAt: nextCloseAt1,
+            durationMinutes: market.durationMinutes,
+            assetSymbol: market.assetSymbol,
+            createdBy: profile.id,
+          }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
+  }
+
+  const roundHistory = isShortDuration && market.durationMinutes != null
+    ? await getRoundHistory(baseSlug, market.durationMinutes)
+    : null;
 
   // Build calculated fallback slots for any upcoming positions not yet in DB
   const calculatedSlots = (() => {
