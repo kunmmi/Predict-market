@@ -6,6 +6,7 @@ import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth/require-user";
 import { getMarketByIdAdmin, getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
 import { settleShortDurationMarketById, ensureRoundOpeningPrice } from "@/lib/services/short-duration-settlement";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,10 +87,21 @@ export default async function MarketDetailPage({ params }: Props) {
     // For the active round now in hand, silently validate that spot_price_at_open
     // matches the real Binance price for the round's start minute. Repairs any stale
     // value in the DB before it reaches the chart, probability bar, or trade API.
+    //
+    // Guard: only run this for rounds that have ALREADY started. Upcoming (future)
+    // rounds must keep spot_price_at_open = null so the trade form shows 50/50 odds.
+    // Calling this with a future start time would fall back to the current spot price
+    // and corrupt the upcoming round's pricing.
+    const roundStartAlreadyPassedMs =
+      market.durationMinutes != null
+        ? new Date(market.closeAt).getTime() - market.durationMinutes * 60_000
+        : null;
     if (
       market.status === "active" &&
       market.durationMinutes != null &&
-      new Date(market.closeAt) > new Date()
+      new Date(market.closeAt) > new Date() &&
+      roundStartAlreadyPassedMs != null &&
+      roundStartAlreadyPassedMs <= Date.now()
     ) {
       const validatedPrice = await ensureRoundOpeningPrice({
         id: market.id,
@@ -123,6 +135,19 @@ export default async function MarketDetailPage({ params }: Props) {
     ? new Date(market.closeAt).getTime() - market.durationMinutes * 60_000
     : null;
   const isUpcoming = isActive && isShortDuration && roundOpenAtMs != null && roundOpenAtMs > Date.now();
+
+  // If this is an upcoming round that somehow got a spot_price_at_open written to it
+  // (from the bug where ensureRoundOpeningPrice used to run for future rounds), clear
+  // it so the trade form uses 50/50 pricing. Also scrub it from the DB silently.
+  if (isUpcoming && market.spotPriceAtOpen != null) {
+    market = { ...market, spotPriceAtOpen: null };
+    const supabaseAdmin = createSupabaseAdminClient();
+    void supabaseAdmin
+      .from("markets")
+      .update({ spot_price_at_open: null })
+      .eq("id", market.id)
+      .then(() => undefined);
+  }
 
   // Fetch round history + pre-create the next 2 upcoming rounds (non-blocking)
   const baseSlug = market.slug.replace(/-\d{14}$/, "");
