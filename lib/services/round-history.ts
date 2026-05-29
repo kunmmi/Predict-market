@@ -97,7 +97,7 @@ export async function getRoundHistory(
       .gt("close_at", now.toISOString())
       .not("duration_minutes", "is", null)
       .order("close_at", { ascending: true })
-      .limit(2),
+      .limit(3),
   ]);
 
   const currentRow = currentRes.data ?? null;

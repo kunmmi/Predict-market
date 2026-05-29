@@ -124,13 +124,20 @@ export default async function MarketDetailPage({ params }: Props) {
     : null;
   const isUpcoming = isActive && isShortDuration && roundOpenAtMs != null && roundOpenAtMs > Date.now();
 
-  // Fetch round history + pre-create next upcoming round (non-blocking for page load)
+  // Fetch round history + pre-create the next 2 upcoming rounds (non-blocking)
   const baseSlug = market.slug.replace(/-\d{14}$/, "");
+  const nextCloseAt1 = market.durationMinutes != null
+    ? new Date(new Date(market.closeAt).getTime() + market.durationMinutes * 60_000).toISOString()
+    : null;
+  const nextCloseAt2 = market.durationMinutes != null && nextCloseAt1 != null
+    ? new Date(new Date(nextCloseAt1).getTime() + market.durationMinutes * 60_000).toISOString()
+    : null;
+
   const [roundHistory] = await Promise.all([
     isShortDuration && market.durationMinutes != null
       ? getRoundHistory(baseSlug, market.durationMinutes)
       : Promise.resolve(null),
-    // Pre-create the upcoming round so the selector bar can link to it
+    // Pre-create N+1 round
     isShortDuration && isActive && !isUpcoming && market.durationMinutes != null
       ? ensureUpcomingRound({
           baseSlug,
@@ -140,17 +147,35 @@ export default async function MarketDetailPage({ params }: Props) {
           createdBy: profile.id,
         }).catch(() => null)
       : Promise.resolve(null),
+    // Pre-create N+2 round
+    isShortDuration && isActive && !isUpcoming && market.durationMinutes != null && nextCloseAt1 != null
+      ? ensureUpcomingRound({
+          baseSlug,
+          currentCloseAt: nextCloseAt1,
+          durationMinutes: market.durationMinutes,
+          assetSymbol: market.assetSymbol,
+          createdBy: profile.id,
+        }).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
-  // Build 1 extra calculated slot (no DB row) if we couldn't pre-create
+  // Build calculated fallback slots for any upcoming positions not yet in DB
   const calculatedSlots = (() => {
     if (!isShortDuration || !market.durationMinutes) return [];
     const dur = market.durationMinutes * 60_000;
-    // Only add calculated slot if there's no pre-created upcoming in DB
-    const upcomingCount = (roundHistory?.upcoming.length ?? 0);
-    if (upcomingCount > 0) return [];
-    const nextCloseAt = new Date(new Date(market.closeAt).getTime() + dur);
-    return [{ closeAt: nextCloseAt.toISOString(), openAt: new Date(nextCloseAt.getTime() - dur).toISOString() }];
+    const upcomingCount = roundHistory?.upcoming.length ?? 0;
+    // We want to show 3 upcoming slots total; fill the remainder with calculated ones
+    const needed = Math.max(0, 3 - upcomingCount);
+    const slots: { closeAt: string; openAt: string }[] = [];
+    for (let i = 0; i < needed; i++) {
+      const base = new Date(market.closeAt).getTime();
+      const closeMs = base + dur * (upcomingCount + i + 1);
+      slots.push({
+        closeAt: new Date(closeMs).toISOString(),
+        openAt: new Date(closeMs - dur).toISOString(),
+      });
+    }
+    return slots;
   })();
 
   return (
