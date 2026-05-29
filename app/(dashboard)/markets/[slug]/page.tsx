@@ -231,7 +231,7 @@ export default async function MarketDetailPage({ params }: Props) {
         )}
       </Card>
 
-      {isShortDuration ? (
+      {isShortDuration && isActive ? (
         <LiveCryptoChart
           marketId={market.id}
           marketSlug={market.slug}
