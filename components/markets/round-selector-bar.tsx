@@ -178,6 +178,7 @@ export function RoundSelectorBar({ past, current, upcoming, calculatedSlots = []
           <UpcomingPill
             key={s.closeAt}
             slot={{ id: "", slug: "", closeAt: s.closeAt, openAt: s.openAt, roundResult: null, phase: "upcoming" }}
+            isCurrent={false}
           />
         ))}
       </div>
