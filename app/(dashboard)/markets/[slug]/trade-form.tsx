@@ -71,14 +71,9 @@ export function TradeForm({
   const [amount, setAmount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [successOrderType, setSuccessOrderType] = useState<"market" | "limit">("market");
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
-
-  // Order type: "market" (fill at current price now) or "limit" (fill when price hits target)
-  const [orderType, setOrderType] = useState<"market" | "limit">("market");
-  const [limitPrice, setLimitPrice] = useState("");
 
   // Shared wallet state across the dashboard — one fetch, many consumers
   const { wallet, loading: walletLoading, refetch: refetchWallet } = useWallet();
@@ -193,12 +188,6 @@ export function TradeForm({
     return null;
   }
 
-  // Validate the limit price input (only when in limit mode)
-  const limitPriceNum = parseFloat(limitPrice);
-  const isValidLimitPrice = orderType === "limit"
-    ? Number.isFinite(limitPriceNum) && limitPriceNum > 0 && limitPriceNum < 1
-    : true;
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -220,27 +209,10 @@ export function TradeForm({
       setError(uiText.predictionsClosedMessage);
       return;
     }
-    if (orderType === "limit" && !isValidLimitPrice) {
-      setError(locale === "zh" ? "请输入有效的限价 (0–1 之间)" : "Enter a valid limit price between 0 and 1.");
-      return;
-    }
 
     setLoading(true);
     try {
-      let res: Response;
-      if (orderType === "limit") {
-        res = await fetch("/api/limit-orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            market_id: marketId,
-            side,
-            amount: amountNum,
-            target_price: limitPriceNum,
-          }),
-        });
-      } else {
-        res = await fetch("/api/trades", {
+      const res = await fetch("/api/trades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -251,16 +223,13 @@ export function TradeForm({
           fee_amount: fee ?? "0",
         }),
       });
-      }
       const json = await res.json();
       if (!res.ok) {
         setError(json.message ?? "Trade failed. Please try again.");
         return;
       }
-      setSuccessOrderType(orderType);
       setSuccess(true);
       setAmount("");
-      setLimitPrice("");
       onTradeSuccess?.();
     } catch {
       setError("Network error. Please try again.");
@@ -278,7 +247,7 @@ export function TradeForm({
         {success ? (
           <div className="space-y-4">
             <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
-              {successOrderType === "limit" ? (t.limit_order_success ?? t.success) : t.success}
+              {t.success}
             </div>
             <Button
               variant="outline"
@@ -436,32 +405,6 @@ export function TradeForm({
             {(() => {
               const actionBar = (
                 <div className="mx-auto max-w-3xl space-y-3">
-                {/* Order type toggle: Market vs Limit */}
-                <div className="flex gap-1 rounded-md bg-slate-100 p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setOrderType("market")}
-                    className={`flex-1 rounded py-1 text-xs font-semibold transition-colors ${
-                      orderType === "market"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    {locale === "zh" ? "市价单" : "Market"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOrderType("limit")}
-                    className={`flex-1 rounded py-1 text-xs font-semibold transition-colors ${
-                      orderType === "limit"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    {locale === "zh" ? "限价单" : "Limit"}
-                  </button>
-                </div>
-
                 {/* Direction buttons — show price + multiplier for both sides so the
                     contrast between the obvious and long-shot side is instantly visible */}
                 <div className="flex gap-2">
@@ -504,24 +447,6 @@ export function TradeForm({
                   })}
                 </div>
 
-                {/* Limit price input — only shown in limit mode */}
-                {orderType === "limit" && (
-                  <Input
-                    type="number"
-                    min="0.01"
-                    max="0.99"
-                    step="0.01"
-                    placeholder={locale === "zh" ? "限价 (例如 0.40)" : "Target price (e.g. 0.40)"}
-                    value={limitPrice}
-                    onChange={(e) => {
-                      setLimitPrice(e.target.value);
-                      setError(null);
-                    }}
-                    disabled={isPredictionClosed}
-                    form={`trade-form-${marketId}`}
-                  />
-                )}
-
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -541,7 +466,7 @@ export function TradeForm({
                   />
                   <Button
                     type="submit"
-                    disabled={submitDisabled || (orderType === "limit" && !isValidLimitPrice)}
+                    disabled={submitDisabled}
                     className="shrink-0"
                     form={`trade-form-${marketId}`}
                   >
@@ -549,9 +474,7 @@ export function TradeForm({
                       ? t.placing
                       : isPredictionClosed
                         ? uiText.predictionsClosed
-                        : orderType === "limit"
-                          ? `${locale === "zh" ? "下限价单" : "Place limit"} $${isValidAmount ? amountNum.toFixed(2) : "0"}`
-                          : `${activeLabel} $${isValidAmount ? amountNum.toFixed(2) : "0"}`}
+                        : `${activeLabel} $${isValidAmount ? amountNum.toFixed(2) : "0"}`}
                   </Button>
                 </div>
 

@@ -425,16 +425,6 @@ export default async function MarketDetailPage({ params }: Props) {
         t={t.trade}
       />
 
-      {/* Order book — only renders when ≥3 open limit orders exist */}
-      {isActive && (
-        <OrderBookPanel
-          marketId={market.id}
-          currentPrice={market.latestYesPrice != null ? parseFloat(market.latestYesPrice) : null}
-          isShortDuration={isShortDuration}
-          locale={locale}
-        />
-      )}
-
       {/* Price history chart */}
       <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />
 
