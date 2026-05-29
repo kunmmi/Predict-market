@@ -1,11 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
 import { getMarketByIdAdmin, getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
 import { settleShortDurationMarketById, ensureRoundOpeningPrice } from "@/lib/services/short-duration-settlement";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +17,7 @@ import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
 import { getRoundHistory, ensureUpcomingRound } from "@/lib/services/round-history";
 import LiveCryptoChart from "@/components/ui/live-crypto-chart";
 import { RoundSelectorBar } from "@/components/markets/round-selector-bar";
+import { UpcomingRoundRedirector } from "./upcoming-round-redirector";
 import { TradeArea } from "./trade-area";
 import { PriceHistoryChart } from "./price-history-chart";
 import { LiveProbabilityBar } from "./live-probability-bar";
@@ -56,7 +58,17 @@ export default async function MarketDetailPage({ params }: Props) {
     requireUser(),
     getMarketBySlug(params.slug),
   ]);
-  if (!fetchedMarket) notFound();
+  if (!fetchedMarket) {
+    // If the slug looks like a timestamped upcoming slug (e.g. btc-5min-20240528102000)
+    // it may have been promoted to the base slug when the round went live.
+    // Redirect to the base slug so the user doesn't get a hard 404.
+    const maybeBase = params.slug.replace(/-\d{14}$/, "");
+    if (maybeBase !== params.slug) {
+      const baseMarket = await getMarketBySlug(maybeBase);
+      if (baseMarket) redirect(`/markets/${maybeBase}`);
+    }
+    notFound();
+  }
   let market = fetchedMarket;
 
   if (market.durationMinutes != null) {
@@ -75,10 +87,21 @@ export default async function MarketDetailPage({ params }: Props) {
     // For the active round now in hand, silently validate that spot_price_at_open
     // matches the real Binance price for the round's start minute. Repairs any stale
     // value in the DB before it reaches the chart, probability bar, or trade API.
+    //
+    // Guard: only run this for rounds that have ALREADY started. Upcoming (future)
+    // rounds must keep spot_price_at_open = null so the trade form shows 50/50 odds.
+    // Calling this with a future start time would fall back to the current spot price
+    // and corrupt the upcoming round's pricing.
+    const roundStartAlreadyPassedMs =
+      market.durationMinutes != null
+        ? new Date(market.closeAt).getTime() - market.durationMinutes * 60_000
+        : null;
     if (
       market.status === "active" &&
       market.durationMinutes != null &&
-      new Date(market.closeAt) > new Date()
+      new Date(market.closeAt) > new Date() &&
+      roundStartAlreadyPassedMs != null &&
+      roundStartAlreadyPassedMs <= Date.now()
     ) {
       const validatedPrice = await ensureRoundOpeningPrice({
         id: market.id,
@@ -113,37 +136,82 @@ export default async function MarketDetailPage({ params }: Props) {
     : null;
   const isUpcoming = isActive && isShortDuration && roundOpenAtMs != null && roundOpenAtMs > Date.now();
 
-  // Fetch round history + pre-create next upcoming round (non-blocking for page load)
-  const baseSlug = market.slug.replace(/-\d{14}$/, "");
-  const [roundHistory] = await Promise.all([
-    isShortDuration && market.durationMinutes != null
-      ? getRoundHistory(baseSlug, market.durationMinutes)
-      : Promise.resolve(null),
-    // Pre-create the upcoming round so the selector bar can link to it
-    isShortDuration && isActive && !isUpcoming && market.durationMinutes != null
-      ? ensureUpcomingRound({
-          baseSlug,
-          currentCloseAt: market.closeAt,
-          durationMinutes: market.durationMinutes,
-          assetSymbol: market.assetSymbol,
-          createdBy: profile.id,
-        }).catch(() => null)
-      : Promise.resolve(null),
-  ]);
+  // If this is an upcoming round that somehow got a spot_price_at_open written to it
+  // (from the bug where ensureRoundOpeningPrice used to run for future rounds), clear
+  // it so the trade form uses 50/50 pricing. Also scrub it from the DB silently.
+  if (isUpcoming && market.spotPriceAtOpen != null) {
+    market = { ...market, spotPriceAtOpen: null };
+    const supabaseAdmin = createSupabaseAdminClient();
+    void supabaseAdmin
+      .from("markets")
+      .update({ spot_price_at_open: null })
+      .eq("id", market.id)
+      .then(() => undefined);
+  }
 
-  // Build 1 extra calculated slot (no DB row) if we couldn't pre-create
+  // Pre-create the next 2 upcoming rounds FIRST, then fetch history so it
+  // always sees the newly-created rows. Running them in parallel meant the
+  // history query completed before the inserts, giving 0 upcoming rounds on
+  // the first visit and falling back to unclickable calculated slots.
+  const baseSlug = market.slug.replace(/-\d{14}$/, "");
+  const nextCloseAt1 = market.durationMinutes != null
+    ? new Date(new Date(market.closeAt).getTime() + market.durationMinutes * 60_000).toISOString()
+    : null;
+
+  if (isShortDuration && isActive && !isUpcoming && market.durationMinutes != null) {
+    await Promise.all([
+      ensureUpcomingRound({
+        baseSlug,
+        currentCloseAt: market.closeAt,
+        durationMinutes: market.durationMinutes,
+        assetSymbol: market.assetSymbol,
+        createdBy: profile.id,
+      }).catch(() => null),
+      nextCloseAt1 != null
+        ? ensureUpcomingRound({
+            baseSlug,
+            currentCloseAt: nextCloseAt1,
+            durationMinutes: market.durationMinutes,
+            assetSymbol: market.assetSymbol,
+            createdBy: profile.id,
+          }).catch(() => null)
+        : Promise.resolve(null),
+    ]);
+  }
+
+  const roundHistory = isShortDuration && market.durationMinutes != null
+    ? await getRoundHistory(baseSlug, market.durationMinutes)
+    : null;
+
+  // Build calculated fallback slots for any upcoming positions not yet in DB
   const calculatedSlots = (() => {
     if (!isShortDuration || !market.durationMinutes) return [];
     const dur = market.durationMinutes * 60_000;
-    // Only add calculated slot if there's no pre-created upcoming in DB
-    const upcomingCount = (roundHistory?.upcoming.length ?? 0);
-    if (upcomingCount > 0) return [];
-    const nextCloseAt = new Date(new Date(market.closeAt).getTime() + dur);
-    return [{ closeAt: nextCloseAt.toISOString(), openAt: new Date(nextCloseAt.getTime() - dur).toISOString() }];
+    const upcomingCount = roundHistory?.upcoming.length ?? 0;
+    // We want to show 3 upcoming slots total; fill the remainder with calculated ones
+    const needed = Math.max(0, 3 - upcomingCount);
+    const slots: { closeAt: string; openAt: string }[] = [];
+    for (let i = 0; i < needed; i++) {
+      const base = new Date(market.closeAt).getTime();
+      const closeMs = base + dur * (upcomingCount + i + 1);
+      slots.push({
+        closeAt: new Date(closeMs).toISOString(),
+        openAt: new Date(closeMs - dur).toISOString(),
+      });
+    }
+    return slots;
   })();
 
   return (
     <div className="space-y-6">
+      {/* Silently redirect upcoming rounds to base slug the moment they go live */}
+      {isUpcoming && roundOpenAtMs != null && (
+        <UpcomingRoundRedirector
+          openAt={new Date(roundOpenAtMs).toISOString()}
+          baseSlug={baseSlug}
+        />
+      )}
+
       {/* Round-closed banner (only appears once the close_at time passes) */}
       <RoundClosedBanner
         key={market.id}
@@ -216,11 +284,11 @@ export default async function MarketDetailPage({ params }: Props) {
         {isShortDuration ? (
           <LiveProbabilityBar
             assetSymbol={market.assetSymbol}
-            spotPriceAtOpen={market.spotPriceAtOpen}
+            spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
             closeAt={market.closeAt}
             upLabel={positiveLabel}
             downLabel={negativeLabel}
-            fallbackYesPrice={market.latestYesPrice}
+            fallbackYesPrice={isUpcoming ? "0.5" : market.latestYesPrice}
           />
         ) : (
           <ProbabilityBar
@@ -238,7 +306,7 @@ export default async function MarketDetailPage({ params }: Props) {
           assetSymbol={market.assetSymbol}
           closeAt={market.closeAt}
           durationMinutes={market.durationMinutes}
-          spotPriceAtOpen={market.spotPriceAtOpen}
+          spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
           settleLabels={{
             countdownClosesIn: tm.countdown_closes_in,
             countdownExpired: tm.countdown_expired,
@@ -343,14 +411,14 @@ export default async function MarketDetailPage({ params }: Props) {
       {/* Trade form + live position */}
       <TradeArea
         marketId={market.id}
-        yesPrice={market.latestYesPrice}
-        noPrice={market.latestNoPrice}
+        yesPrice={isUpcoming ? "0.5" : market.latestYesPrice}
+        noPrice={isUpcoming ? "0.5" : market.latestNoPrice}
         marketStatus={market.status}
         isShortDuration={isShortDuration}
         assetSymbol={market.assetSymbol}
         closeAt={market.closeAt}
         cutoffAt={market.cutoffAt}
-        spotPriceAtOpen={market.spotPriceAtOpen}
+        spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
         durationMinutes={market.durationMinutes ?? undefined}
         isUpcoming={isUpcoming}
         locale={locale}
