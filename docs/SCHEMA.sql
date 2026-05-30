@@ -171,7 +171,7 @@ create table if not exists public.promoters (
   display_name text,
   promo_code text not null unique,
   status promoter_status not null default 'active',
-  commission_rate numeric(5,4) not null default 0.1000,
+  commission_rate numeric(5,4) not null default 0.3000,
   total_commission_generated numeric(20,8) not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -567,10 +567,11 @@ create table if not exists public.commissions (
   id uuid primary key default gen_random_uuid(),
   promoter_id uuid not null references public.promoters(id) on delete cascade,
   referred_profile_id uuid not null references public.profiles(id) on delete cascade,
-  trade_id uuid not null unique references public.trades(id) on delete cascade,
+  trade_id uuid not null references public.trades(id) on delete cascade,
   fee_amount_source numeric(20,8) not null,
   commission_rate numeric(5,4) not null,
   commission_amount numeric(20,8) not null,
+  tier smallint not null default 1,
   status commission_status not null default 'pending',
   approved_at timestamptz,
   paid_at timestamptz,
@@ -578,13 +579,15 @@ create table if not exists public.commissions (
   updated_at timestamptz not null default now(),
   constraint chk_commissions_fee_nonnegative check (fee_amount_source >= 0),
   constraint chk_commissions_rate_range check (commission_rate >= 0 and commission_rate <= 1),
-  constraint chk_commissions_amount_nonnegative check (commission_amount >= 0)
+  constraint chk_commissions_amount_nonnegative check (commission_amount >= 0),
+  constraint chk_commissions_tier check (tier in (1, 2))
 );
 
 create index if not exists idx_commissions_promoter_id on public.commissions(promoter_id);
 create index if not exists idx_commissions_referred_profile_id on public.commissions(referred_profile_id);
 create index if not exists idx_commissions_status on public.commissions(status);
 create index if not exists idx_commissions_created_at on public.commissions(created_at desc);
+create index if not exists idx_commissions_tier on public.commissions(tier);
 
 create trigger trg_commissions_updated_at
 before update on public.commissions

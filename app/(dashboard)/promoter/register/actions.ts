@@ -56,7 +56,7 @@ export async function registerPromoterAction(
         profile_id: ctx.profile.id,
         display_name: parsed.data.display_name,
         promo_code: promoCode,
-        commission_rate: 0.1,
+        commission_rate: 0.3,
         status: "active",
       });
 

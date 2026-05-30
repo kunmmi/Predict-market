@@ -427,8 +427,8 @@ export default async function MarketDetailPage({ params }: Props) {
         t={t.trade}
       />
 
-      {/* Price history chart */}
-      <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />
+      {/* Price history chart — hidden for short-duration round markets */}
+      {!isShortDuration && <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />}
 
       {/* Description */}
       {(market.description || market.descriptionZh) && (
