@@ -23,15 +23,15 @@
 
   /* Gold palette */
   --gold:       #E8A020;
-  --gold-light: #F5BB48;
-  --gold-dim:   rgba(232, 160, 32, 0.15);
-  --gold-glow:  rgba(232, 160, 32, 0.08);
+  --gold-light: #EDB040;
+  --gold-dim:   rgba(232, 160, 32, 0.12);
+  --gold-glow:  rgba(232, 160, 32, 0.10);
 
-  /* Signal colors */
-  --teal:       #10CFA0;
-  --teal-dim:   rgba(16, 207, 160, 0.15);
-  --rose:       #F23860;
-  --rose-dim:   rgba(242, 56, 96, 0.15);
+  /* Signal colors — calibrated for dark backgrounds (~6:1 contrast, not neon) */
+  --teal:       #0DB891;
+  --teal-dim:   rgba(13, 184, 145, 0.13);
+  --rose:       #E8445A;
+  --rose-dim:   rgba(232, 68, 90, 0.13);
 
   /* Text */
   --text-primary:   #EDE8E3;
@@ -69,7 +69,23 @@
     background-color: var(--bg-base);
     color: var(--text-primary);
     font-family: var(--font-sans);
+    line-height: 1.5;
     min-height: 100vh;
+  }
+
+  /* Keyboard focus ring — visible only when navigating with keyboard */
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Ensure all interactive elements are accessible */
+  button, [role="button"], a, select, input, textarea {
+    cursor: pointer;
+  }
+  input, textarea, select {
+    cursor: text;
   }
 
   /* Refined table styles */
@@ -285,13 +301,13 @@
 }
 
 @keyframes flashUp {
-  0%   { color: var(--teal); }
-  100% { color: inherit; }
+  0%   { color: var(--teal); background-color: var(--teal-dim); }
+  100% { color: inherit; background-color: transparent; }
 }
 
 @keyframes flashDown {
-  0%   { color: var(--rose); }
-  100% { color: inherit; }
+  0%   { color: var(--rose); background-color: var(--rose-dim); }
+  100% { color: inherit; background-color: transparent; }
 }
 
 @keyframes moveHorizontal {

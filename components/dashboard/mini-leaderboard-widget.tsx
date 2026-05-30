@@ -4,7 +4,12 @@ import { Trophy, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LeaderboardEntry } from "@/app/api/leaderboard/route";
 
-const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+// Rank badge colors: gold / silver / bronze
+const RANK_STYLE: Record<number, { bg: string; color: string; border: string }> = {
+  1: { bg: "rgba(232,160,32,0.15)", color: "var(--gold)", border: "rgba(232,160,32,0.3)" },
+  2: { bg: "rgba(180,192,200,0.12)", color: "#B0BEC5", border: "rgba(180,192,200,0.25)" },
+  3: { bg: "rgba(180,120,60,0.12)", color: "#C48040", border: "rgba(180,120,60,0.25)" },
+};
 
 export function MiniLeaderboardWidget({
   entries,
@@ -17,57 +22,90 @@ export function MiniLeaderboardWidget({
 
   return (
     <Card>
-      <CardHeader className="pb-2 pt-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-1.5 text-sm font-bold">
-            <Trophy className="h-4 w-4 text-yellow-500" />
+      <CardHeader style={{ paddingBottom: 8, paddingTop: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <CardTitle style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <Trophy style={{ width: 14, height: 14, color: "var(--gold)" }} />
             {zh ? "排行榜 Top 5" : "Top Players"}
           </CardTitle>
           <Link
             href="/leaderboard"
-            className="text-xs font-semibold text-yellow-600 hover:text-yellow-700"
+            style={{
+              fontFamily: "var(--font-sans)", fontSize: "0.6875rem",
+              fontWeight: 600, color: "var(--gold)", textDecoration: "none",
+            }}
+            className="hover:opacity-80"
           >
             {zh ? "查看全榜 →" : "Full board →"}
           </Link>
         </div>
       </CardHeader>
-      <CardContent className="pb-4 pt-1">
+      <CardContent style={{ paddingBottom: 16, paddingTop: 4 }}>
         {top5.length === 0 ? (
-          <p className="py-4 text-center text-xs text-slate-400">
+          <p
+            style={{
+              padding: "1rem 0", textAlign: "center",
+              fontFamily: "var(--font-sans)", fontSize: "0.75rem",
+              color: "var(--text-dim)",
+            }}
+          >
             {zh ? "暂无数据" : "No completed rounds yet"}
           </p>
         ) : (
-          <div className="space-y-2.5">
-            {top5.map((e) => (
-              <div key={e.rank} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 shrink-0 text-center text-sm">
-                    {MEDAL[e.rank] ?? (
-                      <span className="font-mono text-xs text-slate-400">
-                        #{e.rank}
-                      </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {top5.map((e) => {
+              const rankStyle = RANK_STYLE[e.rank];
+              return (
+                <div
+                  key={e.rank}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* Rank badge — no emoji, styled number */}
+                    <span
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 22, height: 22, borderRadius: 4, flexShrink: 0,
+                        fontFamily: "var(--font-mono)", fontSize: "0.625rem",
+                        fontWeight: 700, letterSpacing: "0.04em",
+                        backgroundColor: rankStyle?.bg ?? "var(--bg-elevated)",
+                        border: `1px solid ${rankStyle?.border ?? "var(--border-subtle)"}`,
+                        color: rankStyle?.color ?? "var(--text-dim)",
+                      }}
+                    >
+                      {e.rank}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-sans)", fontSize: "0.8125rem",
+                        fontWeight: 500, color: "var(--text-primary)",
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        maxWidth: 100,
+                      }}
+                    >
+                      {e.displayName}
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                    {e.totalPnl >= 0 ? (
+                      <TrendingUp style={{ width: 11, height: 11, color: "var(--teal)" }} />
+                    ) : (
+                      <TrendingDown style={{ width: 11, height: 11, color: "var(--rose)" }} />
                     )}
-                  </span>
-                  <span className="truncate text-sm font-medium text-slate-800">
-                    {e.displayName}
-                  </span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-mono)", fontSize: "0.75rem",
+                        fontWeight: 700,
+                        color: e.totalPnl >= 0 ? "var(--teal)" : "var(--rose)",
+                      }}
+                    >
+                      {e.totalPnl >= 0 ? "+" : ""}${Math.abs(e.totalPnl).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  {e.totalPnl >= 0 ? (
-                    <TrendingUp className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-400" />
-                  )}
-                  <span
-                    className={`text-xs font-bold tabular-nums ${
-                      e.totalPnl >= 0 ? "text-green-600" : "text-red-500"
-                    }`}
-                  >
-                    {e.totalPnl >= 0 ? "+" : ""}${Math.abs(e.totalPnl).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
