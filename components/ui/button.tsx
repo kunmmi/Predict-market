@@ -4,26 +4,28 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/helpers/cn";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg text-sm font-medium transition-colors " +
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 focus-visible:ring-offset-2 " +
-    "disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-sm)] text-sm font-medium transition-all duration-150 cursor-pointer " +
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] " +
+    "disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
         default:
-          "bg-yellow-400 text-slate-900 shadow-sm hover:bg-yellow-300",
+          "bg-[var(--gold)] text-[#070809] shadow-sm hover:opacity-90 active:opacity-80",
         secondary:
-          "border border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50",
-        destructive: "bg-red-600 text-white hover:bg-red-500",
+          "border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]",
+        destructive:
+          "bg-[var(--rose-dim)] border border-[rgba(242,56,96,0.3)] text-[var(--rose)] hover:bg-[rgba(242,56,96,0.22)]",
         outline:
-          "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50",
-        ghost: "text-slate-700 hover:bg-slate-100",
-        link: "text-slate-900 underline-offset-4 hover:underline",
+          "border border-[var(--border-strong)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--border-gold)] hover:text-[var(--text-primary)]",
+        ghost:
+          "text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]",
+        link: "text-[var(--gold)] underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
+        sm: "h-8 rounded-[var(--radius-sm)] px-3 text-xs",
+        lg: "h-11 rounded-[var(--radius-md)] px-8",
         icon: "h-10 w-10",
       },
     },

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ArrowDown, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 
 import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 import { useBinanceKlineStream } from "@/lib/hooks/use-binance-kline-stream";
@@ -47,7 +47,6 @@ function LiveRoundCard({
   const cutoffAt = market.cutoffAt ?? getShortDurationCutoffAt(market.closeAt).toISOString();
   const isClosed = Math.floor((new Date(cutoffAt).getTime() - now) / 1_000) <= 0;
 
-  // Notify parent once when this card first becomes closed
   useEffect(() => {
     if (isClosed && !firedRef.current) {
       firedRef.current = true;
@@ -77,101 +76,159 @@ function LiveRoundCard({
 
   return (
     <div
-      className={`flex h-full flex-col rounded-xl border-2 p-4 transition-all ${
-        isClosed
-          ? "border-slate-200 bg-slate-50 opacity-70"
-          : "border-yellow-200 bg-white shadow-sm"
-      }`}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        borderRadius: "var(--radius-lg)",
+        border: `1px solid ${isClosed ? "var(--border-dim)" : "var(--border-gold)"}`,
+        backgroundColor: "var(--bg-surface)",
+        padding: "1rem",
+        transition: "all 200ms ease",
+        opacity: isClosed ? 0.55 : 1,
+        boxShadow: isClosed ? "none" : "0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(232,160,32,0.06)",
+      }}
     >
-      {/* Header row */}
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {hasCryptoIcon(market.assetSymbol) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={cryptoIconUrl(market.assetSymbol)}
               alt={market.assetSymbol}
-              width={40}
-              height={40}
-              className="rounded-full shadow-md"
+              width={36}
+              height={36}
+              style={{ borderRadius: "50%", boxShadow: "0 0 0 2px var(--border-gold)" }}
             />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">
+            <span
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 36, height: 36, borderRadius: "50%",
+                backgroundColor: "var(--bg-elevated)",
+                border: "1px solid var(--border-strong)",
+                fontFamily: "var(--font-mono)", fontSize: "0.75rem", fontWeight: 700,
+                color: "var(--text-primary)",
+              }}
+            >
               {market.assetSymbol.slice(0, 2)}
             </span>
           )}
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-base font-extrabold text-slate-900">{market.assetSymbol}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9375rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                {market.assetSymbol}
+              </span>
               {!isClosed && (
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                <span
+                  style={{
+                    width: 7, height: 7, borderRadius: "50%",
+                    backgroundColor: "var(--teal)",
+                    boxShadow: "0 0 6px var(--teal)",
+                    animation: "pulseDot 1.5s ease-in-out infinite",
+                    display: "inline-block",
+                  }}
+                />
               )}
             </div>
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+            <span
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontWeight: 600, letterSpacing: "0.1em",
+                textTransform: "uppercase", color: "var(--gold)",
+              }}
+            >
               {market.durationMinutes} min round
             </span>
           </div>
         </div>
-        <div
-          className={`flex items-center gap-1 text-sm font-bold tabular-nums ${
-            isClosed
-              ? "text-slate-400"
-              : secondsRemaining <= 60
-                ? "text-red-600"
-                : "text-slate-700"
-          }`}
-        >
-          <Clock className="h-3.5 w-3.5" />
-          {isClosed ? "Closed" : formatCountdown(secondsRemaining)}
+
+        {/* Countdown */}
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <Clock style={{ width: 12, height: 12, color: "var(--text-dim)" }} />
+          <span
+            style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.9375rem", fontWeight: 700,
+              color: isClosed ? "var(--text-dim)" : secondsRemaining <= 60 ? "var(--rose)" : "var(--text-secondary)",
+              letterSpacing: "0.04em",
+            }}
+          >
+            {isClosed ? "Closed" : formatCountdown(secondsRemaining)}
+          </span>
         </div>
       </div>
 
-      {/* Live spot price + direction */}
-      <div className="mb-3 flex items-baseline gap-2">
-        <span className="text-lg font-bold tabular-nums text-slate-900">
+      {/* Live price */}
+      <div style={{ marginBottom: "0.75rem" }}>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)", fontSize: "1.375rem", fontWeight: 700,
+            letterSpacing: "-0.02em", color: "var(--text-primary)",
+          }}
+        >
           {liveSpot != null
             ? `$${liveSpot.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-            : "—"}
+            : <span style={{ color: "var(--text-dim)", fontSize: "1rem" }}>—</span>
+          }
         </span>
         {pctDiff != null && (
           <span
-            className={`flex items-center gap-0.5 text-xs font-semibold ${
-              isUp ? "text-green-600" : "text-red-600"
-            }`}
+            style={{
+              marginLeft: 8,
+              fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 600,
+              color: isUp ? "var(--teal)" : "var(--rose)",
+              display: "inline-flex", alignItems: "center", gap: 2,
+            }}
           >
-            {isUp ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-            {Math.abs(pctDiff).toFixed(3)}% from open
+            {isUp
+              ? <ArrowUp style={{ width: 10, height: 10 }} />
+              : <ArrowDown style={{ width: 10, height: 10 }} />
+            }
+            {Math.abs(pctDiff).toFixed(3)}%
           </span>
         )}
       </div>
 
-      {/* UP / DOWN price tiles */}
-      <div className="mb-3 grid grid-cols-2 gap-2">
+      {/* UP / DOWN tiles */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: "0.75rem" }}>
         {[
-          { label: "UP",   price: yesPrice, color: "green" },
-          { label: "DOWN", price: noPrice,  color: "red"   },
-        ].map(({ label, price, color }) => (
+          { label: "UP",   price: yesPrice, isUp: true  },
+          { label: "DOWN", price: noPrice,  isUp: false },
+        ].map(({ label, price, isUp: tileUp }) => (
           <div
             key={label}
-            className={`rounded-lg border-2 p-2 text-center ${
-              isClosed
-                ? "border-slate-200 bg-slate-50"
-                : color === "green"
-                  ? "border-green-200 bg-green-50"
-                  : "border-red-200 bg-red-50"
-            }`}
+            style={{
+              borderRadius: "var(--radius-sm)",
+              border: `1px solid ${tileUp ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)"}`,
+              backgroundColor: tileUp ? "var(--teal-dim)" : "var(--rose-dim)",
+              padding: "8px 10px",
+              textAlign: "center",
+            }}
           >
             <p
-              className={`text-[10px] font-bold uppercase tracking-widest ${
-                color === "green" ? "text-green-700" : "text-red-600"
-              }`}
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase",
+                color: tileUp ? "var(--teal)" : "var(--rose)",
+              }}
             >
               {label}
             </p>
-            <p className="text-xl font-bold tabular-nums text-slate-900">
+            <p
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "1.25rem", fontWeight: 700,
+                color: "var(--text-primary)", lineHeight: 1.1, marginTop: 2,
+              }}
+            >
               {(price * 100).toFixed(0)}¢
             </p>
-            <p className="text-[10px] font-semibold text-slate-500">
+            <p
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontWeight: 600, color: "var(--text-dim)", marginTop: 1,
+              }}
+            >
               {(1 / price).toFixed(2)}× payout
             </p>
           </div>
@@ -181,15 +238,30 @@ function LiveRoundCard({
       {/* CTA */}
       <Link
         href={`/markets/${market.slug}`}
-        className="mt-auto block w-full rounded-lg bg-yellow-400 py-2 text-center text-sm font-bold text-slate-900 transition-colors hover:bg-yellow-500"
+        style={{
+          marginTop: "auto",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          padding: "8px 0",
+          borderRadius: "var(--radius-sm)",
+          background: isClosed
+            ? "var(--bg-elevated)"
+            : "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+          border: isClosed ? "1px solid var(--border-subtle)" : "none",
+          fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 700,
+          color: isClosed ? "var(--text-secondary)" : "#070809",
+          textDecoration: "none",
+          transition: "opacity 150ms ease",
+          boxShadow: isClosed ? "none" : "0 0 12px rgba(232,160,32,0.15)",
+        }}
+        className={isClosed ? "" : "hover:opacity-90"}
       >
-        {isClosed ? "View Round" : "Trade Now →"}
+        {isClosed ? "View Round" : "Trade Now"}
+        <ArrowRight style={{ width: 13, height: 13 }} />
       </Link>
     </div>
   );
 }
 
-/** Number of cards visible at a time, per breakpoint. */
 function useVisibleCount() {
   const [count, setCount] = useState(1);
   useEffect(() => {
@@ -219,9 +291,6 @@ export function LiveRoundsWidget({
   const autoRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const closedIdsRef = useRef<Set<string>>(new Set());
 
-  // Called by each card when its countdown hits zero.
-  // Once ALL current markets are closed we wait 15 s for the cron to settle
-  // & create the next round, then trigger a server-side refresh.
   const handleCardClosed = useCallback(
     (id: string) => {
       closedIdsRef.current.add(id);
@@ -232,15 +301,12 @@ export function LiveRoundsWidget({
     [markets.length, router],
   );
 
-  // Also refresh every 60 s so a newly-created round (e.g. from a different
-  // tab or an admin action) always surfaces without a manual page reload.
   useEffect(() => {
     const id = setInterval(() => router.refresh(), 60_000);
     return () => clearInterval(id);
   }, [router]);
 
   const total = markets.length;
-  // Maximum valid starting index so we never show empty slots
   const maxIndex = Math.max(0, total - visibleCount);
 
   const prev = useCallback(() => {
@@ -251,7 +317,6 @@ export function LiveRoundsWidget({
     setIndex((i) => (i >= maxIndex ? 0 : i + 1));
   }, [maxIndex]);
 
-  // Auto-advance every 5 s, pauses on hover
   useEffect(() => {
     if (paused || total <= visibleCount) return;
     autoRef.current = setInterval(next, 5_000);
@@ -260,7 +325,6 @@ export function LiveRoundsWidget({
     };
   }, [paused, next, total, visibleCount]);
 
-  // Clamp index if window resizes to show more cards
   useEffect(() => {
     setIndex((i) => Math.min(i, maxIndex));
   }, [maxIndex]);
@@ -272,17 +336,46 @@ export function LiveRoundsWidget({
   return (
     <div>
       {/* Header */}
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-slate-500">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
-          Live Rounds
-          <span className="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              width: 7, height: 7, borderRadius: "50%",
+              backgroundColor: "var(--rose)",
+              animation: "pulseDot 1.5s ease-in-out infinite",
+              display: "inline-block",
+            }}
+          />
+          <span
+            style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.625rem",
+              fontWeight: 700, letterSpacing: "0.12em",
+              textTransform: "uppercase", color: "var(--text-secondary)",
+            }}
+          >
+            Live Rounds
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+              fontWeight: 600, padding: "1px 7px",
+              borderRadius: 100,
+              backgroundColor: "var(--bg-elevated)",
+              border: "1px solid var(--border-subtle)",
+              color: "var(--text-dim)",
+            }}
+          >
             {total}
           </span>
-        </h2>
+        </div>
         <Link
           href="/markets"
-          className="text-xs font-semibold text-yellow-600 hover:text-yellow-700"
+          style={{
+            fontFamily: "var(--font-sans)", fontSize: "0.75rem",
+            fontWeight: 600, color: "var(--gold)",
+            textDecoration: "none",
+          }}
+          className="hover:opacity-80"
         >
           All markets →
         </Link>
@@ -290,35 +383,46 @@ export function LiveRoundsWidget({
 
       {/* Carousel */}
       <div
-        className="relative"
+        style={{ position: "relative" }}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        {/* Left arrow */}
         {showArrows && (
           <button
             onClick={prev}
-            className="absolute -left-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-1.5 shadow-md transition hover:bg-slate-50 active:scale-95"
+            style={{
+              position: "absolute", left: -12, top: "50%", zIndex: 10,
+              transform: "translateY(-50%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 28, height: 28, borderRadius: "50%",
+              border: "1px solid var(--border-strong)",
+              backgroundColor: "var(--bg-elevated)",
+              color: "var(--text-secondary)",
+              cursor: "pointer", transition: "all 150ms ease",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            }}
+            className="hover:border-[var(--border-gold)] hover:text-[var(--gold)]"
             aria-label="Previous"
           >
-            <ChevronLeft className="h-4 w-4 text-slate-600" />
+            <ChevronLeft style={{ width: 14, height: 14 }} />
           </button>
         )}
 
-        {/* Sliding window — overflow hidden, items translate */}
-        <div className="overflow-hidden">
+        <div style={{ overflow: "hidden" }}>
           <div
-            className="flex gap-3 transition-transform duration-500 ease-in-out"
             style={{
-              // Each card takes 1/visibleCount of the container width minus gaps
+              display: "flex", gap: 12,
+              transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
               transform: `translateX(calc(-${index} * (100% / ${visibleCount}) - ${index} * (12px / ${visibleCount})))`,
             }}
           >
             {markets.map((m) => (
               <div
                 key={m.id}
-                className="min-w-0 shrink-0"
-                style={{ width: `calc(${100 / visibleCount}% - ${(12 * (visibleCount - 1)) / visibleCount}px)` }}
+                style={{
+                  minWidth: 0, flexShrink: 0,
+                  width: `calc(${100 / visibleCount}% - ${(12 * (visibleCount - 1)) / visibleCount}px)`,
+                }}
               >
                 <LiveRoundCard market={m} onClosed={handleCardClosed} />
               </div>
@@ -326,31 +430,44 @@ export function LiveRoundsWidget({
           </div>
         </div>
 
-        {/* Right arrow */}
         {showArrows && (
           <button
             onClick={next}
-            className="absolute -right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-slate-200 bg-white p-1.5 shadow-md transition hover:bg-slate-50 active:scale-95"
+            style={{
+              position: "absolute", right: -12, top: "50%", zIndex: 10,
+              transform: "translateY(-50%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 28, height: 28, borderRadius: "50%",
+              border: "1px solid var(--border-strong)",
+              backgroundColor: "var(--bg-elevated)",
+              color: "var(--text-secondary)",
+              cursor: "pointer", transition: "all 150ms ease",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+            }}
+            className="hover:border-[var(--border-gold)] hover:text-[var(--gold)]"
             aria-label="Next"
           >
-            <ChevronRight className="h-4 w-4 text-slate-600" />
+            <ChevronRight style={{ width: 14, height: 14 }} />
           </button>
         )}
       </div>
 
-      {/* Dot indicators */}
+      {/* Dots */}
       {showArrows && (
-        <div className="mt-3 flex items-center justify-center gap-1.5">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: "0.75rem" }}>
           {Array.from({ length: maxIndex + 1 }).map((_, i) => (
             <button
               key={i}
               onClick={() => setIndex(i)}
               aria-label={`Go to slide ${i + 1}`}
-              className={`rounded-full transition-all duration-300 ${
-                i === index
-                  ? "h-2 w-5 bg-yellow-400"
-                  : "h-2 w-2 bg-slate-200 hover:bg-slate-300"
-              }`}
+              style={{
+                borderRadius: 100, border: "none", cursor: "pointer",
+                transition: "all 300ms ease",
+                height: 6,
+                width: i === index ? 20 : 6,
+                backgroundColor: i === index ? "var(--gold)" : "var(--border-strong)",
+                padding: 0,
+              }}
             />
           ))}
         </div>

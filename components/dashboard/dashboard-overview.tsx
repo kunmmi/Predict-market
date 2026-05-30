@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { DollarSign, CheckCircle2, Lock, ArrowDownLeft, ArrowUpRight, TrendingUp, ChevronRight } from "lucide-react";
+import {
+  DollarSign, CheckCircle2, Lock, ArrowDownLeft,
+  ArrowUpRight, TrendingUp, ChevronRight,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -26,7 +29,6 @@ function depositStatusVariant(
   return "secondary";
 }
 
-
 function formatWhen(iso: string, locale: Locale): string {
   try {
     return new Intl.DateTimeFormat(locale === "zh" ? "zh-CN" : "en-US", {
@@ -43,25 +45,59 @@ function StatCard({
   value,
   sub,
   icon: Icon,
-  accent,
+  accentColor,
 }: {
   label: string;
   value: string;
   sub: string;
   icon: React.ElementType;
-  accent: string;
+  accentColor: string;
 }) {
   return (
     <Card>
-      <CardContent className="pt-6 pb-5">
-        <div className="flex items-start justify-between">
+      <CardContent style={{ paddingTop: 20, paddingBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-            <p className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">{value}</p>
-            <p className="mt-0.5 text-xs text-slate-400">{sub}</p>
+            <p
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontWeight: 600, letterSpacing: "0.1em",
+                textTransform: "uppercase", color: "var(--text-dim)",
+              }}
+            >
+              {label}
+            </p>
+            <p
+              style={{
+                marginTop: 6,
+                fontFamily: "var(--font-mono)", fontSize: "1.5rem",
+                fontWeight: 700, letterSpacing: "-0.02em",
+                color: "var(--text-primary)",
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
+              {value}
+            </p>
+            <p
+              style={{
+                marginTop: 2,
+                fontFamily: "var(--font-sans)", fontSize: "0.6875rem",
+                color: "var(--text-dim)",
+              }}
+            >
+              {sub}
+            </p>
           </div>
-          <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
-            <Icon className="h-4.5 w-4.5" />
+          <div
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center",
+              width: 36, height: 36, borderRadius: "var(--radius-sm)",
+              backgroundColor: "var(--bg-elevated)",
+              border: `1px solid ${accentColor}`,
+              flexShrink: 0,
+            }}
+          >
+            <Icon style={{ width: 16, height: 16, color: accentColor }} />
           </div>
         </div>
       </CardContent>
@@ -80,38 +116,52 @@ function OpenPositionsSection({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-center">
-        <TrendingUp className="mb-3 h-8 w-8 text-slate-300" />
-        <p className="text-sm font-medium text-slate-600">{t.no_positions}</p>
-        <p className="mt-1 text-xs text-slate-400">{t.no_positions_sub}</p>
+      <div
+        style={{
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          padding: "2.5rem 1rem", textAlign: "center",
+        }}
+      >
+        <TrendingUp style={{ width: 32, height: 32, color: "var(--text-dim)", marginBottom: 12 }} />
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>
+          {t.no_positions}
+        </p>
+        <p style={{ marginTop: 4, fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-dim)" }}>
+          {t.no_positions_sub}
+        </p>
         <Link
           href="/markets"
           className={cn(buttonVariants({ size: "sm" }), "mt-4 gap-1")}
         >
-          {t.browse_markets} <ChevronRight className="h-3 w-3" />
+          {t.browse_markets} <ChevronRight style={{ width: 12, height: 12 }} />
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+    <div style={{ overflowX: "auto" }}>
+      <table>
         <thead>
-          <tr className="border-b border-slate-100 text-xs font-medium uppercase tracking-wide text-slate-400">
-            <th className="pb-2.5 pr-3">{t.col_market}</th>
-            <th className="pb-2.5 pr-3 text-right">{t.col_yes_units}</th>
-            <th className="pb-2.5 text-right">{t.col_no_units}</th>
+          <tr>
+            <th>{t.col_market}</th>
+            <th style={{ textAlign: "right" }}>{t.col_yes_units}</th>
+            <th style={{ textAlign: "right" }}>{t.col_no_units}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((p) => (
-            <tr key={p.id} className="border-b border-slate-50 last:border-0">
-              <td className="py-2.5 pr-3 font-medium text-slate-900">
+            <tr key={p.id}>
+              <td style={{ fontWeight: 500 }}>
                 {locale === "zh" && p.marketTitleZh ? p.marketTitleZh : p.marketTitle}
               </td>
-              <td className="py-2.5 pr-3 text-right tabular-nums text-green-700">{formatDecimal(p.yesUnits)}</td>
-              <td className="py-2.5 text-right tabular-nums text-red-600">{formatDecimal(p.noUnits)}</td>
+              <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--teal)", fontFamily: "var(--font-mono)" }}>
+                {formatDecimal(p.yesUnits)}
+              </td>
+              <td style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--rose)", fontFamily: "var(--font-mono)" }}>
+                {formatDecimal(p.noUnits)}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -130,41 +180,55 @@ function RecentTradesSection({
   locale: Locale;
 }) {
   if (rows.length === 0) {
-    return <p className="py-4 text-sm text-slate-400">{t.no_trades}</p>;
+    return (
+      <p style={{ padding: "1rem 0", fontFamily: "var(--font-sans)", fontSize: "0.875rem", color: "var(--text-dim)" }}>
+        {t.no_trades}
+      </p>
+    );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+    <div style={{ overflowX: "auto" }}>
+      <table>
         <thead>
-          <tr className="border-b border-slate-100 text-xs font-medium uppercase tracking-wide text-slate-400">
-            <th className="hidden pb-2.5 pr-3 sm:table-cell">{t.col_when}</th>
-            <th className="pb-2.5 pr-3">{t.col_market}</th>
-            <th className="pb-2.5 pr-3">{t.col_side}</th>
-            <th className="pb-2.5 pr-3 text-right">{t.col_amount}</th>
-            <th className="hidden pb-2.5 text-right sm:table-cell">{t.col_price}</th>
+          <tr>
+            <th className="hidden sm:table-cell">{t.col_when}</th>
+            <th>{t.col_market}</th>
+            <th>{t.col_side}</th>
+            <th style={{ textAlign: "right" }}>{t.col_amount}</th>
+            <th className="hidden sm:table-cell" style={{ textAlign: "right" }}>{t.col_price}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((trade) => (
-            <tr key={trade.id} className="border-b border-slate-50 last:border-0">
-              <td className="hidden py-2.5 pr-3 text-xs text-slate-400 sm:table-cell">{formatWhen(trade.createdAt, locale)}</td>
-              <td className="py-2.5 pr-3 font-medium text-slate-800">
+            <tr key={trade.id}>
+              <td className="hidden sm:table-cell" style={{ color: "var(--text-dim)" }}>
+                {formatWhen(trade.createdAt, locale)}
+              </td>
+              <td style={{ fontWeight: 500 }}>
                 {locale === "zh" && trade.marketTitleZh ? trade.marketTitleZh : trade.marketTitle}
               </td>
-              <td className="py-2.5 pr-3">
+              <td>
                 <span
-                  className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold ${
-                    trade.side === "yes"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
+                  style={{
+                    display: "inline-flex", alignItems: "center",
+                    padding: "2px 8px", borderRadius: 100,
+                    fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                    fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                    backgroundColor: trade.side === "yes" ? "var(--teal-dim)" : "var(--rose-dim)",
+                    border: `1px solid ${trade.side === "yes" ? "rgba(13,184,145,0.25)" : "rgba(232,68,90,0.25)"}`,
+                    color: trade.side === "yes" ? "var(--teal)" : "var(--rose)",
+                  }}
                 >
                   {sideLabel(trade.side, locale)}
                 </span>
               </td>
-              <td className="py-2.5 pr-3 text-right tabular-nums text-slate-700">${formatDecimal(trade.amount)}</td>
-              <td className="hidden py-2.5 text-right tabular-nums text-slate-500 sm:table-cell">{formatDecimal(trade.price, 4)}</td>
+              <td style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
+                ${formatDecimal(trade.amount)}
+              </td>
+              <td className="hidden sm:table-cell" style={{ textAlign: "right", fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>
+                {formatDecimal(trade.price, 4)}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -184,39 +248,49 @@ function RecentDepositsSection({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <ArrowDownLeft className="mb-3 h-7 w-7 text-slate-300" />
-        <p className="text-sm font-medium text-slate-600">{t.no_deposits}</p>
+      <div
+        style={{
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center",
+          padding: "2rem 1rem", textAlign: "center",
+        }}
+      >
+        <ArrowDownLeft style={{ width: 28, height: 28, color: "var(--text-dim)", marginBottom: 10 }} />
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>
+          {t.no_deposits}
+        </p>
         <Link
           href="/wallet/deposit"
           className={cn(buttonVariants({ size: "sm" }), "mt-3 gap-1")}
         >
-          {t.make_deposit} <ChevronRight className="h-3 w-3" />
+          {t.make_deposit} <ChevronRight style={{ width: 12, height: 12 }} />
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-sm">
+    <div style={{ overflowX: "auto" }}>
+      <table>
         <thead>
-          <tr className="border-b border-slate-100 text-xs font-medium uppercase tracking-wide text-slate-400">
-            <th className="hidden pb-2.5 pr-3 sm:table-cell">{t.col_when}</th>
-            <th className="pb-2.5 pr-3">{t.col_asset}</th>
-            <th className="pb-2.5 pr-3">{t.col_status}</th>
-            <th className="pb-2.5 text-right">{t.col_amount}</th>
+          <tr>
+            <th className="hidden sm:table-cell">{t.col_when}</th>
+            <th>{t.col_asset}</th>
+            <th>{t.col_status}</th>
+            <th style={{ textAlign: "right" }}>{t.col_amount}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((d) => (
-            <tr key={d.id} className="border-b border-slate-50 last:border-0">
-              <td className="hidden py-2.5 pr-3 text-xs text-slate-400 sm:table-cell">{formatWhen(d.createdAt, locale)}</td>
-              <td className="py-2.5 pr-3 font-medium text-slate-800">{d.assetSymbol}</td>
-              <td className="py-2.5 pr-3">
+            <tr key={d.id}>
+              <td className="hidden sm:table-cell" style={{ color: "var(--text-dim)" }}>
+                {formatWhen(d.createdAt, locale)}
+              </td>
+              <td style={{ fontWeight: 500 }}>{d.assetSymbol}</td>
+              <td>
                 <Badge variant={depositStatusVariant(d.status)}>{statusLabel(d.status, locale)}</Badge>
               </td>
-              <td className="py-2.5 text-right tabular-nums text-slate-700">
+              <td style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums" }}>
                 {d.amountReceived != null
                   ? `$${formatDecimal(d.amountReceived)}`
                   : d.amountExpected != null
@@ -261,20 +335,20 @@ export function DashboardOverview({
   const displayName = fullName ?? email.split("@")[0];
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
         <div>
           <h1 className="page-title">{t.welcome} {displayName}</h1>
           <p className="page-subtitle">{email}</p>
         </div>
-        <div className="flex gap-2">
+        <div style={{ display: "flex", gap: 8 }}>
           <Link href="/wallet/deposit" className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}>
-            <ArrowDownLeft className="h-4 w-4" />
+            <ArrowDownLeft style={{ width: 14, height: 14 }} />
             {t.deposit}
           </Link>
           <Link href="/wallet/withdraw" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
-            <ArrowUpRight className="h-4 w-4" />
+            <ArrowUpRight style={{ width: 14, height: 14 }} />
             {t.withdraw}
           </Link>
         </div>
@@ -287,65 +361,62 @@ export function DashboardOverview({
 
       {/* Balance stats + mini leaderboard */}
       <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label={t.total_balance}
-          value={walletBalance != null ? `$${walletBalance}` : "—"}
-          sub={t.usd_equivalent}
-          icon={DollarSign}
-          accent="bg-slate-100 text-slate-600"
-        />
-        <StatCard
-          label={t.available}
-          value={walletAvailable != null ? `$${walletAvailable}` : "—"}
-          sub={t.ready_to_trade}
-          icon={CheckCircle2}
-          accent="bg-green-100 text-green-600"
-        />
-        <StatCard
-          label={t.open_positions}
-          value={String(data.openPositions.length)}
-          sub={data.openPositions.length === 1 ? t.active_market : t.active_markets}
-          icon={TrendingUp}
-          accent="bg-yellow-100 text-yellow-700"
-        />
-      </div>
-
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label={t.total_balance}
+            value={walletBalance != null ? `$${walletBalance}` : "—"}
+            sub={t.usd_equivalent}
+            icon={DollarSign}
+            accentColor="var(--gold)"
+          />
+          <StatCard
+            label={t.available}
+            value={walletAvailable != null ? `$${walletAvailable}` : "—"}
+            sub={t.ready_to_trade}
+            icon={CheckCircle2}
+            accentColor="var(--teal)"
+          />
+          <StatCard
+            label={t.open_positions}
+            value={String(data.openPositions.length)}
+            sub={data.openPositions.length === 1 ? t.active_market : t.active_markets}
+            icon={TrendingUp}
+            accentColor="var(--gold)"
+          />
+        </div>
         <MiniLeaderboardWidget entries={topPlayers} zh={locale === "zh"} />
       </div>
 
-      {/* Quick actions row */}
-      <div className="flex flex-wrap gap-3">
-        <Link
-          href="/markets"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
-        >
-          <TrendingUp className="h-4 w-4" />
+      {/* Quick actions */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <Link href="/markets" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+          <TrendingUp style={{ width: 14, height: 14 }} />
           {t.browse_markets}
         </Link>
-        <Link
-          href="/wallet"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
-        >
-          <DollarSign className="h-4 w-4" />
+        <Link href="/wallet" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+          <DollarSign style={{ width: 14, height: 14 }} />
           {t.view_wallet}
         </Link>
-        <Link
-          href="/portfolio"
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
-        >
-          <Lock className="h-4 w-4" />
+        <Link href="/portfolio" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+          <Lock style={{ width: 14, height: 14 }} />
           {t.view_portfolio}
         </Link>
       </div>
 
-      {/* Open positions + Recent Trades side by side */}
+      {/* Open positions + Recent trades */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t.open_positions_title}</CardTitle>
-              <Link href="/portfolio" className="text-xs text-slate-500 hover:text-slate-900">
+          <CardHeader style={{ paddingBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <CardTitle>{t.open_positions_title}</CardTitle>
+              <Link
+                href="/portfolio"
+                style={{
+                  fontFamily: "var(--font-sans)", fontSize: "0.6875rem",
+                  fontWeight: 600, color: "var(--text-dim)", textDecoration: "none",
+                }}
+                className="hover:text-[var(--gold)]"
+              >
                 {t.view_all}
               </Link>
             </div>
@@ -356,10 +427,17 @@ export function DashboardOverview({
         </Card>
 
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">{t.recent_trades}</CardTitle>
-              <Link href="/portfolio" className="text-xs text-slate-500 hover:text-slate-900">
+          <CardHeader style={{ paddingBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <CardTitle>{t.recent_trades}</CardTitle>
+              <Link
+                href="/portfolio"
+                style={{
+                  fontFamily: "var(--font-sans)", fontSize: "0.6875rem",
+                  fontWeight: 600, color: "var(--text-dim)", textDecoration: "none",
+                }}
+                className="hover:text-[var(--gold)]"
+              >
                 {t.view_all}
               </Link>
             </div>
@@ -372,10 +450,17 @@ export function DashboardOverview({
 
       {/* Recent deposits */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">{t.recent_deposits}</CardTitle>
-            <Link href="/wallet" className="text-xs text-slate-500 hover:text-slate-900">
+        <CardHeader style={{ paddingBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <CardTitle>{t.recent_deposits}</CardTitle>
+            <Link
+              href="/wallet"
+              style={{
+                fontFamily: "var(--font-sans)", fontSize: "0.6875rem",
+                fontWeight: 600, color: "var(--text-dim)", textDecoration: "none",
+              }}
+              className="hover:text-[var(--gold)]"
+            >
               {t.view_all}
             </Link>
           </div>
@@ -385,62 +470,95 @@ export function DashboardOverview({
         </CardContent>
       </Card>
 
-      {/* Promoter card */}
+      {/* Promoter panel */}
       {data.promoter ? (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">{t.promoter_program}</CardTitle>
+          <CardHeader style={{ paddingBottom: 12 }}>
+            <CardTitle>{t.promoter_program}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-700">
-            <div className="flex flex-wrap gap-4">
+          <CardContent>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 24, marginBottom: 16 }}>
               <div>
-                <p className="text-xs text-slate-400">{t.promo_code}</p>
-                <code className="mt-0.5 block rounded bg-slate-100 px-2 py-1 text-xs font-mono font-semibold text-slate-800">
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+                  {t.promo_code}
+                </p>
+                <code
+                  style={{
+                    display: "block", marginTop: 4,
+                    fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
+                    fontWeight: 600, color: "var(--gold)",
+                    backgroundColor: "var(--gold-dim)",
+                    border: "1px solid var(--border-gold)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "4px 10px",
+                  }}
+                >
                   {data.promoter.promoCode}
                 </code>
               </div>
               <div>
-                <p className="text-xs text-slate-400">{t.commission_rate}</p>
-                <p className="mt-0.5 font-semibold text-slate-800">
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+                  {t.commission_rate}
+                </p>
+                <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--text-primary)" }}>
                   {(parseFloat(data.promoter.commissionRate) * 100).toFixed(1)}%
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">{t.total_earned}</p>
-                <p className="mt-0.5 font-semibold text-slate-800">
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+                  {t.total_earned}
+                </p>
+                <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--teal)" }}>
                   ${formatDecimal(data.promoter.totalCommissionGenerated)}
                 </p>
               </div>
             </div>
-            <Link href="/promoter" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-900 underline underline-offset-4 hover:text-yellow-600">
-              {t.open_promoter} <ChevronRight className="h-3 w-3" />
+            <Link
+              href="/promoter"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4,
+                fontFamily: "var(--font-sans)", fontSize: "0.75rem",
+                fontWeight: 600, color: "var(--gold)", textDecoration: "none",
+              }}
+              className="hover:opacity-80"
+            >
+              {t.open_promoter} <ChevronRight style={{ width: 12, height: 12 }} />
             </Link>
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex items-center justify-between py-5">
+        <Card style={{ border: "1px dashed var(--border-strong)" }}>
+          <CardContent style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 20, paddingBottom: 20 }}>
             <div>
-              <p className="text-sm font-semibold text-slate-800">{t.become_promoter}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{t.become_promoter_sub}</p>
+              <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)" }}>
+                {t.become_promoter}
+              </p>
+              <p style={{ marginTop: 2, fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-dim)" }}>
+                {t.become_promoter_sub}
+              </p>
             </div>
             <Link
               href="/promoter/register"
               className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1")}
             >
-              {t.apply_now} <ChevronRight className="h-3 w-3" />
+              {t.apply_now} <ChevronRight style={{ width: 12, height: 12 }} />
             </Link>
           </CardContent>
         </Card>
       )}
 
       {showAdminLink && (
-        <p className="text-sm">
+        <p>
           <Link
             href="/admin"
-            className="inline-flex items-center gap-1 font-semibold text-slate-900 underline underline-offset-4 hover:text-yellow-600"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontFamily: "var(--font-sans)", fontSize: "0.875rem",
+              fontWeight: 600, color: "var(--text-secondary)", textDecoration: "none",
+            }}
+            className="hover:text-[var(--gold)]"
           >
-            {t.open_admin} <ChevronRight className="h-3.5 w-3.5" />
+            {t.open_admin} <ChevronRight style={{ width: 13, height: 13 }} />
           </Link>
         </p>
       )}
