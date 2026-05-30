@@ -129,47 +129,61 @@ function ShortDurationCard({
     return () => clearTimeout(timeoutId);
   }, [price, prevPrice]);
 
-  const priceClassName = useMemo(() => {
-    if (direction === "up") return "text-emerald-400";
-    if (direction === "down") return "text-rose-400";
-    return "text-white";
+  const priceStyle = useMemo(() => {
+    if (direction === "up") return { color: "var(--teal)", transition: "color 600ms ease" };
+    if (direction === "down") return { color: "var(--rose)", transition: "color 600ms ease" };
+    return { color: "var(--text-primary)", transition: "color 600ms ease" };
   }, [direction]);
 
   return (
-    <div
-      className="rounded-2xl bg-slate-950 p-5 text-white transition-opacity duration-200"
-      style={{ minHeight: 380 }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <Badge className="bg-yellow-300 text-slate-900 ring-0">{tc.short_duration_badge}</Badge>
-          <div className="inline-flex items-center gap-1 rounded-full bg-slate-800/90 px-2.5 py-1 text-[11px] font-medium text-slate-300">
-            <Dot className="h-4 w-4 text-emerald-400" />
-            {tc.quick_trade}
-          </div>
-        </div>
-        <div className="text-right">
-          <p className="text-[11px] uppercase tracking-wide text-slate-500">{market.assetSymbol}</p>
-          <p
-            className={`mt-1 text-sm font-semibold ${
-              countdown.urgent ? "animate-pulse text-rose-400" : "text-slate-200"
-            }`}
+    <div style={{ minHeight: 360, display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <span className="tag-gold">{tc.short_duration_badge}</span>
+          <span
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              fontSize: "10px", fontFamily: "var(--font-mono)",
+              color: "var(--teal)", fontWeight: 600, letterSpacing: "0.08em",
+            }}
           >
+            <span style={{
+              width: 5, height: 5, borderRadius: "50%",
+              backgroundColor: "var(--teal)",
+              animation: "pulseDot 1.5s ease-in-out infinite",
+            }} />
+            {tc.quick_trade}
+          </span>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.12em", color: "var(--text-dim)", textTransform: "uppercase" }}>
+            {market.assetSymbol}
+          </p>
+          <p style={{
+            marginTop: 4,
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.8125rem",
+            fontWeight: 600,
+            color: countdown.urgent ? "var(--rose)" : "var(--text-secondary)",
+            animation: countdown.urgent ? "pulseDot 1s ease-in-out infinite" : "none",
+          }}>
             {countdown.text}
           </p>
         </div>
       </div>
 
-      <div className="mt-4">
-        <p className="text-sm font-semibold leading-snug text-white">
+      {/* Title */}
+      <div>
+        <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-primary)", lineHeight: 1.5 }}>
           {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
         </p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p style={{ marginTop: 4, fontSize: "11px", color: "var(--text-secondary)" }}>
           {tc.target_price_label}{" "}
-          <span className="font-semibold text-slate-200">
+          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>
             {market.targetDirection === "below" ? tc.target_below : tc.target_above}
           </span>{" "}
-          <span className="font-semibold text-white">
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--gold)" }}>
             {market.spotPriceAtOpen != null
               ? `$${priceFormatter.format(Number(market.spotPriceAtOpen))}`
               : "—"}
@@ -177,47 +191,96 @@ function ShortDurationCard({
         </p>
       </div>
 
-      <div className="mt-5 rounded-xl border border-slate-800 bg-slate-900/80 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">{tc.live_price}</p>
-            <p className={`mt-1 text-3xl font-bold tabular-nums transition-colors ${priceClassName}`}>
-              {price != null ? `$${priceFormatter.format(price)}` : "—"}
-            </p>
-          </div>
-          <div className="rounded-xl bg-slate-800 px-3 py-2 text-right">
-            <p className="text-[10px] uppercase tracking-wide text-slate-500">{sideLabel("yes", locale)}</p>
-            <p className="mt-1 text-lg font-bold text-emerald-400">{formatPct(market.yesPrice)}</p>
-          </div>
+      {/* Live price panel */}
+      <div style={{
+        borderRadius: "var(--radius-md)",
+        border: "1px solid var(--border-subtle)",
+        backgroundColor: "var(--bg-elevated)",
+        padding: "12px 16px",
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+      }}>
+        <div>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+            {tc.live_price}
+          </p>
+          <p style={{ ...priceStyle, marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "2rem", fontWeight: 700, letterSpacing: "-0.03em" }}>
+            {price != null ? `$${priceFormatter.format(price)}` : "—"}
+          </p>
+        </div>
+        <div style={{
+          textAlign: "right",
+          borderRadius: 8,
+          backgroundColor: "var(--bg-overlay)",
+          border: "1px solid var(--border-subtle)",
+          padding: "8px 12px",
+        }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+            {sideLabel("yes", locale)}
+          </p>
+          <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 700, color: "var(--teal)" }}>
+            {formatPct(market.yesPrice)}
+          </p>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      {/* Trade buttons */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <Link
           href={tradeHref}
-          className="rounded-xl bg-emerald-500 px-4 py-3 text-left text-white transition-colors hover:bg-emerald-400"
+          style={{
+            borderRadius: "var(--radius-md)",
+            background: "linear-gradient(135deg, rgba(16,207,160,0.2) 0%, rgba(16,207,160,0.08) 100%)",
+            border: "1px solid rgba(16,207,160,0.3)",
+            padding: "12px 14px",
+            textAlign: "left",
+            textDecoration: "none",
+            transition: "all 200ms ease",
+          }}
+          className="hover:border-[rgba(16,207,160,0.6)] hover:bg-[rgba(16,207,160,0.15)]"
         >
-          <p className="text-[11px] uppercase tracking-wide text-emerald-50/80">{tc.up_label}</p>
-          <p className="mt-1 text-xl font-bold">{formatPrice(market.yesPrice)}</p>
-          <p className="mt-1 text-xs font-medium text-emerald-50/90">
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(16,207,160,0.6)" }}>
+            {tc.up_label}
+          </p>
+          <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.25rem", fontWeight: 700, color: "var(--teal)" }}>
+            {formatPrice(market.yesPrice)}
+          </p>
+          <p style={{ marginTop: 2, fontSize: "11px", fontWeight: 500, color: "rgba(16,207,160,0.8)" }}>
             {sideLabel("yes", locale)} ↑
           </p>
         </Link>
         <Link
           href={tradeHref}
-          className="rounded-xl bg-rose-500 px-4 py-3 text-left text-white transition-colors hover:bg-rose-400"
+          style={{
+            borderRadius: "var(--radius-md)",
+            background: "linear-gradient(135deg, rgba(242,56,96,0.2) 0%, rgba(242,56,96,0.08) 100%)",
+            border: "1px solid rgba(242,56,96,0.3)",
+            padding: "12px 14px",
+            textAlign: "left",
+            textDecoration: "none",
+            transition: "all 200ms ease",
+          }}
+          className="hover:border-[rgba(242,56,96,0.6)]"
         >
-          <p className="text-[11px] uppercase tracking-wide text-rose-50/80">{tc.down_label}</p>
-          <p className="mt-1 text-xl font-bold">{formatPrice(market.noPrice)}</p>
-          <p className="mt-1 text-xs font-medium text-rose-50/90">
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(242,56,96,0.6)" }}>
+            {tc.down_label}
+          </p>
+          <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.25rem", fontWeight: 700, color: "var(--rose)" }}>
+            {formatPrice(market.noPrice)}
+          </p>
+          <p style={{ marginTop: 2, fontSize: "11px", fontWeight: 500, color: "rgba(242,56,96,0.8)" }}>
             {sideLabel("no", locale)} ↓
           </p>
         </Link>
       </div>
 
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
-        <span>{tc.closes}</span>
-        <span>{formatCloseDate(market.closeAt, locale)}</span>
+      {/* Footer */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--text-dim)", letterSpacing: "0.06em" }}>
+          {tc.closes}
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "10px", color: "var(--text-secondary)", letterSpacing: "0.04em" }}>
+          {formatCloseDate(market.closeAt, locale)}
+        </span>
       </div>
     </div>
   );
@@ -237,57 +300,84 @@ function StandardCard({
   animating: boolean;
 }) {
   return (
-    <div
-      className="rounded-2xl bg-slate-900 p-5 text-white transition-opacity duration-200"
-      style={{ opacity: animating ? 0 : 1 }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <span className="rounded-md bg-slate-800 px-2 py-0.5 text-xs font-bold tracking-wide text-slate-300">
+    <div style={{ opacity: animating ? 0 : 1, transition: "opacity 200ms ease", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <span style={{
+          fontFamily: "var(--font-mono)", fontSize: "10px", fontWeight: 700,
+          letterSpacing: "0.12em", textTransform: "uppercase",
+          color: "var(--gold)",
+          backgroundColor: "var(--gold-dim)",
+          border: "1px solid var(--border-gold)",
+          borderRadius: 6, padding: "3px 8px",
+        }}>
           {market.assetSymbol}
         </span>
-        <div className="flex items-center gap-1 text-xs text-slate-500">
-          <Clock className="h-3 w-3" />
-          <span>{tc.closes} {formatCloseDate(market.closeAt, locale)}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--text-dim)", fontSize: "11px" }}>
+          <Clock style={{ width: 11, height: 11 }} />
+          <span style={{ fontFamily: "var(--font-mono)" }}>{tc.closes} {formatCloseDate(market.closeAt, locale)}</span>
         </div>
       </div>
 
-      <p className="mt-3 min-h-[2.5rem] text-sm font-semibold leading-snug text-white line-clamp-2">
+      <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-primary)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
         {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
       </p>
 
       {market.yesPrice != null && (
-        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-700">
+        <div style={{ height: 3, backgroundColor: "var(--border-subtle)", borderRadius: 2, overflow: "hidden" }}>
           <div
-            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-            style={{ width: `${Math.min(100, parseFloat(market.yesPrice) * 100)}%` }}
+            style={{
+              height: "100%",
+              width: `${Math.min(100, parseFloat(market.yesPrice) * 100)}%`,
+              background: "linear-gradient(90deg, var(--teal), rgba(16,207,160,0.4))",
+              borderRadius: 2,
+              transition: "width 500ms ease",
+            }}
           />
         </div>
       )}
 
-      <div className="mt-3 flex gap-5">
-        <div>
-          <p className="text-[10px] uppercase tracking-wide text-slate-500">YES</p>
-          <p className="text-2xl font-bold text-emerald-400">{formatPrice(market.yesPrice)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase tracking-wide text-slate-500">NO</p>
-          <p className="text-2xl font-bold text-red-400">{formatPrice(market.noPrice)}</p>
-        </div>
+      <div style={{ display: "flex", gap: 24 }}>
+        {[
+          { label: "YES", price: market.yesPrice, color: "var(--teal)" },
+          { label: "NO",  price: market.noPrice,  color: "var(--rose)" },
+        ].map(({ label, price, color }) => (
+          <div key={label}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+              {label}
+            </p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "1.5rem", fontWeight: 700, color, marginTop: 2 }}>
+              {formatPrice(price)}
+            </p>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <Link
-          href={tradeHref}
-          className="rounded-lg bg-emerald-500 px-3 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-emerald-400"
-        >
-          {sideLabel("yes", locale)} ↑
-        </Link>
-        <Link
-          href={tradeHref}
-          className="rounded-lg bg-red-500 px-3 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-red-400"
-        >
-          {sideLabel("no", locale)} ↓
-        </Link>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {[
+          { label: `${sideLabel("yes", locale)} ↑`, color: "var(--teal)", bg: "rgba(16,207,160,0.12)", border: "rgba(16,207,160,0.3)" },
+          { label: `${sideLabel("no", locale)} ↓`,  color: "var(--rose)", bg: "rgba(242,56,96,0.12)",  border: "rgba(242,56,96,0.3)" },
+        ].map(({ label, color, bg, border }) => (
+          <Link
+            key={label}
+            href={tradeHref}
+            style={{
+              borderRadius: "var(--radius-md)",
+              backgroundColor: bg,
+              border: `1px solid ${border}`,
+              padding: "10px 14px",
+              textAlign: "center",
+              fontFamily: "var(--font-sans)",
+              fontSize: "0.875rem",
+              fontWeight: 700,
+              color,
+              textDecoration: "none",
+              transition: "opacity 150ms ease",
+            }}
+            className="hover:opacity-80"
+          >
+            {label}
+          </Link>
+        ))}
       </div>
     </div>
   );
@@ -325,13 +415,26 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
 
   if (markets.length === 0) {
     return (
-      <div className="rounded-2xl bg-slate-900 p-5 text-white">
-        <p className="text-xs text-slate-400">{tc.markets_label}</p>
-        <p className="mt-3 text-base font-medium text-slate-300">{tc.no_markets}</p>
-        <p className="mt-1 text-xs text-slate-500">{tc.check_back}</p>
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-lg bg-slate-800 px-3 py-2.5 text-center text-sm font-semibold text-slate-500">YES</div>
-          <div className="rounded-lg bg-slate-800 px-3 py-2.5 text-center text-sm font-semibold text-slate-500">NO</div>
+      <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 10 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+          {tc.markets_label}
+        </p>
+        <p style={{ fontSize: "0.9375rem", fontWeight: 500, color: "var(--text-secondary)" }}>{tc.no_markets}</p>
+        <p style={{ fontSize: "12px", color: "var(--text-dim)" }}>{tc.check_back}</p>
+        <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {["YES", "NO"].map((l) => (
+            <div key={l} style={{
+              borderRadius: "var(--radius-md)",
+              backgroundColor: "var(--bg-elevated)",
+              border: "1px solid var(--border-subtle)",
+              padding: "10px 14px",
+              textAlign: "center",
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.875rem",
+              fontWeight: 600,
+              color: "var(--text-dim)",
+            }}>{l}</div>
+          ))}
         </div>
       </div>
     );
@@ -355,51 +458,89 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
         />
       )}
 
-      <div className="mt-4 flex items-center gap-3">
-        <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">{tc.yes_prob}</p>
-          <p className="mt-0.5 text-lg font-bold text-emerald-600">{formatPct(market.yesPrice)}</p>
+      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
+        {/* YES prob */}
+        <div style={{
+          flex: 1,
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--border-subtle)",
+          backgroundColor: "var(--bg-elevated)",
+          padding: "10px 12px",
+        }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+            {tc.yes_prob}
+          </p>
+          <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 700, color: "var(--teal)" }}>
+            {formatPct(market.yesPrice)}
+          </p>
         </div>
 
+        {/* Nav controls */}
         {markets.length > 1 && (
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={prev}
-                aria-label="Previous market"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={next}
-                aria-label="Next market"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[
+                { fn: prev, label: "Previous market", icon: ChevronLeft },
+                { fn: next, label: "Next market",     icon: ChevronRight },
+              ].map(({ fn, label, icon: Icon }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={fn}
+                  aria-label={label}
+                  style={{
+                    width: 28, height: 28,
+                    borderRadius: "50%",
+                    border: "1px solid var(--border-subtle)",
+                    backgroundColor: "var(--bg-elevated)",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 150ms ease",
+                  }}
+                  className="hover:!border-[--border-gold] hover:!text-[--gold]"
+                >
+                  <Icon style={{ width: 13, height: 13 }} />
+                </button>
+              ))}
             </div>
-            <div className="flex gap-1">
+            <div style={{ display: "flex", gap: 4 }}>
               {markets.map((_, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => goTo(i)}
                   aria-label={`Market ${i + 1}`}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === current ? "w-5 bg-slate-900" : "w-1.5 bg-slate-300 hover:bg-slate-400"
-                  }`}
+                  style={{
+                    height: 4,
+                    width: i === current ? 20 : 4,
+                    borderRadius: 2,
+                    backgroundColor: i === current ? "var(--gold)" : "var(--border-strong)",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 300ms ease",
+                    padding: 0,
+                  }}
                 />
               ))}
             </div>
           </div>
         )}
 
-        <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">{tc.no_prob}</p>
-          <p className="mt-0.5 text-lg font-bold text-red-500">{formatPct(market.noPrice)}</p>
+        {/* NO prob */}
+        <div style={{
+          flex: 1,
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--border-subtle)",
+          backgroundColor: "var(--bg-elevated)",
+          padding: "10px 12px",
+        }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+            {tc.no_prob}
+          </p>
+          <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 700, color: "var(--rose)" }}>
+            {formatPct(market.noPrice)}
+          </p>
         </div>
       </div>
     </div>
