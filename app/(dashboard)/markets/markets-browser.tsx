@@ -1,42 +1,35 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { TrendingUp, Clock, ChevronRight, Search, X } from "lucide-react";
+import { TrendingUp, Clock, ChevronRight, Search, X, ArrowRight } from "lucide-react";
 
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import { resolveMarketTitle } from "@/lib/short-duration-predictions";
 import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
-import { Card } from "@/components/ui/card";
+import { useBinancePrice } from "@/lib/hooks/use-binance-price";
 import type { MarketListItem } from "@/lib/services/market-data";
 import type { Locale } from "@/lib/i18n/translations";
 
 type Tab = "all" | "5" | "15" | "30" | "standard";
 
-function ProbabilityBar({
-  yesPrice,
-  positiveLabel,
-  negativeLabel,
-}: {
-  yesPrice: string | null;
-  positiveLabel: string;
-  negativeLabel: string;
-}) {
-  const yes = yesPrice != null ? Math.min(100, Math.max(0, parseFloat(yesPrice) * 100)) : 50;
-  const no = 100 - yes;
-  return (
-    <div className="mt-3 space-y-1">
-      <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="bg-green-500 transition-all" style={{ width: `${yes}%` }} />
-        <div className="bg-red-400 transition-all" style={{ width: `${no}%` }} />
-      </div>
-      <div className="flex justify-between text-xs text-slate-400">
-        <span>{yes.toFixed(0)}% {positiveLabel}</span>
-        <span>{no.toFixed(0)}% {negativeLabel}</span>
-      </div>
-    </div>
+function useCountdown(closeAt: string) {
+  const getSecsLeft = useCallback(
+    () => Math.max(0, Math.floor((new Date(closeAt).getTime() - Date.now()) / 1000)),
+    [closeAt],
   );
+  const [secsLeft, setSecsLeft] = useState(getSecsLeft);
+
+  useEffect(() => {
+    setSecsLeft(getSecsLeft());
+    const id = setInterval(() => setSecsLeft(getSecsLeft()), 1000);
+    return () => clearInterval(id);
+  }, [getSecsLeft]);
+
+  const mm = String(Math.floor(secsLeft / 60)).padStart(2, "0");
+  const ss = String(secsLeft % 60).padStart(2, "0");
+  return `${mm}:${ss}`;
 }
 
 function ShortDurationCard({
@@ -48,76 +41,250 @@ function ShortDurationCard({
   locale: Locale;
   t: { short_duration_badge: string; live_contract: string; trade_now: string };
 }) {
-  return (
-    <Link href={`/markets/${market.slug}`} className="group block">
-      <Card className="relative h-full overflow-hidden border-slate-900/90 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.26),transparent_24%),linear-gradient(160deg,#0f172a_0%,#111827_44%,#1f2937_100%)] shadow-[0_20px_50px_-24px_rgba(15,23,42,0.85)] transition-all duration-200 hover:-translate-y-1 hover:border-slate-700 hover:shadow-[0_28px_64px_-28px_rgba(15,23,42,0.92)]">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.06),transparent_32%,rgba(255,255,255,0.02)_100%)]" />
-        <div className="absolute right-4 top-4 h-16 w-16 rounded-full bg-emerald-400/20 blur-2xl" />
-        <div className="relative p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-[11px] font-medium text-slate-100 backdrop-blur-sm">
-              <span className="relative flex h-2.5 w-2.5 items-center justify-center">
-                <span className="absolute h-5 w-5 animate-ping rounded-full bg-emerald-400/25" />
-                <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_18px_rgba(110,231,183,0.9)]" />
-              </span>
-              Live round
-            </div>
-            <span
-              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                market.status === "active"
-                  ? "border border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
-                  : "border border-white/10 bg-white/8 text-slate-300"
-              }`}
-            >
-              {statusLabel(market.status, locale)}
-            </span>
-          </div>
+  const binanceSymbol = `${market.assetSymbol}USDT`;
+  const { price: livePrice } = useBinancePrice(binanceSymbol);
+  const countdown = useCountdown(market.closeAt);
 
-          <div className="mt-4 flex items-center gap-3">
+  const openPrice = market.spotPriceAtOpen ? parseFloat(market.spotPriceAtOpen) : null;
+  const pctChange =
+    livePrice != null && openPrice != null && openPrice > 0
+      ? ((livePrice - openPrice) / openPrice) * 100
+      : null;
+  const pctUp = pctChange != null && pctChange >= 0;
+
+  const yesP = market.yesPrice != null ? parseFloat(market.yesPrice) : null;
+  const noP = market.noPrice != null ? parseFloat(market.noPrice) : null;
+  const yesCents = yesP != null ? Math.round(yesP * 100) : null;
+  const noCents = noP != null ? Math.round(noP * 100) : null;
+  const yesMult = yesP != null && yesP > 0 ? (1 / yesP).toFixed(2) : null;
+  const noMult = noP != null && noP > 0 ? (1 / noP).toFixed(2) : null;
+
+  const durationLabel =
+    market.durationMinutes != null
+      ? locale === "zh"
+        ? `${market.durationMinutes} 分钟轮次`
+        : `${market.durationMinutes} MIN ROUND`
+      : t.short_duration_badge;
+
+  const upLabel = locale === "zh" ? "涨" : "UP";
+  const downLabel = locale === "zh" ? "跌" : "DOWN";
+  const tradeNow = locale === "zh" ? "立即交易" : "Trade Now";
+
+  return (
+    <Link href={`/markets/${market.slug}`} style={{ textDecoration: "none", display: "block" }}>
+      <div
+        style={{
+          position: "relative",
+          backgroundColor: "var(--bg-surface)",
+          border: "1px solid var(--border-gold)",
+          borderRadius: "var(--radius-lg)",
+          padding: "1.25rem",
+          overflow: "hidden",
+          transition: "transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(232,160,32,0.08)",
+          cursor: "pointer",
+        }}
+        className="group hover:border-[var(--gold)] hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_20px_rgba(232,160,32,0.12)]"
+      >
+        {/* Subtle gold ambient */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: "-20%",
+            right: "-10%",
+            width: "50%",
+            height: "60%",
+            background: "radial-gradient(ellipse, rgba(232,160,32,0.06) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Row 1: Logo + name + live dot  |  Round label + countdown */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          {/* Left: logo + name + live dot */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {hasCryptoIcon(market.assetSymbol) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={cryptoIconUrl(market.assetSymbol)}
                 alt={market.assetSymbol}
-                width={48}
-                height={48}
-                className="rounded-full shadow-lg ring-2 ring-white/20"
+                width={36}
+                height={36}
+                style={{ borderRadius: "50%", flexShrink: 0, boxShadow: "0 0 0 2px var(--border-gold)" }}
               />
             ) : (
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white">
+              <span
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 36, height: 36, borderRadius: "50%",
+                  backgroundColor: "var(--bg-elevated)",
+                  border: "1px solid var(--border-strong)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.75rem", fontWeight: 700,
+                  color: "var(--text-primary)",
+                  flexShrink: 0,
+                }}
+              >
                 {market.assetSymbol.slice(0, 2)}
               </span>
             )}
             <div>
-              <p className="text-xl font-extrabold text-white">{market.assetSymbol}</p>
-              <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white">
-                  {t.short_duration_badge}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.9375rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                  {market.assetSymbol}
                 </span>
-                <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-200">
-                  {t.live_contract}
+                {/* Live dot */}
+                <span style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: 8, height: 8 }}>
+                  <span
+                    style={{
+                      position: "absolute", width: 16, height: 16,
+                      borderRadius: "50%",
+                      backgroundColor: "rgba(16,207,160,0.25)",
+                      animation: "pulseDot 1.5s ease-in-out infinite",
+                    }}
+                  />
+                  <span style={{ position: "relative", width: 8, height: 8, borderRadius: "50%", backgroundColor: "var(--teal)", boxShadow: "0 0 8px var(--teal)" }} />
                 </span>
               </div>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.625rem",
+                  fontWeight: 600,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "var(--gold)",
+                }}
+              >
+                {durationLabel}
+              </span>
             </div>
           </div>
 
-          <h3 className="mt-4 line-clamp-2 text-lg font-semibold leading-snug text-white">
-            {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
-          </h3>
-
-          <p className="mt-2 text-sm text-slate-400">
-            {locale === "zh" ? "进入市场查看实时价格和交易" : "Enter to see live prices and trade"}
-          </p>
-
-          <div className="mt-4 flex items-center justify-between border-t border-white/8 pt-3 text-sm">
-            <span className="text-slate-300">{t.trade_now}</span>
-            <span className="inline-flex items-center gap-1 font-semibold text-emerald-200">
-              {locale === "zh" ? "查看详情" : "View live market"}
-              <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          {/* Right: Countdown */}
+          <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+            <Clock style={{ width: 13, height: 13, color: "var(--text-dim)" }} />
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.9375rem",
+                fontWeight: 700,
+                color: "var(--text-secondary)",
+                letterSpacing: "0.04em",
+              }}
+            >
+              {countdown}
             </span>
           </div>
         </div>
-      </Card>
+
+        {/* Row 2: Live price + pct change */}
+        <div style={{ marginTop: "1rem" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "1.625rem",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "var(--text-primary)",
+              lineHeight: 1,
+            }}
+          >
+            {livePrice != null
+              ? `$${livePrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : <span style={{ color: "var(--text-dim)", fontSize: "1rem" }}>—</span>
+            }
+          </div>
+          {pctChange != null && (
+            <div
+              style={{
+                marginTop: 4,
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                color: pctUp ? "var(--teal)" : "var(--rose)",
+              }}
+            >
+              {pctUp ? "↑" : "↓"} {Math.abs(pctChange).toFixed(3)}%{" "}
+              <span style={{ color: "var(--text-dim)" }}>
+                {locale === "zh" ? "较开盘" : "from open"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Row 3: UP / DOWN boxes */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: "0.875rem" }}>
+          {/* UP box */}
+          <div
+            style={{
+              backgroundColor: "var(--teal-dim)",
+              border: "1px solid rgba(16,207,160,0.25)",
+              borderRadius: "var(--radius-sm)",
+              padding: "10px 12px",
+            }}
+          >
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--teal)" }}>
+              {upLabel}
+            </div>
+            <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
+              {yesCents != null ? `${yesCents}¢` : "—"}
+            </div>
+            {yesMult && (
+              <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--teal)", fontWeight: 600 }}>
+                {yesMult}×
+              </div>
+            )}
+          </div>
+
+          {/* DOWN box */}
+          <div
+            style={{
+              backgroundColor: "var(--rose-dim)",
+              border: "1px solid rgba(242,56,96,0.25)",
+              borderRadius: "var(--radius-sm)",
+              padding: "10px 12px",
+            }}
+          >
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--rose)" }}>
+              {downLabel}
+            </div>
+            <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-primary)", lineHeight: 1 }}>
+              {noCents != null ? `${noCents}¢` : "—"}
+            </div>
+            {noMult && (
+              <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--rose)", fontWeight: 600 }}>
+                {noMult}×
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Row 4: Trade Now button */}
+        <div
+          style={{
+            marginTop: "0.875rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            padding: "9px 0",
+            borderRadius: "var(--radius-sm)",
+            background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+            fontFamily: "var(--font-sans)",
+            fontSize: "0.8125rem",
+            fontWeight: 700,
+            color: "#070809",
+            boxShadow: "0 0 16px rgba(232,160,32,0.18)",
+            transition: "opacity 150ms ease",
+          }}
+          className="group-hover:opacity-90"
+        >
+          {tradeNow}
+          <ArrowRight style={{ width: 14, height: 14 }} />
+        </div>
+      </div>
     </Link>
   );
 }
@@ -135,60 +302,112 @@ function StandardCard({
 }) {
   const positiveLabel = sideLabel("yes", locale);
   const negativeLabel = sideLabel("no", locale);
+  const yes = market.yesPrice != null ? Math.min(100, Math.max(0, parseFloat(market.yesPrice) * 100)) : 50;
+  const no = 100 - yes;
+
   return (
-    <Link href={`/markets/${market.slug}`} className="group block">
-      <Card className="h-full p-5 transition-colors hover:border-slate-300">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
+    <Link href={`/markets/${market.slug}`} style={{ textDecoration: "none", display: "block" }}>
+      <div
+        style={{
+          backgroundColor: "var(--bg-surface)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: "var(--radius-lg)",
+          padding: "1.25rem",
+          transition: "transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+          cursor: "pointer",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+        className="group hover:border-[var(--border-strong)] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {hasCryptoIcon(market.assetSymbol) ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={cryptoIconUrl(market.assetSymbol)}
                 alt={market.assetSymbol}
-                width={36}
-                height={36}
-                className="rounded-full shadow-sm"
+                width={32}
+                height={32}
+                style={{ borderRadius: "50%", flexShrink: 0 }}
               />
             ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-700">
+              <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, borderRadius: "50%", backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border-strong)", fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 700, color: "var(--text-primary)", flexShrink: 0 }}>
                 {market.assetSymbol.slice(0, 2)}
               </span>
             )}
-            <span className="text-sm font-bold text-slate-800">{market.assetSymbol}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 700, color: "var(--text-primary)" }}>
+              {market.assetSymbol}
+            </span>
           </div>
           <span
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              market.status === "active" ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
-            }`}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.625rem",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              padding: "2px 8px",
+              borderRadius: 100,
+              backgroundColor: market.status === "active" ? "var(--teal-dim)" : "var(--bg-elevated)",
+              border: `1px solid ${market.status === "active" ? "rgba(16,207,160,0.3)" : "var(--border-subtle)"}`,
+              color: market.status === "active" ? "var(--teal)" : "var(--text-dim)",
+            }}
           >
             {statusLabel(market.status, locale)}
           </span>
         </div>
 
-        <h3 className="mt-3 line-clamp-2 text-sm font-semibold leading-snug text-slate-900">
+        <h3
+          style={{
+            marginTop: "0.75rem",
+            fontFamily: "var(--font-sans)",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            lineHeight: 1.45,
+            color: "var(--text-primary)",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            flex: 1,
+          }}
+        >
           {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
         </h3>
 
-        <div className="mt-4 flex gap-4">
+        <div style={{ display: "flex", gap: 20, marginTop: "1rem" }}>
           <div>
-            <p className="text-xs text-slate-400">YES</p>
-            <p className="mt-0.5 text-base font-bold text-green-600">
-              {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "-"}
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>YES</p>
+            <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--teal)" }}>
+              {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "—"}
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-400">NO</p>
-            <p className="mt-0.5 text-base font-bold text-red-500">
-              {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "-"}
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>NO</p>
+            <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--rose)" }}>
+              {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "—"}
             </p>
           </div>
         </div>
 
-        <ProbabilityBar yesPrice={market.yesPrice} positiveLabel={positiveLabel} negativeLabel={negativeLabel} />
+        {/* Probability bar */}
+        <div style={{ marginTop: "0.75rem" }}>
+          <div style={{ height: 4, borderRadius: 2, overflow: "hidden", backgroundColor: "var(--bg-elevated)", display: "flex" }}>
+            <div style={{ width: `${yes}%`, backgroundColor: "var(--teal)", transition: "width 300ms ease" }} />
+            <div style={{ width: `${no}%`, backgroundColor: "var(--rose)", transition: "width 300ms ease" }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--teal)" }}>{yes.toFixed(0)}% {positiveLabel}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--rose)" }}>{no.toFixed(0)}% {negativeLabel}</span>
+          </div>
+        </div>
 
-        <div className="mt-3 flex items-center gap-1 text-xs text-slate-400">
-          <Clock className="h-3 w-3" />
-          <span>
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: "0.75rem" }}>
+          <Clock style={{ width: 11, height: 11, color: "var(--text-dim)" }} />
+          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.6875rem", color: "var(--text-dim)" }}>
             {t.closes}{" "}
             {new Date(market.closeAt).toLocaleDateString(dateLocale, {
               year: "numeric",
@@ -198,10 +417,24 @@ function StandardCard({
           </span>
         </div>
 
-        <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-yellow-600 opacity-0 transition-opacity group-hover:opacity-100">
-          {t.trade_now} <ChevronRight className="h-3 w-3" />
+        <div
+          style={{
+            marginTop: "0.75rem",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontFamily: "var(--font-sans)",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            color: "var(--gold)",
+            opacity: 0,
+            transition: "opacity 150ms ease",
+          }}
+          className="group-hover:!opacity-100"
+        >
+          {t.trade_now} <ChevronRight style={{ width: 13, height: 13 }} />
         </div>
-      </Card>
+      </div>
     </Link>
   );
 }
@@ -265,53 +498,98 @@ export function MarketsBrowser({
 
   if (markets.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center border-dashed py-20 text-center">
-        <TrendingUp className="mb-4 h-12 w-12 text-slate-300" />
-        <p className="text-base font-semibold text-slate-700">{t.no_markets}</p>
-        <p className="mt-1 text-sm text-slate-400">{t.no_markets_sub}</p>
-      </Card>
+      <div
+        style={{
+          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+          padding: "5rem 1rem", textAlign: "center",
+          backgroundColor: "var(--bg-surface)", border: "1px dashed var(--border-subtle)", borderRadius: "var(--radius-lg)",
+        }}
+      >
+        <TrendingUp style={{ width: 40, height: 40, color: "var(--text-dim)", marginBottom: "1rem" }} />
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", fontWeight: 600, color: "var(--text-primary)" }}>{t.no_markets}</p>
+        <p style={{ marginTop: 4, fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>{t.no_markets_sub}</p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       {/* Search + tabs row */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }} className="sm:flex-row sm:items-center sm:justify-between">
         {/* Duration tabs */}
         {tabs.length > 1 && (
-          <div className="flex gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1">
-            {tabs.map((t) => (
+          <div
+            style={{
+              display: "flex", gap: 4, overflowX: "auto",
+              backgroundColor: "var(--bg-elevated)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-md)",
+              padding: 4,
+            }}
+          >
+            {tabs.map((tabItem) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  tab === t
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
+                key={tabItem}
+                onClick={() => setTab(tabItem)}
+                style={{
+                  whiteSpace: "nowrap",
+                  padding: "6px 14px",
+                  borderRadius: "var(--radius-sm)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.6875rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  border: "none",
+                  transition: "all 150ms ease",
+                  backgroundColor: tab === tabItem ? "var(--bg-surface)" : "transparent",
+                  color: tab === tabItem ? "var(--gold)" : "var(--text-dim)",
+                  boxShadow: tab === tabItem ? "0 1px 4px rgba(0,0,0,0.3), 0 0 0 1px var(--border-gold)" : "none",
+                }}
               >
-                {tabLabel(t)}
+                {tabLabel(tabItem)}
               </button>
             ))}
           </div>
         )}
 
         {/* Search */}
-        <div className="relative w-full sm:w-52">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <div style={{ position: "relative", width: "100%" }} className="sm:w-52">
+          <Search
+            style={{
+              position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
+              width: 13, height: 13, color: "var(--text-dim)", pointerEvents: "none",
+            }}
+          />
           <input
             type="text"
             placeholder={locale === "zh" ? "搜索市场…" : "Search markets…"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-8 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-yellow-400 focus:ring-2 focus:ring-yellow-100"
+            style={{
+              width: "100%",
+              backgroundColor: "var(--bg-elevated)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-sm)",
+              padding: "7px 30px 7px 30px",
+              fontFamily: "var(--font-sans)",
+              fontSize: "0.8125rem",
+              color: "var(--text-primary)",
+              outline: "none",
+              transition: "border-color 150ms ease",
+            }}
+            className="focus:border-[var(--gold)] placeholder:text-[var(--text-dim)]"
           />
           {query && (
             <button
               onClick={() => setQuery("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              style={{
+                position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                color: "var(--text-dim)", background: "none", border: "none", cursor: "pointer", padding: 2,
+              }}
             >
-              <X className="h-3.5 w-3.5" />
+              <X style={{ width: 13, height: 13 }} />
             </button>
           )}
         </div>
@@ -319,21 +597,21 @@ export function MarketsBrowser({
 
       {/* Results count */}
       {(query || tab !== "all") && (
-        <p className="text-xs text-slate-400">
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-dim)", letterSpacing: "0.04em" }}>
           {filtered.length} {locale === "zh" ? "个市场" : filtered.length === 1 ? "market" : "markets"}
         </p>
       )}
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Search className="mb-3 h-8 w-8 text-slate-300" />
-          <p className="text-sm font-semibold text-slate-500">
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4rem 1rem", textAlign: "center" }}>
+          <Search style={{ width: 32, height: 32, color: "var(--text-dim)", marginBottom: "0.75rem" }} />
+          <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-secondary)" }}>
             {locale === "zh" ? "没有找到匹配的市场" : "No markets match your search"}
           </p>
           <button
             onClick={() => { setQuery(""); setTab("all"); }}
-            className="mt-2 text-xs font-semibold text-yellow-600 hover:text-yellow-700"
+            style={{ marginTop: 8, fontFamily: "var(--font-sans)", fontSize: "0.75rem", fontWeight: 600, color: "var(--gold)", background: "none", border: "none", cursor: "pointer" }}
           >
             {locale === "zh" ? "清除筛选" : "Clear filters"}
           </button>
