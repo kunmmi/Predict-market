@@ -63,7 +63,7 @@ export function ResetPasswordForm({ locale, t }: Props) {
             <div className="rounded bg-yellow-400 p-1.5 text-slate-900">
               <BarChart3 className="h-4 w-4" />
             </div>
-            <span className="text-base font-semibold tracking-tight text-white">Elemental</span>
+            <span className="text-base font-semibold tracking-tight text-white">Predict Market</span>
           </Link>
           <LanguageSwitcher locale={locale} />
         </div>

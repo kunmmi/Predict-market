@@ -28,8 +28,8 @@ export class NodemailerGmailProvider implements EmailProvider {
     }
 
     this.defaultFrom = process.env.DEFAULT_FROM_EMAIL
-      ? `Elemental <${process.env.DEFAULT_FROM_EMAIL}>`
-      : `Elemental <${user}>`;
+      ? `Predict Market <${process.env.DEFAULT_FROM_EMAIL}>`
+      : `Predict Market <${user}>`;
 
     this.transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",

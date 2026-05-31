@@ -77,7 +77,7 @@ export function DashboardNav({ locale, t }: Props) {
                   color: "var(--text-primary)",
                 }}
               >
-                Elemental
+                Predict Market
               </span>
             </Link>
 

@@ -34,9 +34,9 @@ export async function sendDepositApprovedEmail(params: {
       <p>Great news! Your deposit of <strong>${params.amount} ${params.assetSymbol}</strong> has been reviewed and approved.</p>
       <p>Your wallet has been credited. You can now browse markets and start trading.</p>
       <br/>
-      <p>— The Elemental Team</p>
+      <p>— The Predict Market Team</p>
     `,
-    text: `Hi ${name},\n\nYour deposit of ${params.amount} ${params.assetSymbol} has been approved and your wallet has been credited.\n\n— The Elemental Team`,
+    text: `Hi ${name},\n\nYour deposit of ${params.amount} ${params.assetSymbol} has been approved and your wallet has been credited.\n\n— The Predict Market Team`,
   }).catch((err) => console.error("[email] deposit approved:", err));
 }
 
@@ -66,9 +66,9 @@ export async function sendDepositRejectedEmail(params: {
       ${reasonText}
       <p>If you believe this is a mistake, please contact our support team.</p>
       <br/>
-      <p>— The Elemental Team</p>
+      <p>— The Predict Market Team</p>
     `,
-    text: `Hi ${name},\n\nYour deposit of ${amountText} could not be approved.${params.notes ? `\nReason: ${params.notes}` : ""}\n\nPlease contact support if you need help.\n\n— The Elemental Team`,
+    text: `Hi ${name},\n\nYour deposit of ${amountText} could not be approved.${params.notes ? `\nReason: ${params.notes}` : ""}\n\nPlease contact support if you need help.\n\n— The Predict Market Team`,
   }).catch((err) => console.error("[email] deposit rejected:", err));
 }
 
@@ -96,9 +96,9 @@ export async function sendMarketSettledEmails(params: {
         <p>Outcome: <strong>${outcomeText}</strong></p>
         <p>If you had a winning position, your wallet has already been credited. Check your portfolio for details.</p>
         <br/>
-        <p>— The Elemental Team</p>
+        <p>— The Predict Market Team</p>
       `,
-      text: `Hi ${name},\n\nThe market "${params.marketTitle}" has been settled with outcome: ${outcomeText}.\n\nCheck your portfolio for payout details.\n\n— The Elemental Team`,
+      text: `Hi ${name},\n\nThe market "${params.marketTitle}" has been settled with outcome: ${outcomeText}.\n\nCheck your portfolio for payout details.\n\n— The Predict Market Team`,
     }).catch((err) => console.error("[email] market settled for", user.email, err));
   }
 }
@@ -125,8 +125,8 @@ export async function sendCommissionEarnedEmail(params: {
       <p>Commission earned: <strong>$${params.commissionAmount.toFixed(2)}</strong></p>
       <p>Log in to your promoter dashboard to track your earnings.</p>
       <br/>
-      <p>— The Elemental Team</p>
+      <p>— The Predict Market Team</p>
     `,
-    text: `Hi ${name},\n\nYou earned a commission of $${params.commissionAmount.toFixed(2)} from a referred user's trade.\n\nLog in to your promoter dashboard to track your earnings.\n\n— The Elemental Team`,
+    text: `Hi ${name},\n\nYou earned a commission of $${params.commissionAmount.toFixed(2)} from a referred user's trade.\n\nLog in to your promoter dashboard to track your earnings.\n\n— The Predict Market Team`,
   }).catch((err) => console.error("[email] commission earned:", err));
 }

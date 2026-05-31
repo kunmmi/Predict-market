@@ -94,7 +94,7 @@ export default async function Home() {
                   color: "var(--text-primary)",
                 }}
               >
-                Elemental
+                Predict Market
               </span>
             </Link>
 
@@ -237,9 +237,9 @@ export default async function Home() {
               className="animate-fade-up stagger-1"
               style={{
                 fontFamily: "var(--font-display)",
-                fontSize: "clamp(3.5rem, 8vw, 6rem)",
+                fontSize: "clamp(2.25rem, 4.5vw, 3.75rem)",
                 fontWeight: 700,
-                lineHeight: 1.0,
+                lineHeight: 1.05,
                 letterSpacing: "-0.02em",
                 color: "var(--text-primary)",
                 marginTop: "1.5rem",
@@ -326,8 +326,8 @@ export default async function Home() {
             </div>
           </div>
 
-          {/* Right: Carousel */}
-          <div className="animate-fade-up stagger-2 relative">
+          {/* Right: Carousel — self-start so it anchors to top of the grid row */}
+          <div className="animate-fade-up stagger-2 relative lg:self-start">
             {/* Outer glow ring */}
             <div
               aria-hidden
@@ -345,7 +345,7 @@ export default async function Home() {
                 borderRadius: "var(--radius-xl)",
                 backgroundColor: "var(--bg-surface)",
                 border: "1px solid var(--border-subtle)",
-                padding: "1.5rem",
+                padding: "1rem",
                 boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px var(--border-dim)",
               }}
             >

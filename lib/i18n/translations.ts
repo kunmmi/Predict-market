@@ -40,7 +40,7 @@ export const translations = {
     },
     auth: {
       login_eyebrow: "Welcome Back",
-      login_title: "Sign in to Elemental",
+      login_title: "Sign in to Predict Market",
       email: "Email",
       password: "Password",
       sign_in: "Sign in",
@@ -447,7 +447,7 @@ export const translations = {
     },
     auth: {
       login_eyebrow: "欢迎回来",
-      login_title: "登录 Elemental",
+      login_title: "登录 Predict Market",
       email: "邮箱",
       password: "密码",
       sign_in: "登录",
