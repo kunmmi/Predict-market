@@ -271,12 +271,12 @@ function ShortDurationCard({
             gap: 6,
             padding: "9px 0",
             borderRadius: "var(--radius-sm)",
-            background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+            background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
             fontFamily: "var(--font-sans)",
             fontSize: "0.8125rem",
             fontWeight: 700,
             color: "#070809",
-            boxShadow: "0 0 16px rgba(232,160,32,0.18)",
+            boxShadow: "0 0 16px rgba(232,160,32,0.25)",
             transition: "opacity 150ms ease",
           }}
           className="group-hover:opacity-90"

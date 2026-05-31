@@ -48,7 +48,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
               <div
                 style={{
                   width: 32, height: 32,
-                  background: "linear-gradient(135deg, var(--gold) 0%, #C47E10 100%)",
+                  background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   borderRadius: 8,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   boxShadow: "0 0 16px var(--gold-glow)",
@@ -127,7 +127,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                     color: "#070809",
                     padding: "7px 18px",
                     borderRadius: 8,
-                    background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                    background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                     textDecoration: "none",
                     transition: "opacity 150ms ease",
                     boxShadow: "0 0 20px var(--gold-glow)",
@@ -147,7 +147,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                   color: "#070809",
                   padding: "7px 18px",
                   borderRadius: 8,
-                  background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                  background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   textDecoration: "none",
                   boxShadow: "0 0 20px var(--gold-glow)",
                 }}
@@ -172,7 +172,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                   color: "#070809",
                   padding: "6px 14px",
                   borderRadius: 8,
-                  background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                  background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   textDecoration: "none",
                 }}
               >
@@ -188,7 +188,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                   color: "#070809",
                   padding: "6px 14px",
                   borderRadius: 8,
-                  background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                  background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   textDecoration: "none",
                 }}
               >
@@ -351,7 +351,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                   textAlign: "center",
                   padding: "11px",
                   borderRadius: 8,
-                  background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                  background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   fontFamily: "var(--font-sans)",
                   fontSize: "0.875rem",
                   fontWeight: 600,
@@ -372,7 +372,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                 textAlign: "center",
                 padding: "11px",
                 borderRadius: 8,
-                background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                 fontFamily: "var(--font-sans)",
                 fontSize: "0.875rem",
                 fontWeight: 600,

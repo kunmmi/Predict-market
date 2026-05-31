@@ -59,7 +59,7 @@ export function DashboardNav({ locale, t }: Props) {
               <div
                 style={{
                   width: 28, height: 28,
-                  background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                  background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   borderRadius: 7,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   boxShadow: "0 0 12px var(--gold-glow)",

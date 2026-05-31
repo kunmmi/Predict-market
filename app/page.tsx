@@ -156,7 +156,7 @@ export default async function Home() {
                   color: "#070809",
                   padding: "13px 28px",
                   borderRadius: 10,
-                  background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+                  background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   textDecoration: "none",
                   boxShadow: "0 0 30px rgba(232,160,32,0.2)",
                   transition: "all 200ms ease",
