@@ -209,10 +209,10 @@ export function LivePriceTicker({
       });
   }, [marketId, marketSlug, router]);
 
-  const priceClassName = useMemo(() => {
-    if (direction === "up") return "text-green-500";
-    if (direction === "down") return "text-red-500";
-    return "text-slate-800";
+  const priceStyle = useMemo(() => {
+    if (direction === "up") return { color: "var(--teal)", transition: "color 600ms ease" };
+    if (direction === "down") return { color: "var(--rose)", transition: "color 600ms ease" };
+    return { color: "var(--text-primary)", transition: "color 600ms ease" };
   }, [direction]);
 
   const sparkline = useMemo(() => {
@@ -320,24 +320,24 @@ export function LivePriceTicker({
           />
         </div>
 
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t.live_price}</p>
-          <p className={`text-3xl font-bold tabular-nums transition-colors ${priceClassName}`}>
-            {price != null ? `$${priceFormatter.format(price)}` : "-"}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)" }}>{t.live_price}</p>
+          <p style={{ ...priceStyle, fontFamily: "var(--font-mono)", fontSize: "2rem", fontWeight: 700, letterSpacing: "-0.03em" }}>
+            {price != null ? `$${priceFormatter.format(price)}` : "—"}
           </p>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-slate-400">
-            <span>Live movement</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-dim)" }}>
+            <span style={{ fontFamily: "var(--font-sans)" }}>Live movement</span>
             {moveVsOpen != null ? (
-              <span className={moveVsOpen >= 0 ? "text-green-600" : "text-red-500"}>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: moveVsOpen >= 0 ? "var(--teal)" : "var(--rose)" }}>
                 {moveVsOpen >= 0 ? "+" : ""}{priceFormatter.format(moveVsOpen)}
               </span>
             ) : null}
           </div>
           {sparkline ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div style={{ borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: "8px 12px" }}>
               <svg
                 viewBox={`0 0 ${sparkline.width} ${sparkline.height}`}
                 className="h-[72px] w-full overflow-visible"
@@ -348,7 +348,7 @@ export function LivePriceTicker({
                   <linearGradient id="live-price-fill" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor={chartTone.fillTop} />
                     <stop offset="65%" stopColor={chartTone.fillMid} />
-                    <stop offset="100%" stopColor="rgb(255 255 255 / 0)" />
+                    <stop offset="100%" stopColor="rgba(7,8,9,0)" />
                   </linearGradient>
                   <linearGradient id="live-price-stroke" x1="0" x2="1" y1="0" y2="0">
                     <stop offset="0%" stopColor={chartTone.stroke} stopOpacity="0.24" />
@@ -403,27 +403,27 @@ export function LivePriceTicker({
                   cx={sparkline.latestX}
                   cy={sparkline.latestY}
                   r="2.6"
-                  fill="white"
+                  fill="var(--bg-elevated)"
                   stroke={chartTone.stroke}
                   strokeWidth="1.6"
                 />
               </svg>
-              <div className="mt-1 flex justify-between text-[11px] text-slate-400">
+              <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-dim)" }}>
                 <span>${priceFormatter.format(sparkline.minPrice)}</span>
                 <span>${priceFormatter.format(sparkline.maxPrice)}</span>
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-center text-xs text-slate-400">
+            <div style={{ borderRadius: "var(--radius-md)", border: "1px dashed var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: "16px 12px", textAlign: "center", fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-dim)" }}>
               Waiting for live ticks…
             </div>
           )}
         </div>
 
-        <p className="text-sm text-slate-600">
-          <span className="font-medium text-slate-500">{t.target_price_label}</span>{" "}
-          <span className="font-semibold tabular-nums text-slate-900">
-            {spotPriceAtOpen != null ? `$${priceFormatter.format(Number(spotPriceAtOpen))}` : "-"}
+        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
+          <span style={{ fontWeight: 500, color: "var(--text-dim)" }}>{t.target_price_label}</span>{" "}
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--gold)" }}>
+            {spotPriceAtOpen != null ? `$${priceFormatter.format(Number(spotPriceAtOpen))}` : "—"}
           </span>
         </p>
       </CardContent>

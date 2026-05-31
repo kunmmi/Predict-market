@@ -249,7 +249,7 @@ export function TradeForm({
       <CardContent>
         {success ? (
           <div className="space-y-4">
-            <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+            <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid rgba(13,184,145,0.25)", backgroundColor: "var(--teal-dim)", padding: "12px 16px", fontSize: "0.875rem", fontWeight: 500, color: "var(--teal)" }}>
               {t.success}
             </div>
             <Button
@@ -266,92 +266,69 @@ export function TradeForm({
           <form id={`trade-form-${marketId}`} onSubmit={handleSubmit} className="space-y-4">
             {/* Upcoming round info banner */}
             {isUpcoming && isShortDuration && durationMinutes != null && now != null && (
-              <div className="space-y-3 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-yellow-800">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, borderRadius: "var(--radius-md)", border: "1px solid var(--border-gold)", backgroundColor: "var(--gold-dim)", padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.875rem", fontWeight: 600, color: "var(--gold)" }}>
+                  <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "var(--gold)", animation: "pulseDot 1s ease-in-out infinite", flexShrink: 0 }} />
                   {uiText.upcomingNotStarted}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.upcomingOpensIn}</p>
-                    <p className="mt-1 text-lg font-semibold text-yellow-700">
-                      {formatCountdown(Math.max(0, Math.floor((new Date(closeAt).getTime() - durationMinutes * 60_000 - now) / 1_000)))}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.upcomingPriceToBeat}</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-400">—</p>
-                  </div>
-                  <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.potentialPayout}</p>
-                    <p className="mt-1 text-lg font-semibold text-green-600">
-                      {payoutMultiplier != null ? `${payoutMultiplier}×` : "—"}
-                    </p>
-                  </div>
+                  {[
+                    { label: uiText.upcomingOpensIn, value: formatCountdown(Math.max(0, Math.floor((new Date(closeAt).getTime() - durationMinutes * 60_000 - now) / 1_000))), color: "var(--gold)" },
+                    { label: uiText.upcomingPriceToBeat, value: "—", color: "var(--text-dim)" },
+                    { label: uiText.potentialPayout, value: payoutMultiplier != null ? `${payoutMultiplier}×` : "—", color: "var(--teal)" },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: "8px 12px" }}>
+                      <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-dim)" }}>{label}</p>
+                      <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 600, color }}>{value}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
             {isShortDuration && !isUpcoming && rewardPreview && now != null ? (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.currentRoundTimer}</p>
-                    <p className="mt-1 text-lg font-semibold text-slate-900">
-                      {formatCountdown(rewardPreview.secondsRemaining)}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.cutoffCountdown}</p>
-                    <p className={`mt-1 text-lg font-semibold ${isPredictionClosed ? "text-red-600" : "text-slate-900"}`}>
-                      {isPredictionClosed
-                        ? uiText.predictionsClosed
-                        : formatCountdown(rewardPreview.cutoffSecondsRemaining)}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.potentialPayout}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: 14 }}>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {[
+                    { label: uiText.currentRoundTimer, value: formatCountdown(rewardPreview.secondsRemaining), color: "var(--text-primary)" },
+                    { label: uiText.cutoffCountdown, value: isPredictionClosed ? uiText.predictionsClosed : formatCountdown(rewardPreview.cutoffSecondsRemaining), color: isPredictionClosed ? "var(--rose)" : "var(--text-primary)" },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-surface)", padding: "8px 12px" }}>
+                      <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-dim)" }}>{label}</p>
+                      <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 600, color }}>{value}</p>
+                    </div>
+                  ))}
+                  <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-surface)", padding: "8px 12px" }}>
+                    <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-dim)" }}>{uiText.potentialPayout}</p>
                     {isValidAmount && liveYesPrice != null && liveNoPrice != null ? (
-                      <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
-                        <span className="text-sm font-bold text-green-600">
-                          ↑ ${(amountNum / parseFloat(liveYesPrice)).toFixed(2)}
-                        </span>
-                        <span className="text-slate-300 text-xs">|</span>
-                        <span className="text-sm font-bold text-red-500">
-                          ↓ ${(amountNum / parseFloat(liveNoPrice)).toFixed(2)}
-                        </span>
+                      <div style={{ marginTop: 4, display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 700, color: "var(--teal)" }}>↑ ${(amountNum / parseFloat(liveYesPrice)).toFixed(2)}</span>
+                        <span style={{ color: "var(--border-strong)", fontSize: "0.75rem" }}>|</span>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 700, color: "var(--rose)" }}>↓ ${(amountNum / parseFloat(liveNoPrice)).toFixed(2)}</span>
                       </div>
                     ) : (
-                      <p className="mt-1 text-lg font-semibold text-green-600">
+                      <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 600, color: "var(--teal)" }}>
                         {payoutMultiplier != null ? `${payoutMultiplier}×` : "—"}
                       </p>
                     )}
                   </div>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.entryPrice}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
-                      {liveSpotPrice != null ? `$${liveSpotPrice.toFixed(2)}` : "—"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.openingPrice}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
-                      {spotPriceAtOpen != null ? `$${Number(spotPriceAtOpen).toFixed(2)}` : "—"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">{uiText.liveConfidence}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
-                      {priceNum != null ? `${(priceNum * 100).toFixed(1)}%` : "—"}
-                    </p>
-                  </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {[
+                    { label: uiText.entryPrice,    value: liveSpotPrice != null ? `$${liveSpotPrice.toFixed(2)}` : "—" },
+                    { label: uiText.openingPrice,  value: spotPriceAtOpen != null ? `$${Number(spotPriceAtOpen).toFixed(2)}` : "—" },
+                    { label: uiText.liveConfidence, value: priceNum != null ? `${(priceNum * 100).toFixed(1)}%` : "—" },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-surface)", padding: "8px 12px" }}>
+                      <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-dim)" }}>{label}</p>
+                      <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)" }}>{value}</p>
+                    </div>
+                  ))}
                 </div>
 
                 {isPredictionClosed ? (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">
+                  <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-gold)", backgroundColor: "var(--gold-dim)", padding: "8px 12px", fontSize: "0.875rem", fontWeight: 500, color: "var(--gold)" }}>
                     {uiText.predictionsClosedMessage}
                   </div>
                 ) : null}
@@ -359,42 +336,40 @@ export function TradeForm({
             ) : null}
 
             {error ? (
-              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid rgba(232,68,90,0.3)", backgroundColor: "var(--rose-dim)", padding: "12px 16px", fontSize: "0.875rem", color: "var(--rose)" }}>
                 {error}
               </div>
             ) : null}
 
             {isValidAmount && priceNum != null ? (
-              <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm">
-                <div className="space-y-1 text-slate-700">
-                  <div className="flex justify-between">
+              <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span>{t.est_units}</span>
-                    <span className="font-medium">{estimatedUnits}</span>
+                    <span style={{ fontWeight: 500, fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>{estimatedUnits}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">
-                      {locale === "zh" ? "手续费 (2%)" : "Handling fee (2%)"}
-                    </span>
-                    <span className="font-medium text-slate-500">${fee}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-dim)" }}>{locale === "zh" ? "手续费 (2%)" : "Handling fee (2%)"}</span>
+                    <span style={{ fontWeight: 500, fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>${fee}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <span>{uiText.potentialPayout}</span>
-                    <span className="font-medium text-green-600">
+                    <span style={{ fontWeight: 600, fontFamily: "var(--font-mono)", color: "var(--teal)" }}>
                       {potentialPayout != null ? `$${potentialPayout}` : "—"}
                     </span>
                   </div>
-                  <div className="flex justify-between border-t border-slate-200 pt-1">
-                    <span className="font-medium">{t.total_debit}</span>
-                    <span className="font-semibold">${totalDebit}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid var(--border-dim)", paddingTop: 6 }}>
+                    <span style={{ fontWeight: 500 }}>{t.total_debit}</span>
+                    <span style={{ fontWeight: 600, fontFamily: "var(--font-mono)", color: "var(--text-primary)" }}>${totalDebit}</span>
                   </div>
                 </div>
               </div>
             ) : null}
 
-            {priceNum == null ? <p className="text-sm text-amber-600">{t.no_price}</p> : null}
+            {priceNum == null ? <p style={{ fontSize: "0.875rem", color: "var(--gold)" }}>{t.no_price}</p> : null}
 
             {isShortDuration ? (
-              <p className="text-xs text-slate-500">
+              <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
                 {uiText.cutoffNote.replace("{seconds}", String(SHORT_DURATION_CUTOFF_SECONDS))}
               </p>
             ) : null}
@@ -410,13 +385,13 @@ export function TradeForm({
                 <div className="mx-auto max-w-3xl space-y-3">
                 {/* Direction buttons — show price + multiplier for both sides so the
                     contrast between the obvious and long-shot side is instantly visible */}
-                <div className="flex gap-2">
+                <div style={{ display: "flex", gap: 10 }}>
                   {(
                     [
-                      { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, sel: "green" },
-                      { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  sel: "red"   },
+                      { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, accent: "var(--teal)", dimBg: "rgba(13,184,145,0.12)", dimBorder: "rgba(13,184,145,0.25)", selBg: "rgba(13,184,145,0.22)", selBorder: "rgba(13,184,145,0.5)" },
+                      { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  accent: "var(--rose)", dimBg: "rgba(232,68,90,0.12)",  dimBorder: "rgba(232,68,90,0.25)",  selBg: "rgba(232,68,90,0.22)",  selBorder: "rgba(232,68,90,0.5)"  },
                     ] as const
-                  ).map(({ s, label, livePrice, sel }) => {
+                  ).map(({ s, label, livePrice, accent, dimBg, dimBorder, selBg, selBorder }) => {
                     const p    = livePrice != null ? parseFloat(livePrice) : null;
                     const mult = p != null && p > 0 ? (1 / p).toFixed(2) : null;
                     const isSelected = side === s;
@@ -426,23 +401,26 @@ export function TradeForm({
                         type="button"
                         onClick={() => setSide(s)}
                         disabled={isPredictionClosed}
-                        className={`flex-1 rounded-xl border-2 px-3 py-3 text-center transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
-                          isSelected
-                            ? sel === "green"
-                              ? "border-green-500 bg-green-500 text-white shadow-md"
-                              : "border-red-500 bg-red-500 text-white shadow-md"
-                            : sel === "green"
-                              ? "border-green-200 bg-green-50 text-green-800 hover:border-green-400 hover:bg-green-100"
-                              : "border-red-200 bg-red-50 text-red-800 hover:border-red-400 hover:bg-red-100"
-                        }`}
+                        style={{
+                          flex: 1,
+                          borderRadius: "var(--radius-md)",
+                          border: `2px solid ${isSelected ? selBorder : dimBorder}`,
+                          backgroundColor: isSelected ? selBg : dimBg,
+                          padding: "12px",
+                          textAlign: "center",
+                          cursor: isPredictionClosed ? "not-allowed" : "pointer",
+                          opacity: isPredictionClosed ? 0.6 : 1,
+                          transition: "all 200ms ease",
+                          boxShadow: isSelected ? `0 0 16px ${dimBg}` : "none",
+                        }}
                       >
-                        <div className="text-[11px] font-bold uppercase tracking-widest opacity-80">
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: accent, opacity: 0.9 }}>
                           {label}
                         </div>
-                        <div className="mt-0.5 text-2xl font-bold tabular-nums">
+                        <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em", color: accent }}>
                           {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
                         </div>
-                        <div className={`mt-0.5 text-xs font-semibold tabular-nums ${isSelected ? "opacity-90" : "opacity-60"}`}>
+                        <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 600, color: accent, opacity: isSelected ? 0.9 : 0.6 }}>
                           {mult != null ? `${mult}× payout` : ""}
                         </div>
                       </button>
@@ -482,15 +460,15 @@ export function TradeForm({
                 </div>
 
                 {walletLoading ? (
-                  <p className="text-xs text-slate-400">{t.loading_balance}</p>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t.loading_balance}</p>
                 ) : availableBalance != null ? (
-                  <p className="text-xs text-slate-500">
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
                     {t.available} ${availableBalance.toFixed(2)}
                     {insufficientFunds ? (
-                      <span className="ml-1 font-medium text-red-600">{t.insufficient}</span>
+                      <span style={{ marginLeft: 4, fontWeight: 500, color: "var(--rose)" }}>{t.insufficient}</span>
                     ) : null}
                     {!Number.isNaN(amountNum) && amountNum > 100 && (
-                      <span className="ml-2 font-medium text-red-600">Max $100.</span>
+                      <span style={{ marginLeft: 8, fontWeight: 500, color: "var(--rose)" }}>Max $100.</span>
                     )}
                   </p>
                 ) : null}
@@ -502,7 +480,18 @@ export function TradeForm({
                   {/* Mobile: render via portal so position:fixed works correctly */}
                   {mounted &&
                     createPortal(
-                      <div className="fixed bottom-[calc(theme(spacing.16)+env(safe-area-inset-bottom))] left-0 right-0 z-40 border-t border-slate-200 bg-white px-4 pt-3 pb-3 shadow-[0_-6px_18px_rgba(15,23,42,0.08)] lg:hidden">
+                      <div
+                        className="fixed left-0 right-0 z-40 lg:hidden"
+                        style={{
+                          bottom: "calc(64px + env(safe-area-inset-bottom))",
+                          borderTop: "1px solid var(--border-subtle)",
+                          backgroundColor: "rgba(7,8,9,0.96)",
+                          backdropFilter: "blur(20px)",
+                          WebkitBackdropFilter: "blur(20px)",
+                          padding: "12px 16px",
+                          boxShadow: "0 -6px 24px rgba(0,0,0,0.4)",
+                        }}
+                      >
                         {actionBar}
                       </div>,
                       document.body,

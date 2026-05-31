@@ -236,49 +236,63 @@ export default async function MarketDetailPage({ params }: Props) {
             />
           )}
           <div>
-            <p className="text-lg font-extrabold text-slate-900">{market.assetSymbol}</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
+            <p style={{ fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "0.08em", textTransform: "uppercase" }}>{market.assetSymbol}</p>
+            <div style={{ marginTop: 6, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
               <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  isActive
-                    ? "bg-green-100 text-green-700"
-                    : isSettled
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-slate-100 text-slate-600"
-                }`}
+                style={{
+                  borderRadius: 100,
+                  padding: "2px 10px",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.625rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  backgroundColor: isActive ? "var(--teal-dim)" : isSettled ? "rgba(99,102,241,0.12)" : "var(--bg-elevated)",
+                  border: `1px solid ${isActive ? "rgba(13,184,145,0.25)" : isSettled ? "rgba(99,102,241,0.25)" : "var(--border-subtle)"}`,
+                  color: isActive ? "var(--teal)" : isSettled ? "#818CF8" : "var(--text-dim)",
+                }}
               >
                 {statusLabel(market.status, locale)}
               </span>
               {market.resolutionOutcome !== "unresolved" && (
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    market.resolutionOutcome === "yes"
-                      ? "bg-green-100 text-green-800"
-                      : market.resolutionOutcome === "no"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-slate-100 text-slate-700"
-                  }`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    borderRadius: 100,
+                    padding: "2px 10px",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.625rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    backgroundColor: market.resolutionOutcome === "yes" ? "var(--teal-dim)" : market.resolutionOutcome === "no" ? "var(--rose-dim)" : "var(--bg-elevated)",
+                    border: `1px solid ${market.resolutionOutcome === "yes" ? "rgba(13,184,145,0.25)" : market.resolutionOutcome === "no" ? "rgba(232,68,90,0.25)" : "var(--border-subtle)"}`,
+                    color: market.resolutionOutcome === "yes" ? "var(--teal)" : market.resolutionOutcome === "no" ? "var(--rose)" : "var(--text-dim)",
+                  }}
                 >
-                  <CheckCircle className="h-3 w-3" />
+                  <CheckCircle style={{ width: 10, height: 10 }} />
                   {tm.resolved_label} {market.resolutionOutcome.toUpperCase()}
                 </span>
               )}
             </div>
           </div>
         </div>
-        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 style={{ marginTop: 14, fontFamily: "var(--font-sans)", fontSize: "clamp(1.25rem, 3vw, 1.75rem)", fontWeight: 600, letterSpacing: "-0.01em", color: "var(--text-primary)", lineHeight: 1.35 }}>
           {resolveMarketTitle(locale, market.title, market.titleZh, market.durationMinutes, market.assetSymbol)}
         </h1>
         {market.questionText && market.questionText !== market.title && (
-          <p className="mt-1.5 text-base text-slate-500">
+          <p style={{ marginTop: 6, fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
             {resolveMarketTitle(locale, market.questionText, market.questionTextZh, market.durationMinutes, market.assetSymbol)}
           </p>
         )}
       </div>
 
       {/* Probability bar */}
-      <Card className="p-5">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+      <Card>
+        <div style={{ padding: "16px 20px 18px" }}>
+        <p style={{ marginBottom: 12, fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)" }}>
           {tm.current_probability}
         </p>
         {isShortDuration ? (
@@ -297,6 +311,7 @@ export default async function MarketDetailPage({ params }: Props) {
             probNo={tm.prob_no}
           />
         )}
+        </div>
       </Card>
 
       {isShortDuration && isActive ? (
