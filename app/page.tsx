@@ -224,7 +224,7 @@ export default async function Home() {
           }}
         />
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:py-24">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-10 pb-16 sm:px-6 lg:grid-cols-2 lg:pt-14 lg:pb-20">
           {/* Left: Copy */}
           <div>
             <div className="animate-fade-up">
