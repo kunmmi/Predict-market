@@ -24,62 +24,70 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
   return (
     <Card>
       {/* Tab header */}
-      <CardHeader className="pb-0 pt-4 px-4">
-        <div className="flex gap-1 border-b border-slate-100">
-          <button
-            onClick={() => setTab("rounds")}
-            className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 -mb-px ${
-              tab === "rounds"
-                ? "border-yellow-500 text-slate-900"
-                : "border-transparent text-slate-400 hover:text-slate-700"
-            }`}
-          >
-            {zh ? "历史战绩" : "Round History"}
-            <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-              {settledPositions.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setTab("trades")}
-            className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 -mb-px ${
-              tab === "trades"
-                ? "border-yellow-500 text-slate-900"
-                : "border-transparent text-slate-400 hover:text-slate-700"
-            }`}
-          >
-            {zh ? "交易记录" : "Recent Trades"}
-            <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
-              {recentTrades.length}
-            </span>
-          </button>
+      <CardHeader style={{ paddingBottom: 0, paddingTop: 16, paddingLeft: 16, paddingRight: 16 }}>
+        <div style={{ display: "flex", gap: 4, borderBottom: "1px solid var(--border-subtle)" }}>
+          {(["rounds", "trades"] as const).map((t) => {
+            const active = tab === t;
+            const label = t === "rounds" ? (zh ? "历史战绩" : "Round History") : (zh ? "交易记录" : "Recent Trades");
+            const count = t === "rounds" ? settledPositions.length : recentTrades.length;
+            return (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  padding: "8px 16px",
+                  fontFamily: "var(--font-sans)", fontSize: "0.875rem",
+                  fontWeight: 600, cursor: "pointer",
+                  border: "none", background: "none",
+                  borderBottom: `2px solid ${active ? "var(--gold)" : "transparent"}`,
+                  marginBottom: -1,
+                  color: active ? "var(--text-primary)" : "var(--text-dim)",
+                  transition: "color 150ms ease, border-color 150ms ease",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                }}
+                className={active ? "" : "hover:text-[var(--text-secondary)]"}
+              >
+                {label}
+                <span style={{
+                  borderRadius: 100, padding: "1px 7px",
+                  fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                  fontWeight: 600, color: "var(--text-dim)",
+                  backgroundColor: "var(--bg-elevated)",
+                  border: "1px solid var(--border-dim)",
+                }}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </CardHeader>
 
-      <CardContent className="pt-4 px-4 pb-4">
+      <CardContent style={{ padding: 16 }}>
         {/* ── Round History ── */}
         {tab === "rounds" && (
           settledPositions.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-400">
+            <p style={{ padding: "2rem 0", textAlign: "center", fontFamily: "var(--font-sans)", fontSize: "0.875rem", color: "var(--text-dim)" }}>
               {zh ? "暂无历史战绩" : "No completed rounds yet — start trading!"}
             </p>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {settledPositions.map((pos) => {
                 const pnl = parseFloat(pos.pnlAmount);
-                const isWin = pnl > 0;
+                const isWin  = pnl > 0;
                 const isVoid = pos.resolutionOutcome === "void" || pos.resolutionOutcome === "cancelled";
-                const isShort = pos.durationMinutes != null;
                 const playedYes = parseFloat(pos.yesUnits) > 0;
-                const playedNo = parseFloat(pos.noUnits) > 0;
+                const playedNo  = parseFloat(pos.noUnits)  > 0;
+                const isShort = pos.durationMinutes != null;
 
                 let directionLabel = "";
                 if (isShort) {
                   if (playedYes && playedNo) directionLabel = "UP + DOWN";
                   else if (playedYes) directionLabel = zh ? "看涨 UP" : "UP";
-                  else if (playedNo) directionLabel = zh ? "看跌 DOWN" : "DOWN";
+                  else if (playedNo)  directionLabel = zh ? "看跌 DOWN" : "DOWN";
                 } else {
                   if (playedYes) directionLabel = sideLabel("yes", locale);
-                  if (playedNo) directionLabel = sideLabel("no", locale);
+                  if (playedNo)  directionLabel = sideLabel("no",  locale);
                 }
 
                 const roundResultLabel = pos.roundResult
@@ -88,62 +96,84 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
                     ? pos.resolutionOutcome.toUpperCase()
                     : null;
 
+                const rowBg     = isVoid ? "var(--bg-elevated)" : isWin ? "var(--teal-dim)"  : "var(--rose-dim)";
+                const rowBorder = isVoid ? "var(--border-subtle)" : isWin ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)";
+                const iconBg    = isVoid ? "var(--bg-elevated)" : isWin ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)";
+                const pnlColor  = isVoid ? "var(--text-secondary)" : isWin ? "var(--teal)" : "var(--rose)";
+
                 return (
                   <div
                     key={pos.id}
-                    className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
-                      isVoid
-                        ? "border-slate-200 bg-slate-50"
-                        : isWin
-                          ? "border-green-200 bg-green-50"
-                          : "border-red-200 bg-red-50"
-                    }`}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      borderRadius: "var(--radius-sm)",
+                      border: `1px solid ${rowBorder}`,
+                      backgroundColor: rowBg,
+                      padding: "10px 14px",
+                    }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                        isVoid ? "bg-slate-200" : isWin ? "bg-green-200" : "bg-red-200"
-                      }`}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      {/* Icon */}
+                      <div style={{
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
+                        backgroundColor: iconBg,
+                      }}>
                         {isVoid ? (
-                          <span className="text-xs font-bold text-slate-500">—</span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 700, color: "var(--text-dim)" }}>—</span>
                         ) : isWin ? (
-                          <TrendingUp className="h-4 w-4 text-green-700" />
+                          <TrendingUp style={{ width: 14, height: 14, color: "var(--teal)" }} />
                         ) : (
-                          <TrendingDown className="h-4 w-4 text-red-600" />
+                          <TrendingDown style={{ width: 14, height: 14, color: "var(--rose)" }} />
                         )}
                       </div>
+
                       <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
                           {pos.assetSymbol && (
-                            <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
+                            <span style={{
+                              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                              fontWeight: 700, letterSpacing: "0.08em",
+                              padding: "1px 6px", borderRadius: 4,
+                              backgroundColor: "var(--bg-elevated)",
+                              border: "1px solid var(--border-subtle)",
+                              color: "var(--text-secondary)",
+                            }}>
                               {pos.assetSymbol}
                             </span>
                           )}
                           {directionLabel && (
-                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                              playedYes ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"
-                            }`}>
+                            <span style={{
+                              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                              fontWeight: 700, letterSpacing: "0.06em",
+                              padding: "1px 6px", borderRadius: 4,
+                              backgroundColor: playedYes ? "rgba(13,184,145,0.15)" : "rgba(232,68,90,0.15)",
+                              border: `1px solid ${playedYes ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)"}`,
+                              color: playedYes ? "var(--teal)" : "var(--rose)",
+                            }}>
                               {directionLabel}
                             </span>
                           )}
                           {roundResultLabel && (
-                            <span className="text-[10px] font-medium text-slate-500">
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-dim)" }}>
                               → {roundResultLabel}
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-xs text-slate-500">
+                        <p style={{ marginTop: 3, fontFamily: "var(--font-sans)", fontSize: "0.6875rem", color: "var(--text-dim)" }}>
                           {new Date(pos.marketCloseAt).toLocaleDateString(dateLocale, {
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
+                            month: "short", day: "numeric",
+                            hour: "2-digit", minute: "2-digit",
                           })}
                         </p>
                       </div>
                     </div>
-                    <p className={`text-base font-bold tabular-nums ${
-                      isVoid ? "text-slate-500" : isWin ? "text-green-700" : "text-red-600"
-                    }`}>
+
+                    <p style={{
+                      fontFamily: "var(--font-mono)", fontSize: "0.9375rem",
+                      fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                      color: pnlColor,
+                    }}>
                       {isVoid
                         ? (zh ? "已退款" : "Refunded")
                         : `${pnl >= 0 ? "+" : ""}$${Math.abs(pnl).toFixed(2)}`}
@@ -158,55 +188,81 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
         {/* ── Recent Trades ── */}
         {tab === "trades" && (
           recentTrades.length === 0 ? (
-            <p className="py-8 text-center text-sm text-slate-400">
+            <p style={{ padding: "2rem 0", textAlign: "center", fontFamily: "var(--font-sans)", fontSize: "0.875rem", color: "var(--text-dim)" }}>
               {zh ? "暂无交易记录" : "No trades yet."}
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr className="border-b border-slate-100 text-xs font-medium uppercase tracking-wide text-slate-400">
-                    <th className="pb-3 pr-3 text-left">{zh ? "市场" : "Market"}</th>
-                    <th className="pb-3 pr-3 text-left">{zh ? "方向" : "Side"}</th>
-                    <th className="pb-3 pr-3 text-right">{zh ? "金额" : "Amount"}</th>
-                    <th className="hidden pb-3 pr-3 text-right sm:table-cell">{zh ? "价格" : "Price"}</th>
-                    <th className="hidden pb-3 pr-3 text-right sm:table-cell">{zh ? "份额" : "Units"}</th>
-                    <th className="hidden pb-3 text-right md:table-cell">{zh ? "日期" : "Date"}</th>
+                  <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                    {[
+                      { label: zh ? "市场" : "Market",   align: "left"  },
+                      { label: zh ? "方向" : "Side",     align: "left"  },
+                      { label: zh ? "金额" : "Amount",   align: "right" },
+                      { label: zh ? "价格" : "Price",    align: "right", hide: "sm" },
+                      { label: zh ? "份额" : "Units",    align: "right", hide: "sm" },
+                      { label: zh ? "日期" : "Date",     align: "right", hide: "md" },
+                    ].map(({ label, align, hide }) => (
+                      <th
+                        key={label}
+                        className={hide === "sm" ? "hidden sm:table-cell" : hide === "md" ? "hidden md:table-cell" : ""}
+                        style={{
+                          padding: "0 12px 10px",
+                          textAlign: align as "left" | "right",
+                          fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                          fontWeight: 700, letterSpacing: "0.1em",
+                          textTransform: "uppercase", color: "var(--text-dim)",
+                        }}
+                      >
+                        {label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {recentTrades.map((trade) => (
-                    <tr key={trade.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 pr-3">
+                    <tr
+                      key={trade.id}
+                      style={{ borderBottom: "1px solid var(--border-dim)", transition: "background-color 150ms ease" }}
+                      className="hover:bg-[var(--bg-elevated)]"
+                    >
+                      <td style={{ padding: "11px 12px" }}>
                         <Link
                           href={`/markets/${trade.marketSlug}`}
-                          className="font-medium text-slate-800 hover:text-yellow-600 hover:underline"
+                          style={{
+                            fontFamily: "var(--font-sans)", fontSize: "0.875rem",
+                            fontWeight: 500, color: "var(--text-primary)", textDecoration: "none",
+                          }}
+                          className="hover:text-[var(--gold)]"
                         >
                           {locale === "zh" && trade.marketTitleZh ? trade.marketTitleZh : trade.marketTitle}
                         </Link>
                       </td>
-                      <td className="py-3 pr-3">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-                          trade.side === "yes" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                        }`}>
+                      <td style={{ padding: "11px 12px" }}>
+                        <span style={{
+                          display: "inline-flex", alignItems: "center",
+                          padding: "2px 8px", borderRadius: 100,
+                          fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                          fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                          backgroundColor: trade.side === "yes" ? "var(--teal-dim)" : "var(--rose-dim)",
+                          border: `1px solid ${trade.side === "yes" ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)"}`,
+                          color: trade.side === "yes" ? "var(--teal)" : "var(--rose)",
+                        }}>
                           {sideLabel(trade.side, locale)}
                         </span>
                       </td>
-                      <td className="py-3 pr-3 text-right font-mono tabular-nums text-slate-700">
+                      <td style={{ padding: "11px 12px", textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--text-primary)" }}>
                         ${formatDecimal(trade.amount, 2)}
                       </td>
-                      <td className="hidden py-3 pr-3 text-right font-mono tabular-nums text-slate-500 sm:table-cell">
+                      <td className="hidden sm:table-cell" style={{ padding: "11px 12px", textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--text-dim)" }}>
                         ${formatDecimal(trade.price, 4)}
                       </td>
-                      <td className="hidden py-3 pr-3 text-right font-mono tabular-nums text-slate-700 sm:table-cell">
+                      <td className="hidden sm:table-cell" style={{ padding: "11px 12px", textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--text-primary)" }}>
                         {formatDecimal(trade.positionUnits, 4)}
                       </td>
-                      <td className="hidden py-3 text-right text-xs text-slate-400 md:table-cell">
-                        {new Date(trade.createdAt).toLocaleDateString(dateLocale, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                      <td className="hidden md:table-cell" style={{ padding: "11px 12px", textAlign: "right", fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-dim)" }}>
+                        {new Date(trade.createdAt).toLocaleDateString(dateLocale, { month: "short", day: "numeric", year: "numeric" })}
                       </td>
                     </tr>
                   ))}
