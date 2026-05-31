@@ -458,19 +458,19 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
         />
       )}
 
-      <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
         {/* YES prob */}
         <div style={{
           flex: 1,
           borderRadius: "var(--radius-md)",
           border: "1px solid var(--border-subtle)",
           backgroundColor: "var(--bg-elevated)",
-          padding: "10px 12px",
+          padding: "8px 10px",
         }}>
           <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>
             {tc.yes_prob}
           </p>
-          <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 700, color: "var(--teal)" }}>
+          <p style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--teal)" }}>
             {formatPct(market.yesPrice)}
           </p>
         </div>
@@ -533,12 +533,12 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
           borderRadius: "var(--radius-md)",
           border: "1px solid var(--border-subtle)",
           backgroundColor: "var(--bg-elevated)",
-          padding: "10px 12px",
+          padding: "8px 10px",
         }}>
           <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>
             {tc.no_prob}
           </p>
-          <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.125rem", fontWeight: 700, color: "var(--rose)" }}>
+          <p style={{ marginTop: 3, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--rose)" }}>
             {formatPct(market.noPrice)}
           </p>
         </div>

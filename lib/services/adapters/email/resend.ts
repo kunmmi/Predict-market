@@ -21,8 +21,8 @@ export class ResendProvider implements EmailProvider {
 
     this.client = new Resend(apiKey);
     this.defaultFrom = process.env.DEFAULT_FROM_EMAIL
-      ? `Elemental <${process.env.DEFAULT_FROM_EMAIL}>`
-      : "Elemental <onboarding@resend.dev>";
+      ? `Predict Market <${process.env.DEFAULT_FROM_EMAIL}>`
+      : "Predict Market <onboarding@resend.dev>";
   }
 
   async sendEmail(params: SendEmailParams): Promise<SendEmailResult> {

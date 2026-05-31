@@ -37,7 +37,7 @@ export function AdminNav({ locale, t }: Props) {
             <div className="rounded bg-yellow-400 p-1.5 text-slate-900">
               <BarChart3 className="h-4 w-4" />
             </div>
-            <span className="font-bold tracking-tight text-white">Elemental</span>
+            <span className="font-bold tracking-tight text-white">Predict Market</span>
             <span className="ml-1 rounded-full bg-slate-800 px-2 py-0.5 text-xs font-semibold text-slate-300 ring-1 ring-slate-700">
               Admin
             </span>

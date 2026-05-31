@@ -25,7 +25,7 @@ const monoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Elemental — Crypto Prediction Markets",
+  title: "Predict Market — Crypto Prediction Markets",
   description: "Trade real-time crypto prediction markets with 5-minute rounds.",
 };
 
