@@ -142,14 +142,14 @@ export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDurat
   const pnlNum = result?.pnlAmount ? parseFloat(result.pnlAmount) : 0;
 
   const palette = !participated
-    ? { border: "border-slate-200", bg: "from-slate-50 to-slate-100", icon: "text-slate-500", iconBg: "bg-slate-100" }
+    ? { borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-elevated)", iconColor: "var(--text-dim)", iconBgColor: "var(--bg-surface)", accentColor: "var(--text-secondary)" }
     : settling
-      ? { border: "border-yellow-300", bg: "from-yellow-50 to-amber-50", icon: "text-yellow-700", iconBg: "bg-yellow-100" }
+      ? { borderColor: "var(--border-gold)", backgroundColor: "var(--gold-dim)", iconColor: "var(--gold)", iconBgColor: "rgba(232,160,32,0.15)", accentColor: "var(--gold)" }
       : isWin
-        ? { border: "border-green-300", bg: "from-green-50 to-emerald-50", icon: "text-green-700", iconBg: "bg-green-100" }
+        ? { borderColor: "rgba(13,184,145,0.35)", backgroundColor: "var(--teal-dim)", iconColor: "var(--teal)", iconBgColor: "rgba(13,184,145,0.15)", accentColor: "var(--teal)" }
         : isVoid
-          ? { border: "border-slate-300", bg: "from-slate-50 to-slate-100", icon: "text-slate-600", iconBg: "bg-slate-100" }
-          : { border: "border-red-300", bg: "from-red-50 to-rose-50", icon: "text-red-700", iconBg: "bg-red-100" };
+          ? { borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-elevated)", iconColor: "var(--text-dim)", iconBgColor: "var(--bg-surface)", accentColor: "var(--text-secondary)" }
+          : { borderColor: "rgba(232,68,90,0.35)", backgroundColor: "var(--rose-dim)", iconColor: "var(--rose)", iconBgColor: "rgba(232,68,90,0.15)", accentColor: "var(--rose)" };
 
   let title: string;
   let subtitle: string | null = null;
@@ -187,41 +187,52 @@ export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDurat
   }
 
   return (
-    <div className={`rounded-xl border ${palette.border} bg-gradient-to-r ${palette.bg} p-4 shadow-sm`}>
+    <div style={{ borderRadius: 12, border: `1px solid ${palette.borderColor}`, backgroundColor: palette.backgroundColor, padding: 16 }}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${palette.iconBg}`}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, flexShrink: 0, borderRadius: "50%", backgroundColor: palette.iconBgColor }}>
             {settling ? (
-              <Loader2 className={`h-4 w-4 animate-spin ${palette.icon}`} />
+              <Loader2 style={{ width: 16, height: 16, color: palette.iconColor }} className="animate-spin" />
             ) : (
-              <Icon className={`h-4 w-4 ${palette.icon}`} />
+              <Icon style={{ width: 16, height: 16, color: palette.iconColor }} />
             )}
           </div>
           <div>
-            <p className="font-semibold text-slate-900">{title}</p>
-            {subtitle && <p className="text-sm text-slate-600">{subtitle}</p>}
+            <p style={{ fontWeight: 600, color: "var(--text-primary)" }}>{title}</p>
+            {subtitle && <p style={{ marginTop: 2, fontSize: "0.875rem", color: "var(--text-secondary)" }}>{subtitle}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button
             type="button"
             onClick={goToLiveMarket}
             disabled={isFindingLiveMarket}
-            className="inline-flex items-center justify-center gap-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4,
+              borderRadius: 8,
+              border: "1px solid var(--border-subtle)",
+              backgroundColor: "var(--bg-void)",
+              padding: "8px 16px",
+              fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-sans)",
+              color: "var(--text-primary)",
+              cursor: isFindingLiveMarket ? "not-allowed" : "pointer",
+              opacity: isFindingLiveMarket ? 0.6 : 1,
+              transition: "background-color 150ms ease",
+            }}
           >
             {isFindingLiveMarket
               ? locale === "zh" ? "\u67e5\u627e\u4e2d..." : "Finding live market..."
               : locale === "zh" ? "\u4ea4\u6613\u5b9e\u65f6\u5e02\u573a" : "Trade live market"}
             {isFindingLiveMarket ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 style={{ width: 16, height: 16 }} className="animate-spin" />
             ) : (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight style={{ width: 16, height: 16 }} />
             )}
           </button>
         </div>
       </div>
       {liveMarketError && (
-        <p className="mt-3 text-sm font-medium text-red-700">{liveMarketError}</p>
+        <p style={{ marginTop: 12, fontSize: "0.875rem", fontWeight: 500, color: "var(--rose)" }}>{liveMarketError}</p>
       )}
     </div>
   );
