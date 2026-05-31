@@ -12,31 +12,43 @@ export function LanguageSwitcher({ locale }: { locale: Locale }) {
   }
 
   return (
-    <div className="flex items-center overflow-hidden rounded-md border border-slate-700 text-xs font-semibold">
-      <button
-        type="button"
-        onClick={() => setLang("en")}
-        className={`px-2.5 py-1 transition-colors ${
-          locale === "en"
-            ? "bg-yellow-400 text-slate-900"
-            : "text-slate-400 hover:text-white"
-        }`}
-        aria-pressed={locale === "en"}
-      >
-        EN
-      </button>
-      <button
-        type="button"
-        onClick={() => setLang("zh")}
-        className={`px-2.5 py-1 transition-colors ${
-          locale === "zh"
-            ? "bg-yellow-400 text-slate-900"
-            : "text-slate-400 hover:text-white"
-        }`}
-        aria-pressed={locale === "zh"}
-      >
-        中文
-      </button>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        overflow: "hidden",
+        borderRadius: 8,
+        border: "1px solid var(--border-subtle)",
+        fontSize: "11px",
+        fontFamily: "var(--font-mono)",
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+      }}
+    >
+      {(["en", "zh"] as Locale[]).map((lang) => {
+        const isActive = locale === lang;
+        return (
+          <button
+            key={lang}
+            type="button"
+            onClick={() => setLang(lang)}
+            aria-pressed={isActive}
+            style={{
+              padding: "5px 10px",
+              cursor: "pointer",
+              transition: "all 150ms ease",
+              background: isActive
+                ? "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)"
+                : "transparent",
+              color: isActive ? "#070809" : "var(--text-dim)",
+              border: "none",
+              borderLeft: lang === "zh" ? "1px solid var(--border-subtle)" : "none",
+            }}
+          >
+            {lang === "en" ? "EN" : "中文"}
+          </button>
+        );
+      })}
     </div>
   );
 }
