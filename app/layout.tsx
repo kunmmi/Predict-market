@@ -27,6 +27,7 @@ const monoFont = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Predict Market — Crypto Prediction Markets",
   description: "Trade real-time crypto prediction markets with 5-minute rounds.",
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({

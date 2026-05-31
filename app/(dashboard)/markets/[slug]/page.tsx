@@ -40,14 +40,14 @@ function ProbabilityBar({
   const yes = yesPrice != null ? Math.min(100, Math.max(0, parseFloat(yesPrice) * 100)) : 50;
   const no = 100 - yes;
   return (
-    <div className="space-y-1.5">
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="bg-green-500 transition-all" style={{ width: `${yes}%` }} />
-        <div className="bg-red-400 transition-all" style={{ width: `${no}%` }} />
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", height: 6, width: "100%", overflow: "hidden", borderRadius: 3, backgroundColor: "var(--border-subtle)" }}>
+        <div style={{ width: `${yes}%`, background: "var(--teal)", transition: "width 500ms ease" }} />
+        <div style={{ width: `${no}%`, background: "var(--rose)", transition: "width 500ms ease" }} />
       </div>
-      <div className="flex justify-between text-xs text-slate-400">
-        <span className="font-medium text-green-600">{yes.toFixed(1)}% {probYes}</span>
-        <span className="font-medium text-red-500">{no.toFixed(1)}% {probNo}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--teal)" }}>{yes.toFixed(1)}% {probYes}</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--rose)" }}>{no.toFixed(1)}% {probNo}</span>
       </div>
     </div>
   );

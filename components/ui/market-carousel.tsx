@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Clock, Dot } from "lucide-react";
 
@@ -386,6 +386,8 @@ function StandardCard({
 export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: Props) {
   const [current, setCurrent] = useState(0);
   const [animating, setAnimating] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   const goTo = useCallback(
     (index: number) => {
@@ -406,6 +408,24 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
   const next = useCallback(() => {
     goTo((current + 1) % markets.length);
   }, [current, markets.length, goTo]);
+
+  // Swipe gesture support for touch devices
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+    touchStartY.current = e.targetTouches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current == null || touchStartY.current == null) return;
+    const dx = touchStartX.current - e.changedTouches[0].clientX;
+    const dy = Math.abs(touchStartY.current - e.changedTouches[0].clientY);
+    // Only register horizontal swipes (not vertical scroll)
+    if (Math.abs(dx) > 40 && dy < 60) {
+      if (dx > 0) next(); else prev();
+    }
+    touchStartX.current = null;
+    touchStartY.current = null;
+  }, [next, prev]);
 
   useEffect(() => {
     if (markets.length <= 1) return;
@@ -445,7 +465,11 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
   const isShortDuration = market.durationMinutes != null;
 
   return (
-    <div>
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={{ touchAction: "pan-y" }}
+    >
       {isShortDuration ? (
         <ShortDurationCard market={market} tradeHref={tradeHref} locale={locale} tc={tc} />
       ) : (

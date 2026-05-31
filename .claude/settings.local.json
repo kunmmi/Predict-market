@@ -89,7 +89,27 @@
       "Bash(npx next *)",
       "Bash(git -C \"/c/elemental-work/.claude/worktrees/pensive-torvalds-62a950\" remote get-url origin)",
       "WebFetch(domain:worldlegendscup.fun)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cat next.config.js)",
+      "Bash(cat next.config.ts)",
+      "Bash(cat next.config.mjs)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(mkdir -p ~/.claude/skills/frontend-design)",
+      "Bash(find \"C:/Users/kunmi!/\" -name \"SKILL.md\" 2>/dev/null | head -20)",
+      "Bash(cp \"C:/Users/kunmi!/AppData/Roaming/Claude/skills/frontend-design/SKILL.md\" \"C:/Users/kunmi!/.claude/skills/frontend-design/SKILL.md\" && echo \"Done\" && ls \"C:/Users/kunmi!/.claude/skills/frontend-design/\")",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('plugins', d.get\\('installedPlugins', 'not found'\\)\\), indent=2\\)\\)\")",
+      "Bash(mkdir -p C:/Users/kunmi!/.claude/plugins/cache/claude-plugins-official/frontend-design/6e43e87fc835/.claude-plugin)",
+      "Bash(mkdir -p C:/Users/kunmi!/.claude/plugins/cache/claude-plugins-official/frontend-design/6e43e87fc835/skills/frontend-design)",
+      "Bash(cp C:/Users/kunmi!/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/.claude-plugin/plugin.json C:/Users/kunmi!/.claude/plugins/cache/claude-plugins-official/frontend-design/6e43e87fc835/.claude-plugin/plugin.json)",
+      "Bash(cp C:/Users/kunmi!/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md C:/Users/kunmi!/.claude/plugins/cache/claude-plugins-official/frontend-design/6e43e87fc835/skills/frontend-design/SKILL.md)",
+      "Bash(mkdir -p C:/Users/kunmi!/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/0ee3a758-dd82-4e02-89bc-e2cb5a0dc923/f292cd42-568d-440d-a862-56a91beef0a8/skills/frontend-design)",
+      "Bash(cp C:/Users/kunmi!/AppData/Roaming/Claude/skills/frontend-design/SKILL.md C:/Users/kunmi!/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/0ee3a758-dd82-4e02-89bc-e2cb5a0dc923/f292cd42-568d-440d-a862-56a91beef0a8/skills/frontend-design/SKILL.md)",
+      "Bash(find \"C:/Users/kunmi!/.claude/\" -name \"SKILL.md\" 2>/dev/null; find \"C:/elemental-work/\" -name \"SKILL.md\" 2>/dev/null | grep -v node_modules)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\('scripts',{}\\), indent=2\\)\\)\")",
+      "Bash(cp \"C:/elemental-work/.env.local\" \"C:/elemental-work/.claude/worktrees/pensive-torvalds-62a950/.env.local\" && echo \"Copied successfully\")",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)"
     ]
   }
 }

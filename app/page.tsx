@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, Zap, Shield, Clock } from "lucide-react";
+import { ArrowRight, Zap, Shield, Clock } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { getPublicActiveMarkets } from "@/lib/services/market-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
-import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { HomeNav } from "@/components/layout/home-nav";
 import { MarketCarousel } from "@/components/ui/market-carousel";
 
 export default async function Home() {
@@ -58,138 +58,15 @@ export default async function Home() {
       />
 
       {/* ── Navigation ───────────────────────────────────────────────────── */}
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          borderBottom: "1px solid var(--border-dim)",
-          backgroundColor: "rgba(7,8,9,0.88)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
-        }}
-      >
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          {/* Logo */}
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div
-                style={{
-                  width: 32, height: 32,
-                  background: "linear-gradient(135deg, var(--gold) 0%, #C47E10 100%)",
-                  borderRadius: 8,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  boxShadow: "0 0 16px var(--gold-glow)",
-                }}
-              >
-                <BarChart3 style={{ width: 16, height: 16, color: "#070809" }} />
-              </div>
-              <span
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontSize: "1.25rem",
-                  fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                  color: "var(--text-primary)",
-                }}
-              >
-                Predict Market
-              </span>
-            </Link>
-
-            <nav className="hidden items-center gap-1 md:flex">
-              {NAV_LINKS.map(({ label, href }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "0.8125rem",
-                    fontWeight: 400,
-                    letterSpacing: "0.02em",
-                    color: "var(--text-secondary)",
-                    padding: "6px 12px",
-                    borderRadius: 6,
-                    transition: "color 150ms ease",
-                    textDecoration: "none",
-                  }}
-                  className="hover:text-white"
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          {/* Right */}
-          <div className="hidden items-center gap-3 md:flex">
-            <LanguageSwitcher locale={locale} />
-            {!user ? (
-              <>
-                <Link
-                  href="/login"
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "0.8125rem",
-                    fontWeight: 500,
-                    color: "var(--text-secondary)",
-                    padding: "7px 16px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border-subtle)",
-                    textDecoration: "none",
-                    transition: "all 150ms ease",
-                  }}
-                  className="hover:border-[--border-strong] hover:text-white"
-                >
-                  {tn.login}
-                </Link>
-                <Link
-                  href="/signup"
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "0.8125rem",
-                    fontWeight: 600,
-                    color: "#070809",
-                    padding: "7px 18px",
-                    borderRadius: 8,
-                    background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
-                    textDecoration: "none",
-                    transition: "opacity 150ms ease",
-                    boxShadow: "0 0 20px var(--gold-glow)",
-                  }}
-                  className="hover:opacity-90"
-                >
-                  {tn.register}
-                </Link>
-              </>
-            ) : (
-              <Link
-                href="/dashboard"
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "0.8125rem",
-                  fontWeight: 600,
-                  color: "#070809",
-                  padding: "7px 18px",
-                  borderRadius: 8,
-                  background: "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
-                  textDecoration: "none",
-                  boxShadow: "0 0 20px var(--gold-glow)",
-                }}
-              >
-                {tn.dashboard}
-              </Link>
-            )}
-          </div>
-        </div>
-      </header>
+      <HomeNav
+        locale={locale}
+        user={!!user}
+        navLinks={NAV_LINKS}
+        labels={{ login: tn.login, register: tn.register, dashboard: tn.dashboard }}
+      />
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section
-        className="relative overflow-hidden"
-        style={{ minHeight: "calc(100vh - 64px)" }}
-      >
+      <section className="relative overflow-hidden">
         {/* Grid background */}
         <div
           aria-hidden
@@ -224,7 +101,7 @@ export default async function Home() {
           }}
         />
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pt-10 pb-16 sm:px-6 lg:grid-cols-2 lg:pt-14 lg:pb-20">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 pt-8 pb-12 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:pt-14 lg:pb-20">
           {/* Left: Copy */}
           <div>
             <div className="animate-fade-up">
@@ -242,7 +119,7 @@ export default async function Home() {
                 lineHeight: 1.05,
                 letterSpacing: "-0.02em",
                 color: "var(--text-primary)",
-                marginTop: "1.5rem",
+                marginTop: "1rem",
               }}
             >
               {tl.hero_title_1}
@@ -254,23 +131,24 @@ export default async function Home() {
               className="animate-fade-up stagger-2"
               style={{
                 fontFamily: "var(--font-sans)",
-                fontSize: "1.125rem",
-                lineHeight: 1.7,
+                fontSize: "clamp(0.9375rem, 2vw, 1.125rem)",
+                lineHeight: 1.65,
                 color: "var(--text-secondary)",
                 maxWidth: "440px",
-                marginTop: "1.5rem",
+                marginTop: "1rem",
                 fontWeight: 300,
               }}
             >
               {tl.hero_sub}
             </p>
 
-            <div className="animate-fade-up stagger-3 mt-8 flex flex-wrap gap-3">
+            <div className="animate-fade-up stagger-3 mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href={user ? "/markets" : "/signup"}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 8,
                   fontFamily: "var(--font-sans)",
                   fontSize: "0.9375rem",
@@ -295,6 +173,7 @@ export default async function Home() {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
+                    justifyContent: "center",
                     fontFamily: "var(--font-sans)",
                     fontSize: "0.9375rem",
                     fontWeight: 500,
