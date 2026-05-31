@@ -11,7 +11,7 @@ import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/helpers/cn";
 import type { WalletTxType, EntryDirection } from "@/types/enums";
 
@@ -26,11 +26,33 @@ function DirectionAmount({
 }) {
   const isCredit = direction === "credit";
   return (
-    <span className={`font-mono text-sm font-semibold tabular-nums ${isCredit ? "text-green-600" : "text-slate-700"}`}>
+    <span
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "0.875rem",
+        fontWeight: 600,
+        fontVariantNumeric: "tabular-nums",
+        color: isCredit ? "var(--teal)" : "var(--text-secondary)",
+      }}
+    >
       {isCredit ? "+" : "−"}${formatDecimal(amount)} {asset}
     </span>
   );
 }
+
+// Transaction type badge colors — all mapped to APEX CSS vars
+const TX_COLOR: Partial<Record<WalletTxType, { bg: string; border: string; color: string }>> = {
+  deposit:           { bg: "var(--gold-dim)",   border: "var(--border-gold)",           color: "var(--gold)"           },
+  withdrawal:        { bg: "var(--rose-dim)",    border: "rgba(232,68,90,0.25)",         color: "var(--rose)"           },
+  trade_debit:       { bg: "var(--bg-elevated)", border: "var(--border-subtle)",         color: "var(--text-secondary)" },
+  trade_credit:      { bg: "var(--bg-elevated)", border: "var(--border-subtle)",         color: "var(--text-secondary)" },
+  fee_debit:         { bg: "var(--bg-elevated)", border: "var(--border-dim)",            color: "var(--text-dim)"       },
+  settlement_credit: { bg: "var(--teal-dim)",    border: "rgba(13,184,145,0.2)",         color: "var(--teal)"           },
+  settlement_debit:  { bg: "var(--rose-dim)",    border: "rgba(232,68,90,0.2)",          color: "var(--rose)"           },
+  commission_credit: { bg: "var(--gold-dim)",    border: "var(--border-gold)",           color: "var(--gold)"           },
+  adjustment_credit: { bg: "var(--bg-elevated)", border: "var(--border-subtle)",         color: "var(--text-secondary)" },
+  adjustment_debit:  { bg: "var(--bg-elevated)", border: "var(--border-subtle)",         color: "var(--text-secondary)" },
+};
 
 export default async function WalletPage() {
   const { profile } = await requireUser();
@@ -39,52 +61,33 @@ export default async function WalletPage() {
   const t = getT(locale).wallet;
 
   const TX_LABELS: Record<WalletTxType, string> = {
-    deposit: t.tx_deposit,
-    withdrawal: t.tx_withdrawal,
-    trade_debit: t.tx_trade_debit,
-    trade_credit: t.tx_trade_credit,
-    fee_debit: t.tx_fee_debit,
+    deposit:           t.tx_deposit,
+    withdrawal:        t.tx_withdrawal,
+    trade_debit:       t.tx_trade_debit,
+    trade_credit:      t.tx_trade_credit,
+    fee_debit:         t.tx_fee_debit,
     settlement_credit: t.tx_settlement_credit,
-    settlement_debit: t.tx_settlement_debit,
+    settlement_debit:  t.tx_settlement_debit,
     commission_credit: t.tx_commission_credit,
     adjustment_credit: t.tx_adjustment_credit,
-    adjustment_debit: t.tx_adjustment_debit,
-  };
-
-  const colorMap: Partial<Record<WalletTxType, string>> = {
-    deposit: "bg-yellow-100 text-yellow-800",
-    withdrawal: "bg-orange-100 text-orange-700",
-    trade_debit: "bg-slate-200 text-slate-700",
-    trade_credit: "bg-slate-200 text-slate-700",
-    fee_debit: "bg-slate-100 text-slate-600",
-    settlement_credit: "bg-green-100 text-green-700",
-    settlement_debit: "bg-orange-100 text-orange-700",
-    commission_credit: "bg-amber-100 text-amber-800",
-    adjustment_credit: "bg-slate-100 text-slate-600",
-    adjustment_debit: "bg-slate-100 text-slate-600",
+    adjustment_debit:  t.tx_adjustment_debit,
   };
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
         <div>
           <h1 className="page-title">{t.title}</h1>
           <p className="page-subtitle">{t.subtitle}</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href="/wallet/deposit"
-            className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
-          >
-            <ArrowDownLeft className="h-4 w-4" />
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link href="/wallet/deposit" className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}>
+            <ArrowDownLeft style={{ width: 14, height: 14 }} />
             {t.deposit}
           </Link>
-          <Link
-            href="/wallet/withdraw"
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}
-          >
-            <ArrowUpRight className="h-4 w-4" />
+          <Link href="/wallet/withdraw" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-1.5")}>
+            <ArrowUpRight style={{ width: 14, height: 14 }} />
             {t.withdraw}
           </Link>
         </div>
@@ -93,71 +96,103 @@ export default async function WalletPage() {
       {/* Balance cards */}
       {wallet ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card>
-            <CardContent className="pt-6 pb-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t.total_balance}</p>
-                  <p className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">
-                    ${formatDecimal(wallet.balance)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-400">{t.usd_equivalent}</p>
+          {[
+            {
+              label: t.total_balance,
+              value: `$${formatDecimal(wallet.balance)}`,
+              sub: t.usd_equivalent,
+              icon: DollarSign,
+              accentColor: "var(--gold)",
+              borderColor: "var(--border-gold)",
+            },
+            {
+              label: t.available,
+              value: `$${formatDecimal(wallet.availableBalance)}`,
+              sub: t.ready_to_trade,
+              icon: CheckCircle2,
+              accentColor: "var(--teal)",
+              borderColor: "rgba(13,184,145,0.25)",
+            },
+            {
+              label: t.reserved,
+              value: `$${formatDecimal(wallet.reservedBalance)}`,
+              sub: t.in_open_positions,
+              icon: Lock,
+              accentColor: "var(--text-dim)",
+              borderColor: "var(--border-subtle)",
+            },
+          ].map(({ label, value, sub, icon: Icon, accentColor, borderColor }) => (
+            <Card key={label}>
+              <CardContent style={{ paddingTop: 20, paddingBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                  <div>
+                    <p style={{
+                      fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                      fontWeight: 700, letterSpacing: "0.12em",
+                      textTransform: "uppercase", color: "var(--text-dim)",
+                    }}>
+                      {label}
+                    </p>
+                    <p style={{
+                      marginTop: 8,
+                      fontFamily: "var(--font-mono)", fontSize: "1.75rem",
+                      fontWeight: 700, letterSpacing: "-0.02em",
+                      color: "var(--text-primary)",
+                      fontVariantNumeric: "tabular-nums",
+                      lineHeight: 1,
+                    }}>
+                      {value}
+                    </p>
+                    <p style={{
+                      marginTop: 4,
+                      fontFamily: "var(--font-sans)", fontSize: "0.6875rem",
+                      color: "var(--text-dim)",
+                    }}>
+                      {sub}
+                    </p>
+                  </div>
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 36, height: 36, borderRadius: "var(--radius-sm)",
+                    backgroundColor: "var(--bg-elevated)",
+                    border: `1px solid ${borderColor}`,
+                    flexShrink: 0,
+                  }}>
+                    <Icon style={{ width: 16, height: 16, color: accentColor }} />
+                  </div>
                 </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-100">
-                  <DollarSign className="h-4 w-4 text-yellow-800" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6 pb-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t.available}</p>
-                  <p className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">
-                    ${formatDecimal(wallet.availableBalance)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-400">{t.ready_to_trade}</p>
-                </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="pt-6 pb-5">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t.reserved}</p>
-                  <p className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">
-                    ${formatDecimal(wallet.reservedBalance)}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-400">{t.in_open_positions}</p>
-                </div>
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100">
-                  <Lock className="h-4 w-4 text-orange-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : (
         <Card>
-          <CardContent className="py-8 text-center text-sm text-slate-500">
-            {t.no_wallet}
+          <CardContent style={{ padding: "2rem", textAlign: "center" }}>
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", color: "var(--text-dim)" }}>
+              {t.no_wallet}
+            </p>
           </CardContent>
         </Card>
       )}
 
+      {/* Wallet status */}
       {wallet && (
-        <div className="flex items-center gap-2 text-sm text-slate-500">
-          <span>{t.wallet_status}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
+            {t.wallet_status}
+          </span>
           {wallet.status === "active" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              borderRadius: 100,
+              backgroundColor: "var(--teal-dim)",
+              border: "1px solid rgba(13,184,145,0.25)",
+              padding: "3px 10px",
+              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+              fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+              color: "var(--teal)",
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "var(--teal)", flexShrink: 0 }} />
               {t.status_active}
             </span>
           ) : wallet.status === "locked" ? (
@@ -170,63 +205,117 @@ export default async function WalletPage() {
 
       {/* Transaction history */}
       <div>
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-slate-900">{t.tx_history}</h2>
-        </div>
+        <h2 style={{
+          fontFamily: "var(--font-display)", fontSize: "1.125rem",
+          fontWeight: 600, color: "var(--text-primary)",
+          marginBottom: "1rem",
+        }}>
+          {t.tx_history}
+        </h2>
 
         {transactions.length === 0 ? (
           <Card>
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <Clock className="mb-3 h-10 w-10 text-slate-300" />
-              <p className="text-sm font-medium text-slate-600">{t.no_transactions}</p>
-              <p className="mt-1 text-xs text-slate-400">{t.deposit_to_start}</p>
+            <CardContent style={{
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              padding: "4rem 1rem", textAlign: "center",
+            }}>
+              <Clock style={{ width: 36, height: 36, color: "var(--text-dim)", marginBottom: 12 }} />
+              <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>
+                {t.no_transactions}
+              </p>
+              <p style={{ marginTop: 4, fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-dim)" }}>
+                {t.deposit_to_start}
+              </p>
               <Link
                 href="/wallet/deposit"
                 className={cn(buttonVariants({ size: "sm" }), "mt-5 gap-1.5")}
               >
-                <ArrowDownLeft className="h-4 w-4" />
+                <ArrowDownLeft style={{ width: 14, height: 14 }} />
                 {t.deposit}
               </Link>
             </CardContent>
           </Card>
         ) : (
           <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-400">
-                    <th className="px-3 py-3 sm:px-5 sm:py-3.5">{t.col_date}</th>
-                    <th className="px-3 py-3 sm:px-5 sm:py-3.5">{t.col_type}</th>
-                    <th className="hidden px-3 py-3 md:table-cell sm:px-5 sm:py-3.5">{t.col_description}</th>
-                    <th className="px-3 py-3 text-right sm:px-5 sm:py-3.5">{t.col_amount}</th>
-                    <th className="hidden px-3 py-3 text-right sm:table-cell sm:px-5 sm:py-3.5">{t.col_balance_after}</th>
+                  <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                    {[t.col_date, t.col_type, t.col_description, t.col_amount, t.col_balance_after].map((col, i) => (
+                      <th
+                        key={col}
+                        className={i === 2 ? "hidden md:table-cell" : i === 4 ? "hidden sm:table-cell" : ""}
+                        style={{
+                          padding: "10px 20px",
+                          textAlign: i >= 3 ? "right" : "left",
+                          fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                          fontWeight: 700, letterSpacing: "0.12em",
+                          textTransform: "uppercase", color: "var(--text-dim)",
+                        }}
+                      >
+                        {col}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody>
                   {transactions.map((tx) => {
                     const label = TX_LABELS[tx.transactionType] ?? tx.transactionType;
-                    const color = colorMap[tx.transactionType] ?? "bg-slate-100 text-slate-600";
+                    const txStyle = TX_COLOR[tx.transactionType] ?? {
+                      bg: "var(--bg-elevated)",
+                      border: "var(--border-subtle)",
+                      color: "var(--text-dim)",
+                    };
                     return (
-                      <tr key={tx.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-slate-400 sm:px-5 sm:py-3.5">
-                          {format(new Date(tx.createdAt), "dd MMM yyyy, HH:mm")}
+                      <tr
+                        key={tx.id}
+                        style={{
+                          borderBottom: "1px solid var(--border-dim)",
+                          transition: "background-color 150ms ease",
+                        }}
+                        className="hover:bg-[var(--bg-elevated)]"
+                      >
+                        <td style={{ padding: "12px 20px", whiteSpace: "nowrap" }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-dim)" }}>
+                            {format(new Date(tx.createdAt), "dd MMM yyyy, HH:mm")}
+                          </span>
                         </td>
-                        <td className="px-3 py-3 sm:px-5 sm:py-3.5">
-                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${color}`}>
+                        <td style={{ padding: "12px 20px" }}>
+                          <span style={{
+                            display: "inline-flex", alignItems: "center",
+                            padding: "3px 9px", borderRadius: 100,
+                            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                            fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase",
+                            backgroundColor: txStyle.bg,
+                            border: `1px solid ${txStyle.border}`,
+                            color: txStyle.color,
+                          }}>
                             {label}
                           </span>
                         </td>
-                        <td className="hidden max-w-[200px] truncate px-3 py-3 text-slate-600 md:table-cell sm:px-5 sm:py-3.5">
+                        <td
+                          className="hidden md:table-cell"
+                          style={{
+                            padding: "12px 20px", maxWidth: 200,
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            fontFamily: "var(--font-sans)", fontSize: "0.8125rem",
+                            color: "var(--text-secondary)",
+                          }}
+                        >
                           {tx.description ?? "—"}
                         </td>
-                        <td className="px-3 py-3 text-right sm:px-5 sm:py-3.5">
-                          <DirectionAmount
-                            direction={tx.direction}
-                            amount={tx.amount}
-                            asset={tx.assetSymbol}
-                          />
+                        <td style={{ padding: "12px 20px", textAlign: "right" }}>
+                          <DirectionAmount direction={tx.direction} amount={tx.amount} asset={tx.assetSymbol} />
                         </td>
-                        <td className="hidden px-3 py-3 text-right font-mono tabular-nums text-slate-600 sm:table-cell sm:px-5 sm:py-3.5">
+                        <td
+                          className="hidden sm:table-cell"
+                          style={{
+                            padding: "12px 20px", textAlign: "right",
+                            fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
+                            fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)",
+                          }}
+                        >
                           ${formatDecimal(tx.balanceAfter)}
                         </td>
                       </tr>
