@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BarChart3, Menu, X } from "lucide-react";
 
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Locale } from "@/lib/i18n/translations";
 
 type Props = {
@@ -35,7 +36,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
           top: 0,
           zIndex: 50,
           borderBottom: "1px solid var(--border-dim)",
-          backgroundColor: "rgba(7,8,9,0.88)",
+          backgroundColor: "var(--bg-nav-glass)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
         }}
@@ -86,7 +87,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                     transition: "color 150ms ease",
                     textDecoration: "none",
                   }}
-                  className="hover:text-white"
+                  className="hover:text-[--text-primary]"
                 >
                   {label}
                 </Link>
@@ -96,6 +97,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
 
           {/* Desktop right side */}
           <div className="hidden items-center gap-3 md:flex">
+            <ThemeToggle />
             <LanguageSwitcher locale={locale} />
             {!user ? (
               <>
@@ -157,6 +159,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
 
           {/* Mobile right side */}
           <div className="flex items-center gap-2 md:hidden">
+            <ThemeToggle />
             <LanguageSwitcher locale={locale} />
             {/* Primary CTA visible on mobile */}
             {!user ? (
@@ -225,7 +228,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
             position: "fixed",
             inset: 0,
             zIndex: 40,
-            backgroundColor: "rgba(0,0,0,0.7)",
+            backgroundColor: "var(--bg-scrim)",
             backdropFilter: "blur(4px)",
           }}
         />
@@ -245,7 +248,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
           flexDirection: "column",
           backgroundColor: "var(--bg-surface)",
           borderLeft: "1px solid var(--border-subtle)",
-          boxShadow: "-32px 0 64px rgba(0,0,0,0.5)",
+          boxShadow: "-32px 0 64px var(--shadow-drawer)",
           transform: mobileOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
           paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
@@ -311,7 +314,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                 transition: "all 150ms ease",
                 border: "1px solid transparent",
               }}
-              className="hover:bg-[var(--bg-elevated)] hover:text-white hover:border-[var(--border-subtle)]"
+              className="hover:bg-[var(--bg-elevated)] hover:text-[--text-primary] hover:border-[var(--border-subtle)]"
             >
               {label}
             </Link>
