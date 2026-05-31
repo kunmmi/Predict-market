@@ -30,9 +30,19 @@ function useCountdown(targetIso: string): string {
 
 function ResultDot({ result }: { result: RoundSlot["roundResult"] }) {
   const color =
-    result === "up"   ? "bg-green-500" :
-    result === "down" ? "bg-red-500"   : "bg-slate-400";
-  return <span className={`inline-block h-2 w-2 rounded-full ${color}`} />;
+    result === "up"   ? "var(--teal)"  :
+    result === "down" ? "var(--rose)"  : "var(--text-dim)";
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: 8, height: 8,
+        borderRadius: "50%",
+        backgroundColor: color,
+        flexShrink: 0,
+      }}
+    />
+  );
 }
 
 function SettledPill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean }) {
@@ -40,14 +50,26 @@ function SettledPill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean 
   return (
     <button
       onClick={() => router.push(`/markets/${slot.slug}`)}
-      className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 text-center transition-all ${
-        isCurrent
-          ? "bg-slate-200 text-slate-900"
-          : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-      }`}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        borderRadius: 12,
+        padding: "8px 12px",
+        textAlign: "center",
+        transition: "all 150ms ease",
+        border: "none",
+        cursor: "pointer",
+        flexShrink: 0,
+        backgroundColor: isCurrent ? "var(--bg-elevated)" : "transparent",
+        color: isCurrent ? "var(--text-primary)" : "var(--text-dim)",
+      }}
     >
       <ResultDot result={slot.roundResult} />
-      <span className="text-[10px] font-semibold tabular-nums">{formatTime(slot.closeAt)}</span>
+      <span style={{ fontSize: 10, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+        {formatTime(slot.closeAt)}
+      </span>
     </button>
   );
 }
@@ -57,17 +79,36 @@ function LivePill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean }) 
   return (
     <button
       onClick={() => router.push(`/markets/${slot.slug}`)}
-      className={`flex shrink-0 flex-col items-center gap-1 rounded-xl px-3 py-2 text-center shadow-md transition-all ${
-        isCurrent
-          ? "bg-slate-900"
-          : "bg-slate-700 hover:bg-slate-800"
-      }`}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        borderRadius: 12,
+        padding: "8px 12px",
+        textAlign: "center",
+        transition: "all 150ms ease",
+        border: "1px solid rgba(239,68,68,0.3)",
+        cursor: "pointer",
+        flexShrink: 0,
+        backgroundColor: isCurrent ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.08)",
+        boxShadow: isCurrent ? "0 2px 8px rgba(239,68,68,0.2)" : "none",
+      }}
     >
-      <span className="flex items-center gap-1">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-        <span className="text-[10px] font-bold uppercase tracking-wide text-white">Live</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span
+          style={{
+            width: 8, height: 8,
+            borderRadius: "50%",
+            backgroundColor: "#ef4444",
+            animation: "pulse 2s cubic-bezier(0.4,0,0.6,1) infinite",
+          }}
+        />
+        <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#ef4444" }}>
+          Live
+        </span>
       </span>
-      <span className="text-[10px] font-semibold tabular-nums text-slate-300">
+      <span style={{ fontSize: 10, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>
         {formatTime(slot.closeAt)}
       </span>
     </button>
@@ -83,19 +124,30 @@ function UpcomingPill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean
     <button
       onClick={() => isClickable && router.push(`/markets/${slot.slug}`)}
       disabled={!isClickable}
-      className={`flex shrink-0 flex-col items-center gap-1 rounded-xl border px-3 py-2 text-center transition-all ${
-        isCurrent
-          ? "border-yellow-400 bg-yellow-100 shadow-md"
-          : isClickable
-            ? "border-dashed border-slate-200 cursor-pointer hover:border-yellow-300 hover:bg-yellow-50"
-            : "border-dashed border-slate-200 cursor-default opacity-50"
-      }`}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 4,
+        borderRadius: 12,
+        padding: "8px 12px",
+        textAlign: "center",
+        transition: "all 150ms ease",
+        border: isCurrent
+          ? "1px solid var(--border-gold)"
+          : "1px dashed var(--border-subtle)",
+        cursor: isClickable ? "pointer" : "default",
+        flexShrink: 0,
+        backgroundColor: isCurrent ? "var(--gold-dim)" : "transparent",
+        opacity: !isCurrent && !isClickable ? 0.5 : 1,
+        boxShadow: isCurrent ? "0 2px 8px var(--gold-glow)" : "none",
+      }}
     >
-      <span className={`flex items-center gap-1 ${isCurrent ? "text-yellow-700" : "text-slate-400"}`}>
-        <Clock className="h-3 w-3" />
-        <span className="text-[10px] font-semibold tabular-nums">{countdown}</span>
+      <span style={{ display: "flex", alignItems: "center", gap: 4, color: isCurrent ? "var(--gold)" : "var(--text-dim)" }}>
+        <Clock style={{ width: 12, height: 12 }} />
+        <span style={{ fontSize: 10, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{countdown}</span>
       </span>
-      <span className={`text-[10px] font-semibold tabular-nums ${isCurrent ? "text-yellow-800" : "text-slate-500"}`}>
+      <span style={{ fontSize: 10, fontWeight: 600, fontVariantNumeric: "tabular-nums", color: isCurrent ? "var(--gold)" : "var(--text-dim)" }}>
         {formatTime(slot.closeAt)}
       </span>
     </button>
@@ -135,21 +187,31 @@ export function RoundSelectorBar({ past, current, upcoming, calculatedSlots = []
   if (allSlots === 0) return null;
 
   return (
-    <div className="relative flex items-center gap-1">
+    <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 4 }}>
       {/* Left arrow */}
       <button
         onClick={() => scroll("left")}
-        className="z-10 shrink-0 rounded-full border border-slate-200 bg-white p-1 shadow-sm hover:bg-slate-50"
         aria-label="Scroll left"
+        style={{
+          flexShrink: 0,
+          borderRadius: "50%",
+          border: "1px solid var(--border-subtle)",
+          backgroundColor: "var(--bg-surface)",
+          padding: 4,
+          cursor: "pointer",
+          color: "var(--text-secondary)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 10,
+          boxShadow: "0 1px 3px var(--shadow-drawer)",
+        }}
       >
-        <ChevronLeft className="h-3.5 w-3.5 text-slate-500" />
+        <ChevronLeft style={{ width: 14, height: 14 }} />
       </button>
 
       {/* Scrollable pill row */}
       <div
         ref={scrollRef}
-        className="flex gap-2 overflow-x-auto scroll-smooth"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        style={{ display: "flex", gap: 8, overflowX: "auto", scrollBehavior: "smooth", scrollbarWidth: "none" }}
       >
         {/* Past rounds */}
         {past.map((slot) => (
@@ -187,10 +249,21 @@ export function RoundSelectorBar({ past, current, upcoming, calculatedSlots = []
       {/* Right arrow */}
       <button
         onClick={() => scroll("right")}
-        className="z-10 shrink-0 rounded-full border border-slate-200 bg-white p-1 shadow-sm hover:bg-slate-50"
         aria-label="Scroll right"
+        style={{
+          flexShrink: 0,
+          borderRadius: "50%",
+          border: "1px solid var(--border-subtle)",
+          backgroundColor: "var(--bg-surface)",
+          padding: 4,
+          cursor: "pointer",
+          color: "var(--text-secondary)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 10,
+          boxShadow: "0 1px 3px var(--shadow-drawer)",
+        }}
       >
-        <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
+        <ChevronRight style={{ width: 14, height: 14 }} />
       </button>
     </div>
   );
