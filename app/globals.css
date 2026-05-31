@@ -27,6 +27,10 @@
   --gold-dim:   rgba(232, 160, 32, 0.12);
   --gold-glow:  rgba(232, 160, 32, 0.10);
 
+  /* CTA button gold — always vibrant regardless of theme */
+  --gold-btn:       #E8A020;
+  --gold-btn-light: #EDB040;
+
   /* Signal colors — calibrated for dark backgrounds (~6:1 contrast, not neon) */
   --teal:       #0DB891;
   --teal-dim:   rgba(13, 184, 145, 0.13);

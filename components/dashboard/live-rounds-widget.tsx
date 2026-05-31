@@ -245,7 +245,7 @@ function LiveRoundCard({
           borderRadius: "var(--radius-sm)",
           background: isClosed
             ? "var(--bg-elevated)"
-            : "linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%)",
+            : "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
           border: isClosed ? "1px solid var(--border-subtle)" : "none",
           fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 700,
           color: isClosed ? "var(--text-secondary)" : "#070809",
