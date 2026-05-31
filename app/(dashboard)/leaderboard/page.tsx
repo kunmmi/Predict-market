@@ -12,8 +12,6 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const supabase = createSupabaseAdminClient();
   const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
 
-  // Two separate queries — avoids relying on a Supabase FK join that may not
-  // be declared in the schema (which silently returns an error on the join).
   const { data: posData, error: posError } = await supabase
     .from("positions")
     .select("profile_id, pnl_amount")
@@ -21,7 +19,6 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 
   if (posError || !posData) return [];
 
-  // Collect unique profile IDs (excluding system admin)
   const profileIds = Array.from(
     new Set(
       posData
@@ -32,7 +29,6 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 
   if (profileIds.length === 0) return [];
 
-  // Fetch display names in a separate query
   const { data: profileData } = await supabase
     .from("profiles")
     .select("id, display_name")
@@ -88,7 +84,12 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     .map((e, i) => ({ ...e, rank: i + 1 }));
 }
 
-const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+// Rank badge styles — no emoji, styled numbers
+const RANK_BADGE: Record<number, { bg: string; color: string; border: string }> = {
+  1: { bg: "rgba(232,160,32,0.15)", color: "var(--gold)",  border: "rgba(232,160,32,0.35)" },
+  2: { bg: "rgba(180,192,200,0.10)", color: "#A8BAC4",     border: "rgba(180,192,200,0.22)" },
+  3: { bg: "rgba(180,120,60,0.12)",  color: "#C08040",     border: "rgba(180,120,60,0.28)" },
+};
 
 export default async function LeaderboardPage() {
   await requireUser();
@@ -97,7 +98,7 @@ export default async function LeaderboardPage() {
   const entries = await getLeaderboard();
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       <div>
         <h1 className="page-title">{zh ? "排行榜" : "Leaderboard"}</h1>
         <p className="page-subtitle">
@@ -106,92 +107,171 @@ export default async function LeaderboardPage() {
       </div>
 
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
-            <Trophy className="h-4 w-4 text-yellow-500" />
+        <CardHeader style={{ paddingBottom: 8 }}>
+          <CardTitle style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Trophy style={{ width: 16, height: 16, color: "var(--gold)" }} />
             {zh ? "总榜" : "All-Time Rankings"}
           </CardTitle>
         </CardHeader>
-        <CardContent className="px-0 pb-2">
+        <CardContent style={{ paddingLeft: 0, paddingRight: 0, paddingBottom: 8 }}>
           {entries.length === 0 ? (
-            <p className="py-10 text-center text-sm text-slate-400">
+            <p
+              style={{
+                padding: "2.5rem 1rem", textAlign: "center",
+                fontFamily: "var(--font-sans)", fontSize: "0.875rem",
+                color: "var(--text-dim)",
+              }}
+            >
               {zh ? "暂无数据" : "No completed rounds yet — be the first on the board!"}
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr className="border-b border-slate-100 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    <th className="pb-3 pl-4 pr-3 text-left">{zh ? "排名" : "Rank"}</th>
-                    <th className="pb-3 pr-3 text-left">{zh ? "玩家" : "Player"}</th>
-                    <th className="hidden pb-3 pr-3 text-center sm:table-cell">{zh ? "轮次" : "Rounds"}</th>
-                    <th className="hidden pb-3 pr-3 text-center sm:table-cell">{zh ? "胜率" : "Win Rate"}</th>
-                    <th className="hidden pb-3 pr-3 text-center md:table-cell">{zh ? "胜/负" : "W / L"}</th>
-                    <th className="pb-3 pr-4 text-right">{zh ? "盈亏" : "P&L"}</th>
+                  <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                    {[
+                      { label: zh ? "排名" : "Rank",     align: "left",   pl: 20 },
+                      { label: zh ? "玩家" : "Player",   align: "left",   pl: 0  },
+                      { label: zh ? "轮次" : "Rounds",   align: "center", pl: 0, hide: "sm" },
+                      { label: zh ? "胜率" : "Win Rate", align: "center", pl: 0, hide: "sm" },
+                      { label: zh ? "胜/负" : "W / L",  align: "center", pl: 0, hide: "md" },
+                      { label: zh ? "盈亏" : "P&L",     align: "right",  pr: 20 },
+                    ].map(({ label, align, pl, pr, hide }) => (
+                      <th
+                        key={label}
+                        className={hide === "sm" ? "hidden sm:table-cell" : hide === "md" ? "hidden md:table-cell" : ""}
+                        style={{
+                          paddingBottom: 12,
+                          paddingLeft: pl ?? 12,
+                          paddingRight: pr ?? 12,
+                          textAlign: align as "left" | "right" | "center",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.5625rem",
+                          fontWeight: 700,
+                          letterSpacing: "0.12em",
+                          textTransform: "uppercase",
+                          color: "var(--text-dim)",
+                        }}
+                      >
+                        {label}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {entries.map((entry) => {
                     const isTop3 = entry.rank <= 3;
                     const isPositive = entry.totalPnl >= 0;
+                    const badge = RANK_BADGE[entry.rank];
+
                     return (
                       <tr
                         key={entry.rank}
-                        className={`border-b border-slate-50 last:border-0 transition-colors hover:bg-slate-50/60 ${
-                          isTop3 ? "bg-yellow-50/40" : ""
-                        }`}
+                        style={{
+                          borderBottom: "1px solid var(--border-dim)",
+                          backgroundColor: isTop3 ? "rgba(232,160,32,0.03)" : "transparent",
+                          transition: "background-color 150ms ease",
+                        }}
+                        className="hover:bg-[var(--bg-elevated)]"
                       >
                         {/* Rank */}
-                        <td className="py-3 pl-4 pr-3">
-                          {MEDAL[entry.rank] ? (
-                            <span className="text-base">{MEDAL[entry.rank]}</span>
+                        <td style={{ padding: "14px 12px 14px 20px", verticalAlign: "middle" }}>
+                          {badge ? (
+                            <span
+                              style={{
+                                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                width: 26, height: 26, borderRadius: 6,
+                                backgroundColor: badge.bg,
+                                border: `1px solid ${badge.border}`,
+                                fontFamily: "var(--font-mono)", fontSize: "0.6875rem",
+                                fontWeight: 700, color: badge.color,
+                              }}
+                            >
+                              {entry.rank}
+                            </span>
                           ) : (
-                            <span className="font-mono text-xs text-slate-400">#{entry.rank}</span>
+                            <span
+                              style={{
+                                fontFamily: "var(--font-mono)", fontSize: "0.6875rem",
+                                fontWeight: 500, color: "var(--text-dim)",
+                              }}
+                            >
+                              #{entry.rank}
+                            </span>
                           )}
                         </td>
 
-                        {/* Player name */}
-                        <td className="py-3 pr-3">
-                          <span className={`font-semibold ${isTop3 ? "text-slate-900" : "text-slate-700"}`}>
+                        {/* Player */}
+                        <td style={{ padding: "14px 12px", verticalAlign: "middle" }}>
+                          <span
+                            style={{
+                              fontFamily: "var(--font-sans)", fontSize: "0.875rem",
+                              fontWeight: isTop3 ? 600 : 500,
+                              color: isTop3 ? "var(--text-primary)" : "var(--text-secondary)",
+                            }}
+                          >
                             {entry.displayName}
                           </span>
                         </td>
 
                         {/* Rounds */}
-                        <td className="hidden py-3 pr-3 text-center tabular-nums text-slate-500 sm:table-cell">
+                        <td
+                          className="hidden sm:table-cell"
+                          style={{
+                            padding: "14px 12px", textAlign: "center", verticalAlign: "middle",
+                            fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
+                            fontVariantNumeric: "tabular-nums", color: "var(--text-dim)",
+                          }}
+                        >
                           {entry.totalRounds}
                         </td>
 
                         {/* Win rate */}
-                        <td className="hidden py-3 pr-3 text-center sm:table-cell">
-                          <span className={`font-medium tabular-nums ${
-                            entry.winRate >= 60 ? "text-green-600" :
-                            entry.winRate >= 40 ? "text-slate-600" : "text-red-500"
-                          }`}>
+                        <td
+                          className="hidden sm:table-cell"
+                          style={{ padding: "14px 12px", textAlign: "center", verticalAlign: "middle" }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
+                              fontWeight: 600, fontVariantNumeric: "tabular-nums",
+                              color: entry.winRate >= 60
+                                ? "var(--teal)"
+                                : entry.winRate >= 40
+                                  ? "var(--text-secondary)"
+                                  : "var(--rose)",
+                            }}
+                          >
                             {entry.winRate}%
                           </span>
                         </td>
 
                         {/* W / L */}
-                        <td className="hidden py-3 pr-3 text-center md:table-cell">
-                          <span className="text-xs text-slate-500 tabular-nums">
-                            <span className="text-green-600 font-medium">{entry.wins}</span>
-                            {" / "}
-                            <span className="text-red-500 font-medium">{entry.losses}</span>
+                        <td
+                          className="hidden md:table-cell"
+                          style={{ padding: "14px 12px", textAlign: "center", verticalAlign: "middle" }}
+                        >
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontVariantNumeric: "tabular-nums" }}>
+                            <span style={{ color: "var(--teal)", fontWeight: 600 }}>{entry.wins}</span>
+                            <span style={{ color: "var(--text-dim)", margin: "0 4px" }}>/</span>
+                            <span style={{ color: "var(--rose)", fontWeight: 600 }}>{entry.losses}</span>
                           </span>
                         </td>
 
                         {/* P&L */}
-                        <td className="py-3 pr-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {isPositive ? (
-                              <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                            ) : (
-                              <TrendingDown className="h-3.5 w-3.5 text-red-400" />
-                            )}
-                            <span className={`font-bold tabular-nums ${
-                              isPositive ? "text-green-600" : "text-red-500"
-                            }`}>
+                        <td style={{ padding: "14px 20px 14px 12px", textAlign: "right", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5 }}>
+                            {isPositive
+                              ? <TrendingUp style={{ width: 13, height: 13, color: "var(--teal)", flexShrink: 0 }} />
+                              : <TrendingDown style={{ width: 13, height: 13, color: "var(--rose)", flexShrink: 0 }} />
+                            }
+                            <span
+                              style={{
+                                fontFamily: "var(--font-mono)", fontSize: "0.875rem",
+                                fontWeight: 700, fontVariantNumeric: "tabular-nums",
+                                color: isPositive ? "var(--teal)" : "var(--rose)",
+                              }}
+                            >
                               {isPositive ? "+" : ""}${Math.abs(entry.totalPnl).toFixed(2)}
                             </span>
                           </div>
