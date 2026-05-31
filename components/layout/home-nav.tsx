@@ -160,6 +160,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
           {/* Mobile right side */}
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
+            <LanguageSwitcher locale={locale} />
             {/* Primary CTA visible on mobile */}
             {!user ? (
               <Link
@@ -320,11 +321,8 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
           ))}
         </nav>
 
-        {/* Language + auth footer */}
+        {/* Auth footer */}
         <div style={{ padding: "0 10px", display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "flex", justifyContent: "center", paddingBottom: 4 }}>
-            <LanguageSwitcher locale={locale} />
-          </div>
           {!user ? (
             <>
               <Link
