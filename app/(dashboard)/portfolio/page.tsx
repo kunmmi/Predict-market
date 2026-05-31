@@ -26,100 +26,102 @@ export default async function PortfolioPage() {
   const { openPositions, settledPositions, recentTrades } = portfolio;
 
   const estValue = openPositions.reduce((sum, pos) => {
-    const yesVal =
-      parseFloat(pos.yesUnits) * (pos.latestYesPrice != null ? parseFloat(pos.latestYesPrice) : 0);
-    const noVal =
-      parseFloat(pos.noUnits) * (pos.latestNoPrice != null ? parseFloat(pos.latestNoPrice) : 0);
+    const yesVal = parseFloat(pos.yesUnits) * (pos.latestYesPrice != null ? parseFloat(pos.latestYesPrice) : 0);
+    const noVal  = parseFloat(pos.noUnits)  * (pos.latestNoPrice  != null ? parseFloat(pos.latestNoPrice)  : 0);
     return sum + yesVal + noVal;
   }, 0);
 
   const totalPnl = settledPositions.reduce((sum, pos) => sum + parseFloat(pos.pnlAmount), 0);
-  const wins = settledPositions.filter((p) => parseFloat(p.pnlAmount) > 0).length;
+  const wins   = settledPositions.filter((p) => parseFloat(p.pnlAmount) > 0).length;
   const losses = settledPositions.filter((p) => parseFloat(p.pnlAmount) < 0).length;
+  const pnlPositive = totalPnl >= 0;
+
+  const stats = [
+    {
+      label: t.available_balance,
+      value: `$${formatDecimal(walletData.wallet?.availableBalance, 2)}`,
+      icon: DollarSign,
+      accent: "var(--gold)",
+      border: "var(--border-gold)",
+    },
+    {
+      label: t.open_positions,
+      value: String(openPositions.length),
+      icon: BarChart2,
+      accent: "var(--gold)",
+      border: "var(--border-gold)",
+    },
+    {
+      label: t.est_value,
+      value: `$${formatDecimal(estValue, 2)}`,
+      icon: TrendingUp,
+      accent: "var(--teal)",
+      border: "rgba(13,184,145,0.25)",
+    },
+    {
+      label: locale === "zh" ? "历史盈亏" : "Total P&L",
+      value: `${pnlPositive ? "+" : ""}$${formatDecimal(Math.abs(totalPnl), 2)}`,
+      valueColor: pnlPositive ? "var(--teal)" : "var(--rose)",
+      sub: settledPositions.length > 0 ? `${wins}W – ${losses}L` : undefined,
+      icon: Trophy,
+      accent: pnlPositive ? "var(--teal)" : "var(--rose)",
+      border: pnlPositive ? "rgba(13,184,145,0.25)" : "rgba(232,68,90,0.25)",
+    },
+  ];
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
       <div>
         <h1 className="page-title">{t.title}</h1>
         <p className="page-subtitle">{t.subtitle}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6 pb-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t.available_balance}</p>
-                <p className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">
-                  ${formatDecimal(walletData.wallet?.availableBalance, 2)}
-                </p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-100">
-                <DollarSign className="h-4 w-4 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 pb-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t.open_positions}</p>
-                <p className="mt-1.5 text-2xl font-bold text-slate-900">{openPositions.length}</p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-100">
-                <BarChart2 className="h-4 w-4 text-yellow-700" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 pb-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t.est_value}</p>
-                <p className="mt-1.5 text-2xl font-bold text-slate-900 tabular-nums">
-                  ${formatDecimal(estValue, 2)}
-                </p>
-              </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 pb-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  {locale === "zh" ? "历史盈亏" : "Total P&L"}
-                </p>
-                <p className={`mt-1.5 text-2xl font-bold tabular-nums ${totalPnl >= 0 ? "text-green-600" : "text-red-600"}`}>
-                  {totalPnl >= 0 ? "+" : ""}${formatDecimal(Math.abs(totalPnl), 2)}
-                </p>
-                {settledPositions.length > 0 && (
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    {wins}W – {losses}L
+        {stats.map(({ label, value, valueColor, sub, icon: Icon, accent, border }) => (
+          <Card key={label}>
+            <CardContent style={{ paddingTop: 20, paddingBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                <div>
+                  <p style={{
+                    fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                    fontWeight: 700, letterSpacing: "0.12em",
+                    textTransform: "uppercase", color: "var(--text-dim)",
+                  }}>
+                    {label}
                   </p>
-                )}
+                  <p style={{
+                    marginTop: 8,
+                    fontFamily: "var(--font-mono)", fontSize: "1.625rem",
+                    fontWeight: 700, letterSpacing: "-0.02em",
+                    color: valueColor ?? "var(--text-primary)",
+                    fontVariantNumeric: "tabular-nums",
+                    lineHeight: 1,
+                  }}>
+                    {value}
+                  </p>
+                  {sub && (
+                    <p style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-dim)" }}>
+                      {sub}
+                    </p>
+                  )}
+                </div>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 36, height: 36, borderRadius: "var(--radius-sm)",
+                  backgroundColor: "var(--bg-elevated)",
+                  border: `1px solid ${border}`,
+                  flexShrink: 0,
+                }}>
+                  <Icon style={{ width: 16, height: 16, color: accent }} />
+                </div>
               </div>
-              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${totalPnl >= 0 ? "bg-green-100" : "bg-red-100"}`}>
-                <Trophy className={`h-4 w-4 ${totalPnl >= 0 ? "text-green-600" : "text-red-500"}`} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <OpenPositionsLive
-        initialPositions={openPositions}
-        locale={locale}
-        t={t}
-      />
-
+      <OpenPositionsLive initialPositions={openPositions} locale={locale} t={t} />
       <LimitOrdersPanel locale={locale} t={t} />
-
       <HistoryTabs
         settledPositions={settledPositions}
         recentTrades={recentTrades}
