@@ -29,10 +29,12 @@ function LiveRoundCard({
   market: DashboardLiveRound;
   onClosed: (id: string) => void;
 }) {
-  const [now, setNow] = useState<number>(Date.now());
+  // Start null to avoid SSR/client mismatch — populated in useEffect
+  const [now, setNow] = useState<number | null>(null);
   const firedRef = useRef(false);
 
   useEffect(() => {
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(id);
   }, []);
@@ -40,12 +42,13 @@ function LiveRoundCard({
   const binanceSymbol = ASSET_TO_BINANCE[market.assetSymbol] ?? null;
   const { currentPrice: liveSpot, candles } = useBinanceKlineStream(binanceSymbol);
 
+  const nowMs = now ?? new Date(market.closeAt).getTime(); // safe fallback; updated immediately after mount
   const secondsRemaining = Math.max(
     0,
-    Math.floor((new Date(market.closeAt).getTime() - now) / 1_000),
+    Math.floor((new Date(market.closeAt).getTime() - nowMs) / 1_000),
   );
   const cutoffAt = market.cutoffAt ?? getShortDurationCutoffAt(market.closeAt).toISOString();
-  const isClosed = Math.floor((new Date(cutoffAt).getTime() - now) / 1_000) <= 0;
+  const isClosed = now != null && Math.floor((new Date(cutoffAt).getTime() - nowMs) / 1_000) <= 0;
 
   useEffect(() => {
     if (isClosed && !firedRef.current) {

@@ -19,7 +19,8 @@ function useCountdown(closeAt: string) {
     () => Math.max(0, Math.floor((new Date(closeAt).getTime() - Date.now()) / 1000)),
     [closeAt],
   );
-  const [secsLeft, setSecsLeft] = useState(getSecsLeft);
+  // Start null to avoid SSR/client mismatch — populated in useEffect
+  const [secsLeft, setSecsLeft] = useState<number | null>(null);
 
   useEffect(() => {
     setSecsLeft(getSecsLeft());
@@ -27,6 +28,7 @@ function useCountdown(closeAt: string) {
     return () => clearInterval(id);
   }, [getSecsLeft]);
 
+  if (secsLeft == null) return "--:--";
   const mm = String(Math.floor(secsLeft / 60)).padStart(2, "0");
   const ss = String(secsLeft % 60).padStart(2, "0");
   return `${mm}:${ss}`;

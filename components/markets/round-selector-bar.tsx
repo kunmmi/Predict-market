@@ -14,17 +14,18 @@ function formatTime(isoString: string): string {
 }
 
 function useCountdown(targetIso: string): string {
-  const calc = () => {
-    const diff = Math.max(0, Math.floor((new Date(targetIso).getTime() - Date.now()) / 1_000));
-    return `${String(Math.floor(diff / 60)).padStart(2, "0")}:${String(diff % 60).padStart(2, "0")}`;
-  };
-  const [label, setLabel] = useState(calc);
+  // Start null to avoid SSR/client mismatch — populated in useEffect
+  const [label, setLabel] = useState<string | null>(null);
   useEffect(() => {
+    const calc = () => {
+      const diff = Math.max(0, Math.floor((new Date(targetIso).getTime() - Date.now()) / 1_000));
+      return `${String(Math.floor(diff / 60)).padStart(2, "0")}:${String(diff % 60).padStart(2, "0")}`;
+    };
+    setLabel(calc());
     const id = setInterval(() => setLabel(calc()), 1_000);
     return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetIso]);
-  return label;
+  return label ?? "--:--";
 }
 
 function ResultDot({ result }: { result: RoundSlot["roundResult"] }) {
