@@ -136,7 +136,7 @@ function ShortDurationCard({
   }, [direction]);
 
   return (
-    <div style={{ minHeight: 360, display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -196,14 +196,14 @@ function ShortDurationCard({
         borderRadius: "var(--radius-md)",
         border: "1px solid var(--border-subtle)",
         backgroundColor: "var(--bg-elevated)",
-        padding: "12px 16px",
+        padding: "10px 14px",
         display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
       }}>
         <div>
           <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)" }}>
             {tc.live_price}
           </p>
-          <p style={{ ...priceStyle, marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "2rem", fontWeight: 700, letterSpacing: "-0.03em" }}>
+          <p style={{ ...priceStyle, marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-0.03em" }}>
             {price != null ? `$${priceFormatter.format(price)}` : "—"}
           </p>
         </div>
@@ -231,7 +231,7 @@ function ShortDurationCard({
             borderRadius: "var(--radius-md)",
             background: "linear-gradient(135deg, rgba(16,207,160,0.2) 0%, rgba(16,207,160,0.08) 100%)",
             border: "1px solid rgba(16,207,160,0.3)",
-            padding: "12px 14px",
+            padding: "9px 12px",
             textAlign: "left",
             textDecoration: "none",
             transition: "all 200ms ease",
@@ -254,7 +254,7 @@ function ShortDurationCard({
             borderRadius: "var(--radius-md)",
             background: "linear-gradient(135deg, rgba(242,56,96,0.2) 0%, rgba(242,56,96,0.08) 100%)",
             border: "1px solid rgba(242,56,96,0.3)",
-            padding: "12px 14px",
+            padding: "9px 12px",
             textAlign: "left",
             textDecoration: "none",
             transition: "all 200ms ease",
