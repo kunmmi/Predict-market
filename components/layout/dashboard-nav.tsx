@@ -148,7 +148,9 @@ export function DashboardNav({ locale, t }: Props) {
           {/* Right controls */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <LanguageSwitcher locale={locale} />
+            <div className="hidden md:flex">
+              <LanguageSwitcher locale={locale} />
+            </div>
             <div className="hidden md:block">
               <LogoutButton label={t.logout} />
             </div>
@@ -288,8 +290,14 @@ export function DashboardNav({ locale, t }: Props) {
           style={{
             borderTop: "1px solid var(--border-dim)",
             padding: "16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
           }}
         >
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <LanguageSwitcher locale={locale} />
+          </div>
           <LogoutButton label={t.logout} />
         </div>
       </div>
