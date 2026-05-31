@@ -21,10 +21,14 @@ function DepthBar({ value, max, side }: { value: number; max: number; side: "yes
   return (
     <div className="absolute inset-y-0 w-full overflow-hidden rounded-sm">
       <div
-        className={`absolute inset-y-0 transition-all duration-300 ${
-          side === "yes" ? "right-0 bg-green-500/10" : "left-0 bg-red-400/10"
-        }`}
-        style={{ width: `${pct}%` }}
+        style={{
+          position: "absolute",
+          insetBlock: 0,
+          width: `${pct}%`,
+          transition: "width 300ms ease",
+          backgroundColor: side === "yes" ? "rgba(13,184,145,0.1)" : "rgba(232,68,90,0.1)",
+          ...(side === "yes" ? { right: 0 } : { left: 0 }),
+        }}
       />
     </div>
   );
@@ -43,34 +47,30 @@ function LevelRow({
 }) {
   return (
     <div
-      className={`relative grid grid-cols-3 items-center gap-x-2 rounded-sm px-2 py-[5px] text-xs ${
-        isCrossed ? "opacity-40" : ""
-      }`}
+      style={{
+        position: "relative",
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        alignItems: "center",
+        gap: "0 8px",
+        borderRadius: 2,
+        padding: "5px 8px",
+        fontSize: "0.75rem",
+        opacity: isCrossed ? 0.35 : 1,
+      }}
     >
       <DepthBar value={level.totalStake} max={max} side={side} />
       {side === "yes" ? (
         <>
-          <span className="relative text-right font-mono tabular-nums text-slate-500">
-            {level.orderCount}
-          </span>
-          <span className="relative text-right font-mono tabular-nums text-slate-700">
-            ${level.totalStake.toFixed(0)}
-          </span>
-          <span className="relative text-right font-semibold tabular-nums text-green-700">
-            {(level.price * 100).toFixed(1)}¢
-          </span>
+          <span style={{ position: "relative", textAlign: "right", fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>{level.orderCount}</span>
+          <span style={{ position: "relative", textAlign: "right", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>${level.totalStake.toFixed(0)}</span>
+          <span style={{ position: "relative", textAlign: "right", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--teal)" }}>{(level.price * 100).toFixed(1)}¢</span>
         </>
       ) : (
         <>
-          <span className="relative text-left font-semibold tabular-nums text-red-600">
-            {(level.price * 100).toFixed(1)}¢
-          </span>
-          <span className="relative text-left font-mono tabular-nums text-slate-700">
-            ${level.totalStake.toFixed(0)}
-          </span>
-          <span className="relative text-left font-mono tabular-nums text-slate-500">
-            {level.orderCount}
-          </span>
+          <span style={{ position: "relative", textAlign: "left", fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--rose)" }}>{(level.price * 100).toFixed(1)}¢</span>
+          <span style={{ position: "relative", textAlign: "left", fontFamily: "var(--font-mono)", color: "var(--text-secondary)" }}>${level.totalStake.toFixed(0)}</span>
+          <span style={{ position: "relative", textAlign: "left", fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>{level.orderCount}</span>
         </>
       )}
     </div>
@@ -112,26 +112,26 @@ export function OrderBookPanel({ marketId, currentPrice, isShortDuration, locale
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+      <CardHeader style={{ paddingBottom: 8 }}>
+        <CardTitle style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.875rem" }}>
           {title}
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+          <span style={{ borderRadius: 100, backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border-subtle)", padding: "1px 8px", fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 600, color: "var(--text-dim)" }}>
             {book.totalOrders}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-3 pb-4">
+      <CardContent style={{ padding: "0 12px 16px" }}>
         <div className="grid grid-cols-2 gap-x-3">
           {/* YES / UP side */}
           <div>
-            <div className="mb-1 grid grid-cols-3 gap-x-2 px-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              <span className="text-right">#</span>
-              <span className="text-right">Stake</span>
-              <span className="text-right text-green-600">{upLabel}</span>
+            <div style={{ marginBottom: 4, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0 8px", padding: "0 8px", fontFamily: "var(--font-mono)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+              <span style={{ textAlign: "right" }}>#</span>
+              <span style={{ textAlign: "right" }}>Stake</span>
+              <span style={{ textAlign: "right", color: "var(--teal)" }}>{upLabel}</span>
             </div>
             <div className="space-y-px">
               {yesLevels.length === 0 ? (
-                <p className="px-2 py-3 text-center text-xs text-slate-400">—</p>
+                <p style={{ padding: "12px 8px", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-dim)" }}>—</p>
               ) : (
                 yesLevels.map((level) => (
                   <LevelRow
@@ -148,14 +148,14 @@ export function OrderBookPanel({ marketId, currentPrice, isShortDuration, locale
 
           {/* NO / DOWN side */}
           <div>
-            <div className="mb-1 grid grid-cols-3 gap-x-2 px-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              <span className="text-left text-red-500">{downLabel}</span>
-              <span className="text-left">Stake</span>
-              <span className="text-left">#</span>
+            <div style={{ marginBottom: 4, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0 8px", padding: "0 8px", fontFamily: "var(--font-mono)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+              <span style={{ textAlign: "left", color: "var(--rose)" }}>{downLabel}</span>
+              <span style={{ textAlign: "left" }}>Stake</span>
+              <span style={{ textAlign: "left" }}>#</span>
             </div>
             <div className="space-y-px">
               {noLevels.length === 0 ? (
-                <p className="px-2 py-3 text-center text-xs text-slate-400">—</p>
+                <p style={{ padding: "12px 8px", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-dim)" }}>—</p>
               ) : (
                 noLevels.map((level) => (
                   <LevelRow
@@ -172,9 +172,9 @@ export function OrderBookPanel({ marketId, currentPrice, isShortDuration, locale
         </div>
 
         {currentPrice != null && (
-          <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
-            <span className="text-[11px] text-slate-400">{spreadLabel}</span>
-            <span className="font-mono text-sm font-semibold tabular-nums text-slate-900">
+          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid var(--border-dim)", paddingTop: 12 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-dim)" }}>{spreadLabel}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-primary)" }}>
               {(currentPrice * 100).toFixed(1)}¢
             </span>
           </div>

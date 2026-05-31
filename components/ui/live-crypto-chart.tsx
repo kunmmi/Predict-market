@@ -214,33 +214,33 @@ export default function LiveCryptoChart({
   const tone = useMemo(() => {
     if (round.liveDirection === "up") {
       return {
-        accent: "#10b981",
-        glow: "shadow-[0_18px_45px_-28px_rgba(16,185,129,0.28)]",
-        text: "text-emerald-600",
-        mutedText: "text-emerald-600/80",
-        badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-        line: "rgba(16, 185, 129, 0.9)",
+        accent: "var(--teal)",
+        accentRaw: "#0DB891",
+        glow: "shadow-[0_18px_45px_-28px_rgba(13,184,145,0.25)]",
+        color: "var(--teal)",
+        badge: "bg-[var(--teal-dim)] text-[var(--teal)] ring-1 ring-[rgba(13,184,145,0.25)]",
+        line: "rgba(13,184,145,0.9)",
       };
     }
 
     if (round.liveDirection === "down") {
       return {
-        accent: "#f43f5e",
-        glow: "shadow-[0_18px_45px_-28px_rgba(244,63,94,0.24)]",
-        text: "text-rose-600",
-        mutedText: "text-rose-600/80",
-        badge: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
-        line: "rgba(244, 63, 94, 0.9)",
+        accent: "var(--rose)",
+        accentRaw: "#E8445A",
+        glow: "shadow-[0_18px_45px_-28px_rgba(232,68,90,0.22)]",
+        color: "var(--rose)",
+        badge: "bg-[var(--rose-dim)] text-[var(--rose)] ring-1 ring-[rgba(232,68,90,0.25)]",
+        line: "rgba(232,68,90,0.9)",
       };
     }
 
     return {
-      accent: "#3b82f6",
-      glow: "shadow-[0_18px_45px_-28px_rgba(59,130,246,0.22)]",
-      text: "text-sky-600",
-      mutedText: "text-sky-700/80",
-      badge: "bg-sky-50 text-sky-700 ring-1 ring-sky-200",
-      line: "rgba(59, 130, 246, 0.88)",
+      accent: "var(--gold)",
+      accentRaw: "#E8A020",
+      glow: "shadow-[0_18px_45px_-28px_rgba(232,160,32,0.18)]",
+      color: "var(--gold)",
+      badge: "bg-[var(--gold-dim)] text-[var(--gold)] ring-1 ring-[var(--border-gold)]",
+      line: "rgba(232,160,32,0.85)",
     };
   }, [round.liveDirection]);
 
@@ -254,33 +254,33 @@ export default function LiveCryptoChart({
       autoSize: true,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "rgba(51, 65, 85, 0.92)",
+        textColor: "rgba(160, 170, 180, 0.9)",
       },
       grid: {
-        vertLines: { color: "rgba(148, 163, 184, 0.12)" },
-        horzLines: { color: "rgba(148, 163, 184, 0.12)" },
+        vertLines: { color: "rgba(255,255,255,0.04)" },
+        horzLines: { color: "rgba(255,255,255,0.04)" },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
         vertLine: {
-          color: "rgba(100, 116, 139, 0.24)",
+          color: "rgba(232,160,32,0.3)",
           width: 1,
           style: LineStyle.Dashed,
-          labelBackgroundColor: "rgba(255, 255, 255, 0.96)",
+          labelBackgroundColor: "rgba(20,22,24,0.96)",
         },
         horzLine: {
-          color: "rgba(100, 116, 139, 0.24)",
+          color: "rgba(232,160,32,0.3)",
           width: 1,
           style: LineStyle.Dashed,
-          labelBackgroundColor: "rgba(255, 255, 255, 0.96)",
+          labelBackgroundColor: "rgba(20,22,24,0.96)",
         },
       },
       rightPriceScale: {
-        borderColor: "rgba(148, 163, 184, 0.18)",
+        borderColor: "rgba(255,255,255,0.06)",
         scaleMargins: { top: 0.18, bottom: 0.12 },
       },
       timeScale: {
-        borderColor: "rgba(148, 163, 184, 0.18)",
+        borderColor: "rgba(255,255,255,0.06)",
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 10,
@@ -394,26 +394,22 @@ export default function LiveCryptoChart({
 
   return (
     <Card
-      className={cn(
-        "overflow-hidden border-slate-200 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.98),rgba(248,250,252,1))] text-slate-900",
-        tone.glow,
-        className,
-      )}
+      className={cn("overflow-hidden", tone.glow, className)}
     >
       <CardContent className="p-0">
-        <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
+        <div style={{ borderBottom: "1px solid var(--border-subtle)", padding: "16px 20px" }}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge className="bg-slate-100 text-slate-700 ring-1 ring-slate-200">{assetSymbol}</Badge>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+                <Badge className="bg-[var(--bg-elevated)] text-[var(--text-secondary)] ring-1 ring-[var(--border-subtle)]">{assetSymbol}</Badge>
                 {settleLabels ? <Badge>{settleLabels.shortDurationBadge}</Badge> : null}
                 <Badge className={tone.badge}>{directionLabel(round.liveDirection, labels)}</Badge>
                 <Badge
                   className={cn(
-                    "gap-1.5 bg-slate-100 text-slate-700 ring-1 ring-slate-200",
-                    status === "connected" && "bg-emerald-50 text-emerald-700 ring-emerald-200",
-                    status === "reconnecting" && "bg-amber-50 text-amber-700 ring-amber-200",
-                    status === "disconnected" && "bg-rose-50 text-rose-700 ring-rose-200",
+                    "gap-1.5 bg-[var(--bg-elevated)] text-[var(--text-dim)] ring-1 ring-[var(--border-subtle)]",
+                    status === "connected" && "bg-[var(--teal-dim)] text-[var(--teal)] ring-[rgba(13,184,145,0.25)]",
+                    status === "reconnecting" && "bg-[var(--gold-dim)] text-[var(--gold)] ring-[var(--border-gold)]",
+                    status === "disconnected" && "bg-[var(--rose-dim)] text-[var(--rose)] ring-[rgba(232,68,90,0.25)]",
                   )}
                 >
                   {status === "connected" ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
@@ -421,10 +417,10 @@ export default function LiveCryptoChart({
                 </Badge>
               </div>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-500">{labels.title}</p>
-                <p className="mt-1 text-sm text-slate-500">{labels.subtitle}</p>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.22em", textTransform: "uppercase", color: "var(--text-dim)" }}>{labels.title}</p>
+                <p style={{ marginTop: 2, fontSize: "0.875rem", color: "var(--text-dim)" }}>{labels.subtitle}</p>
                 {closeAt && settleLabels ? (
-                  <div className="mt-2 text-sm text-slate-600">
+                  <div style={{ marginTop: 6, fontSize: "0.875rem", color: "var(--text-secondary)" }}>
                     <MarketCountdown
                       closeAt={closeAt}
                       t={{
@@ -440,21 +436,23 @@ export default function LiveCryptoChart({
               </div>
               <div className="flex flex-wrap items-end gap-3">
                 <div
-                  className={cn(
-                    "rounded-2xl px-3 py-2 transition-all duration-500",
-                    pulseDirection === "up" && "bg-emerald-400/10 shadow-[0_0_0_1px_rgba(52,211,153,0.18)]",
-                    pulseDirection === "down" && "bg-rose-400/10 shadow-[0_0_0_1px_rgba(251,113,133,0.18)]",
-                  )}
+                  style={{
+                    borderRadius: 16,
+                    padding: "8px 12px",
+                    transition: "all 500ms",
+                    ...(pulseDirection === "up" && { backgroundColor: "rgba(13,184,145,0.08)", boxShadow: "0 0 0 1px rgba(13,184,145,0.18)" }),
+                    ...(pulseDirection === "down" && { backgroundColor: "rgba(232,68,90,0.08)", boxShadow: "0 0 0 1px rgba(232,68,90,0.18)" }),
+                  }}
                 >
-                  <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-500">
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.24em", color: "var(--text-dim)" }}>
                     {labels.currentPrice}
                   </div>
-                  <div className={cn("mt-1 text-3xl font-semibold tabular-nums sm:text-4xl", tone.text)}>
+                  <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "clamp(1.75rem, 4vw, 2.25rem)", fontWeight: 600, color: tone.color, fontVariantNumeric: "tabular-nums" }}>
                     {currentPrice != null ? `$${priceFormatter.format(currentPrice)}` : "--"}
                   </div>
                 </div>
-                <div className="pb-2">
-                  <div className={cn("flex items-center gap-1.5 text-sm font-medium", tone.mutedText)}>
+                <div style={{ paddingBottom: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.875rem", fontWeight: 500, color: tone.color, opacity: 0.8 }}>
                     {round.liveDirection === "up" ? (
                       <ArrowUpRight className="h-4 w-4" />
                     ) : round.liveDirection === "down" ? (
@@ -471,30 +469,30 @@ export default function LiveCryptoChart({
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{labels.openingPrice}</div>
-                <div className="mt-2 text-sm font-semibold tabular-nums text-slate-900">
+              <div style={{ borderRadius: 12, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-elevated)", padding: "10px 12px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.22em", color: "var(--text-dim)" }}>{labels.openingPrice}</div>
+                <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--text-primary)" }}>
                   {round.openingPrice != null ? `$${priceFormatter.format(round.openingPrice)}` : "--"}
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{labels.priceDifference}</div>
-                <div className={cn("mt-2 text-sm font-semibold tabular-nums", tone.text)}>
+              <div style={{ borderRadius: 12, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-elevated)", padding: "10px 12px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.22em", color: "var(--text-dim)" }}>{labels.priceDifference}</div>
+                <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, fontVariantNumeric: "tabular-nums", color: tone.color }}>
                   {round.priceDifference != null
                     ? `${round.priceDifference >= 0 ? "+" : ""}$${priceFormatter.format(round.priceDifference)}`
                     : "--"}
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{labels.countdown}</div>
-                <div className="mt-2 flex items-center gap-2 text-sm font-semibold tabular-nums text-slate-900">
-                  <Activity className="h-4 w-4 text-slate-500" />
+              <div style={{ borderRadius: 12, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-elevated)", padding: "10px 12px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.22em", color: "var(--text-dim)" }}>{labels.countdown}</div>
+                <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "var(--text-primary)" }}>
+                  <Activity className="h-4 w-4" style={{ color: "var(--text-dim)" }} />
                   {round.countdownMs == null ? "--:--" : formatCountdown(round.countdownMs)}
                 </div>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="text-[11px] uppercase tracking-[0.22em] text-slate-500">{labels.roundResult}</div>
-                <div className="mt-2 text-sm font-semibold text-slate-900">
+              <div style={{ borderRadius: 12, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-elevated)", padding: "10px 12px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.22em", color: "var(--text-dim)" }}>{labels.roundResult}</div>
+                <div style={{ marginTop: 8, fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 600, color: tone.color }}>
                   {directionLabel(round.lastResult ?? round.liveDirection, labels)}
                 </div>
               </div>
@@ -503,32 +501,40 @@ export default function LiveCryptoChart({
         </div>
 
         <div className="px-3 pb-3 pt-3 sm:px-4 sm:pb-4">
-          <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(255,255,255,1))]">
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-100/80 to-transparent" />
+          <div style={{ position: "relative", overflow: "hidden", borderRadius: 20, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-elevated)" }}>
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-24" style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.03), transparent)" }} />
 
             {!hasData ? (
               <div className="flex h-[280px] animate-pulse flex-col justify-between p-4 sm:h-[360px] lg:h-[420px]">
-                <div className="h-5 w-36 rounded-full bg-slate-200" />
+                <div style={{ height: 20, width: 144, borderRadius: 9999, backgroundColor: "var(--border-subtle)" }} />
                 <div className="space-y-3">
-                  <div className="h-4 w-full rounded-full bg-slate-100" />
-                  <div className="h-4 w-5/6 rounded-full bg-slate-100" />
-                  <div className="h-4 w-4/6 rounded-full bg-slate-100" />
+                  <div style={{ height: 16, width: "100%", borderRadius: 9999, backgroundColor: "var(--bg-surface)" }} />
+                  <div style={{ height: 16, width: "83.333%", borderRadius: 9999, backgroundColor: "var(--bg-surface)" }} />
+                  <div style={{ height: 16, width: "66.667%", borderRadius: 9999, backgroundColor: "var(--bg-surface)" }} />
                 </div>
-                <div className="text-sm text-slate-500">{labels.waiting}</div>
+                <div style={{ fontSize: "0.875rem", color: "var(--text-dim)" }}>{labels.waiting}</div>
               </div>
             ) : (
               <div className="relative">
                 <div ref={containerRef} className="h-[280px] w-full sm:h-[360px] lg:h-[420px]" />
                 <div className="pointer-events-none absolute inset-x-4 top-4 flex items-center justify-between gap-3">
-                  <div className="rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] font-medium tracking-[0.18em] text-slate-600 shadow-sm backdrop-blur">
+                  <div style={{ borderRadius: 9999, border: "1px solid var(--border-subtle)", backgroundColor: "rgba(7,8,9,0.85)", backdropFilter: "blur(12px)", padding: "5px 12px", fontFamily: "var(--font-mono)", fontSize: "11px", fontWeight: 500, letterSpacing: "0.18em", color: "var(--text-secondary)", boxShadow: "0 2px 8px rgba(0,0,0,0.35)" }}>
                     {labels.priceToBeat}: {round.openingPrice != null ? `$${priceFormatter.format(round.openingPrice)}` : "--"}
                   </div>
                   {pulseDirection ? (
                     <div
-                      className={cn(
-                        "rounded-full px-2.5 py-1 text-[11px] font-medium tracking-[0.18em] backdrop-blur",
-                        pulseDirection === "up" ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700",
-                      )}
+                      style={{
+                        borderRadius: 9999,
+                        padding: "4px 10px",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        letterSpacing: "0.18em",
+                        backdropFilter: "blur(12px)",
+                        ...(pulseDirection === "up"
+                          ? { backgroundColor: "var(--teal-dim)", color: "var(--teal)" }
+                          : { backgroundColor: "var(--rose-dim)", color: "var(--rose)" }),
+                      }}
                     >
                       Live move
                     </div>
@@ -539,18 +545,18 @@ export default function LiveCryptoChart({
           </div>
 
           {(status === "disconnected" || status === "reconnecting" || error) && (
-            <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12, borderRadius: 16, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-surface)", padding: "12px 16px", fontSize: "0.875rem", color: "var(--text-secondary)" }} className="sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="font-medium text-slate-900">
+                <div style={{ fontWeight: 500, color: "var(--text-primary)" }}>
                   {status === "reconnecting" ? labels.reconnecting : labels.disconnected}
                 </div>
-                <div className="mt-1 text-slate-500">
+                <div style={{ marginTop: 4, color: "var(--text-dim)" }}>
                   {error ?? "The live stream dropped. You can reconnect without reloading the page."}
                 </div>
               </div>
               <Button
                 variant="secondary"
-                className="border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--bg-elevated)", color: "var(--text-secondary)" }}
                 onClick={reconnect}
               >
                 <RefreshCw className="h-4 w-4" />
