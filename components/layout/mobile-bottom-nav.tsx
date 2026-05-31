@@ -9,14 +9,10 @@ import type { Locale, T } from "@/lib/i18n/translations";
 type Props = { locale: Locale; t: T["nav"] };
 
 /**
- * Mobile-only bottom navigation. Pins 5 most-used destinations to the bottom
- * of the viewport for one-tap switching — standard trading-app UX
- * (Robinhood / Binance / Polymarket pattern).
- *
+ * Mobile-only bottom navigation bar using APEX dark theme CSS vars.
+ * Pins 5 most-used destinations to the bottom of the viewport with
+ * safe-area padding for notch/home-indicator devices.
  * Hidden on md+ screens; desktop users have the top nav.
- *
- * NOTE: This is rendered AFTER the dashboard <main> content. The dashboard
- * layout adds `pb-16 md:pb-0` to leave room for it on mobile.
  */
 export function MobileBottomNav({ locale, t }: Props) {
   const pathname = usePathname();
@@ -31,10 +27,23 @@ export function MobileBottomNav({ locale, t }: Props) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white shadow-[0_-2px_12px_rgba(15,23,42,0.06)] pb-[max(env(safe-area-inset-bottom),0px)] md:hidden"
+      className="md:hidden"
       aria-label="Primary mobile navigation"
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 40,
+        backgroundColor: "rgba(7,8,9,0.96)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderTop: "1px solid var(--border-subtle)",
+        boxShadow: "0 -4px 24px rgba(0,0,0,0.4)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
+      }}
     >
-      <ul className="grid grid-cols-5">
+      <ul style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)" }}>
         {items.map(({ href, label, icon: Icon }) => {
           const isActive =
             href === "/dashboard"
@@ -45,18 +54,33 @@ export function MobileBottomNav({ locale, t }: Props) {
             <li key={href}>
               <Link
                 href={href}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium transition-colors ${
-                  isActive
-                    ? "text-yellow-600"
-                    : "text-slate-500 hover:text-slate-800"
-                }`}
                 aria-current={isActive ? "page" : undefined}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 3,
+                  paddingTop: 10,
+                  paddingBottom: 10,
+                  fontSize: 10,
+                  fontFamily: "var(--font-sans)",
+                  fontWeight: isActive ? 600 : 400,
+                  color: isActive ? "var(--gold)" : "var(--text-dim)",
+                  textDecoration: "none",
+                  transition: "color 150ms ease",
+                }}
               >
                 <Icon
-                  className={`h-5 w-5 ${isActive ? "text-yellow-500" : "text-slate-400"}`}
-                  strokeWidth={isActive ? 2.4 : 2}
+                  style={{
+                    width: 20,
+                    height: 20,
+                    color: isActive ? "var(--gold)" : "var(--text-dim)",
+                    transition: "color 150ms ease",
+                    strokeWidth: isActive ? 2.4 : 2,
+                  }}
                 />
-                <span className={`leading-tight ${locale === "zh" ? "text-[11px]" : ""}`}>
+                <span style={{ lineHeight: 1, letterSpacing: locale === "zh" ? "0.01em" : "0.02em" }}>
                   {label}
                 </span>
               </Link>
