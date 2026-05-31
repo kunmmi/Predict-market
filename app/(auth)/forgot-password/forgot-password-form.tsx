@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Locale, T } from "@/lib/i18n/translations";
 
 type Props = { locale: Locale; t: T["auth"] };
@@ -43,50 +44,123 @@ export function ForgotPasswordForm({ locale, t }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-slate-700 bg-slate-900">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="rounded bg-yellow-400 p-1.5 text-slate-900">
-              <BarChart3 className="h-4 w-4" />
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "var(--bg-base)" }}>
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          borderBottom: "1px solid var(--border-dim)",
+          backgroundColor: "var(--bg-nav-glass)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6" style={{ height: 56 }}>
+          <Link href="/" className="flex items-center gap-2.5" style={{ textDecoration: "none" }}>
+            <div
+              style={{
+                width: 28, height: 28,
+                background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
+                borderRadius: 7,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 0 12px var(--gold-glow)",
+                flexShrink: 0,
+              }}
+            >
+              <BarChart3 style={{ width: 14, height: 14, color: "#070809" }} />
             </div>
-            <span className="text-base font-semibold tracking-tight text-white">Predict Market</span>
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "1.0625rem",
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--text-primary)",
+              }}
+            >
+              Predict Market
+            </span>
           </Link>
-          <LanguageSwitcher locale={locale} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ThemeToggle />
+            <LanguageSwitcher locale={locale} />
+          </div>
         </div>
       </header>
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md animate-fade-up">
           <CardHeader>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{t.forgot_eyebrow}</p>
+            <p
+              style={{
+                fontSize: "0.6875rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.2em",
+                color: "var(--text-dim)",
+              }}
+            >
+              {t.forgot_eyebrow}
+            </p>
             <CardTitle>{t.forgot_title}</CardTitle>
           </CardHeader>
           <CardContent>
             {sent ? (
               <div className="space-y-4">
-                <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+                <div
+                  style={{
+                    borderRadius: 8,
+                    border: "1px solid rgba(13,184,145,0.3)",
+                    backgroundColor: "var(--teal-dim)",
+                    padding: "12px 16px",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                    color: "var(--teal)",
+                  }}
+                >
                   {t.reset_sent}
                 </div>
                 <Link
                   href="/login"
-                  className="block text-center text-sm font-medium text-slate-900 underline underline-offset-4 hover:text-yellow-600"
+                  style={{
+                    display: "block",
+                    textAlign: "center",
+                    fontSize: "0.875rem",
+                    fontWeight: 500,
+                    color: "var(--text-primary)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 4,
+                  }}
+                  className="hover:text-[var(--gold)]"
                 >
                   {t.back_to_login}
                 </Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <p className="text-sm text-slate-600">{t.forgot_instructions}</p>
+                <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>{t.forgot_instructions}</p>
 
                 {error && (
-                  <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <div
+                    style={{
+                      borderRadius: 8,
+                      border: "1px solid rgba(232,68,90,0.3)",
+                      backgroundColor: "var(--rose-dim)",
+                      padding: "12px 16px",
+                      fontSize: "0.875rem",
+                      color: "var(--rose)",
+                    }}
+                  >
                     {error}
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700" htmlFor="email">
+                  <label
+                    style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}
+                    htmlFor="email"
+                  >
                     {t.email}
                   </label>
                   <Input
@@ -103,10 +177,16 @@ export function ForgotPasswordForm({ locale, t }: Props) {
                   {loading ? t.sending : t.send_reset_link}
                 </Button>
 
-                <p className="text-center text-sm text-slate-600">
+                <p style={{ textAlign: "center", fontSize: "0.875rem" }}>
                   <Link
                     href="/login"
-                    className="font-medium text-slate-900 underline underline-offset-4 hover:text-yellow-600"
+                    style={{
+                      fontWeight: 500,
+                      color: "var(--text-primary)",
+                      textDecoration: "underline",
+                      textUnderlineOffset: 4,
+                    }}
+                    className="hover:text-[var(--gold)]"
                   >
                     {t.back_to_login}
                   </Link>

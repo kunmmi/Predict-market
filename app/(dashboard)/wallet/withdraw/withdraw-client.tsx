@@ -17,15 +17,21 @@ import {
 } from "@/lib/validations/withdrawal";
 
 function StatusBadge({ status, locale }: { status: string; locale: Locale }) {
-  const map: Record<string, string> = {
-    pending: "bg-yellow-100 text-yellow-800",
-    approved: "bg-green-100 text-green-800",
-    rejected: "bg-red-100 text-red-800",
-    cancelled: "bg-slate-100 text-slate-600",
+  const styles: Record<string, React.CSSProperties> = {
+    pending:   { backgroundColor: "var(--gold-dim)",  color: "var(--gold)",          border: "1px solid var(--border-gold)" },
+    approved:  { backgroundColor: "var(--teal-dim)",  color: "var(--teal)",          border: "1px solid rgba(13,184,145,0.25)" },
+    rejected:  { backgroundColor: "var(--rose-dim)",  color: "var(--rose)",          border: "1px solid rgba(232,68,90,0.25)" },
+    cancelled: { backgroundColor: "var(--bg-elevated)", color: "var(--text-dim)",    border: "1px solid var(--border-subtle)" },
   };
+  const style = styles[status] ?? styles.cancelled;
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${map[status] ?? "bg-slate-100 text-slate-600"}`}
+      style={{
+        display: "inline-flex", alignItems: "center",
+        borderRadius: 6, padding: "2px 8px",
+        fontSize: "0.75rem", fontWeight: 500,
+        ...style,
+      }}
     >
       {statusLabel(status, locale)}
     </span>
@@ -131,12 +137,12 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
         <CardContent>
           {result ? (
             <div className="space-y-4">
-              <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div style={{ borderRadius: 8, border: "1px solid rgba(13,184,145,0.3)", backgroundColor: "var(--teal-dim)", padding: "12px 16px", fontSize: "0.875rem", color: "var(--teal)" }}>
                 <p className="font-semibold">{t.success_title}</p>
                 <p className="mt-1">
                   <span className="font-medium">{result.cryptoAmount} {result.asset}</span> {t.success_sub}
                 </p>
-                <p className="mt-2 text-xs text-green-700">
+                <p className="mt-2 text-xs" style={{ color: "var(--teal)", opacity: 0.85 }}>
                   {t.success_tx}{" "}
                   <span className="break-all font-mono">{result.txHash}</span>
                 </p>
@@ -148,26 +154,26 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div style={{ borderRadius: 8, border: "1px solid rgba(232,68,90,0.3)", backgroundColor: "var(--rose-dim)", padding: "12px 16px", fontSize: "0.875rem", color: "var(--rose)" }}>
                   {error}
                 </div>
               )}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">{t.label_asset}</label>
-                  <Input value={FIXED_WITHDRAWAL_ASSET} readOnly className="bg-slate-50" />
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>{t.label_asset}</label>
+                  <Input value={FIXED_WITHDRAWAL_ASSET} readOnly style={{ opacity: 0.7 }} />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium text-slate-700">{t.label_network}</label>
-                  <Input value={FIXED_WITHDRAWAL_NETWORK} readOnly className="bg-slate-50" />
-                  <p className="text-xs text-slate-500">{t.hint_network}</p>
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>{t.label_network}</label>
+                  <Input value={FIXED_WITHDRAWAL_NETWORK} readOnly style={{ opacity: 0.7 }} />
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t.hint_network}</p>
                 </div>
               </div>
 
               {/* Amount */}
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">{t.label_amount} *</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>{t.label_amount} *</label>
                 <Input
                   type="number"
                   min="1"
@@ -178,12 +184,12 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
                   required
                 />
                 {walletLoading ? (
-                  <p className="text-xs text-slate-400">{t.loading_balance}</p>
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t.loading_balance}</p>
                 ) : availableBalance != null ? (
-                  <p className="text-xs text-slate-500">
+                  <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
                     {t.available} ${availableBalance.toFixed(2)}
                     {insufficientFunds && (
-                      <span className="ml-1 font-medium text-red-600">{t.insufficient}</span>
+                      <span style={{ marginLeft: 4, fontWeight: 500, color: "var(--rose)" }}>{t.insufficient}</span>
                     )}
                   </p>
                 ) : null}
@@ -191,30 +197,40 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
 
               {/* Wallet address */}
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">{t.label_address} *</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>{t.label_address} *</label>
                 <Input
                   placeholder="e.g. 0x1a2b3c… or bc1q…"
                   value={address}
                   onChange={(e) => { setAddress(e.target.value); setError(null); }}
                   required
                 />
-                <p className="text-xs text-slate-500">{t.hint_address}</p>
+                <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t.hint_address}</p>
               </div>
 
               {/* Notes */}
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">{t.label_notes}</label>
+                <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>{t.label_notes}</label>
                 <textarea
                   rows={2}
                   placeholder={locale === "zh" ? "如有额外信息请填写…" : "Any additional information for the admin…"}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  style={{
+                    width: "100%",
+                    borderRadius: 8,
+                    border: "1px solid var(--border-subtle)",
+                    backgroundColor: "var(--bg-elevated)",
+                    color: "var(--text-primary)",
+                    padding: "8px 12px",
+                    fontSize: "0.875rem",
+                    outline: "none",
+                    resize: "vertical",
+                  }}
                 />
               </div>
 
               {/* Info box */}
-              <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+              <div style={{ borderRadius: 8, border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: "12px 16px", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
                 <p className="font-medium">{t.how_it_works}</p>
                 <ul className="mt-1 list-disc pl-4 space-y-0.5 text-xs">
                   <li>{t.hint_1}</li>
@@ -238,13 +254,13 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
 
       {/* History */}
       <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">{t.history_title}</h2>
+        <h2 className="mb-3 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{t.history_title}</h2>
 
         {historyLoading ? (
-          <p className="text-sm text-slate-400">{t.loading_balance}</p>
+          <p style={{ fontSize: "0.875rem", color: "var(--text-dim)" }}>{t.loading_balance}</p>
         ) : history.length === 0 ? (
           <Card>
-            <CardContent className="py-8 text-center text-sm text-slate-500">
+            <CardContent className="py-8 text-center" style={{ fontSize: "0.875rem", color: "var(--text-dim)" }}>
               {t.no_history}
             </CardContent>
           </Card>

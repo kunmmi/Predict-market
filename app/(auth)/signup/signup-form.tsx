@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { signupSchema, signupUsernameSchema } from "@/lib/validations/auth";
 import type { Locale, T } from "@/lib/i18n/translations";
 
@@ -96,7 +97,10 @@ export function SignupForm({ locale, t }: Props) {
 
   const promoField = (register: typeof emailForm.register | typeof usernameForm.register) => (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-slate-700" htmlFor="promoCode">
+      <label
+        style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}
+        htmlFor="promoCode"
+      >
         {t.promo_code}
       </label>
       <div className="relative">
@@ -113,62 +117,126 @@ export function SignupForm({ locale, t }: Props) {
         />
         {promoCodeValue && promoCodeValue.trim().length >= 4 && (
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
-            {promoStatus === "checking" && <span className="text-slate-400">...</span>}
-            {promoStatus === "valid" && <span className="text-green-600">&#10003;</span>}
-            {promoStatus === "invalid" && <span className="text-red-500">&#10007;</span>}
+            {promoStatus === "checking" && <span style={{ color: "var(--text-dim)" }}>...</span>}
+            {promoStatus === "valid" && <span style={{ color: "var(--teal)" }}>&#10003;</span>}
+            {promoStatus === "invalid" && <span style={{ color: "var(--rose)" }}>&#10007;</span>}
           </span>
         )}
       </div>
       {promoStatus === "invalid" && promoMessage ? (
-        <p className="text-sm text-red-600">{promoMessage}</p>
+        <p style={{ fontSize: "0.875rem", color: "var(--rose)" }}>{promoMessage}</p>
       ) : promoStatus === "valid" ? (
-        <p className="text-sm text-emerald-600">{t.promo_accepted}</p>
+        <p style={{ fontSize: "0.875rem", color: "var(--teal)" }}>{t.promo_accepted}</p>
       ) : null}
     </div>
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-slate-700 bg-slate-900">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="rounded bg-yellow-400 p-1.5 text-slate-900">
-              <BarChart3 className="h-4 w-4" />
+    <div className="flex min-h-screen flex-col" style={{ backgroundColor: "var(--bg-base)" }}>
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          borderBottom: "1px solid var(--border-dim)",
+          backgroundColor: "var(--bg-nav-glass)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+        }}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6" style={{ height: 56 }}>
+          <Link href="/" className="flex items-center gap-2.5" style={{ textDecoration: "none" }}>
+            <div
+              style={{
+                width: 28, height: 28,
+                background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
+                borderRadius: 7,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 0 12px var(--gold-glow)",
+                flexShrink: 0,
+              }}
+            >
+              <BarChart3 style={{ width: 14, height: 14, color: "#070809" }} />
             </div>
-            <span className="text-base font-semibold tracking-tight text-white">Predict Market</span>
+            <span
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "1.0625rem",
+                fontWeight: 600,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                color: "var(--text-primary)",
+              }}
+            >
+              Predict Market
+            </span>
           </Link>
-          <LanguageSwitcher locale={locale} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <ThemeToggle />
+            <LanguageSwitcher locale={locale} />
+          </div>
         </div>
       </header>
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
         <Card className="w-full max-w-md animate-fade-up">
           <CardHeader>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{t.signup_eyebrow}</p>
+            <p
+              style={{
+                fontSize: "0.6875rem",
+                textTransform: "uppercase",
+                letterSpacing: "0.2em",
+                color: "var(--text-dim)",
+              }}
+            >
+              {t.signup_eyebrow}
+            </p>
             <CardTitle>{t.signup_title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Tab Toggle */}
-            <div className="flex rounded-md border border-slate-200 p-1">
+            <div
+              style={{
+                display: "flex",
+                borderRadius: 8,
+                border: "1px solid var(--border-subtle)",
+                padding: 4,
+                gap: 2,
+              }}
+            >
               <button
                 type="button"
                 onClick={() => { setTab("email"); setErrorMessage(null); }}
-                className={`flex-1 rounded py-1.5 text-sm font-medium transition-colors ${
-                  tab === "email"
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                style={{
+                  flex: 1,
+                  borderRadius: 6,
+                  padding: "6px 0",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  transition: "all 150ms ease",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: tab === "email" ? "var(--bg-overlay)" : "transparent",
+                  color: tab === "email" ? "var(--text-primary)" : "var(--text-secondary)",
+                }}
               >
                 {t.tab_email}
               </button>
               <button
                 type="button"
                 onClick={() => { setTab("username"); setErrorMessage(null); }}
-                className={`flex-1 rounded py-1.5 text-sm font-medium transition-colors ${
-                  tab === "username"
-                    ? "bg-slate-900 text-white"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
+                style={{
+                  flex: 1,
+                  borderRadius: 6,
+                  padding: "6px 0",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  transition: "all 150ms ease",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: tab === "username" ? "var(--bg-overlay)" : "transparent",
+                  color: tab === "username" ? "var(--text-primary)" : "var(--text-secondary)",
+                }}
               >
                 {t.tab_username}
               </button>
@@ -178,37 +246,41 @@ export function SignupForm({ locale, t }: Props) {
             {tab === "email" && (
               <form className="space-y-4" onSubmit={emailForm.handleSubmit(onEmailSubmit)}>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700" htmlFor="email">{t.email}</label>
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }} htmlFor="email">{t.email}</label>
                   <Input id="email" type="email" autoComplete="email" {...emailForm.register("email")} />
                   {emailForm.formState.errors.email?.message && (
-                    <p className="text-sm text-red-600">{emailForm.formState.errors.email.message}</p>
+                    <p style={{ fontSize: "0.875rem", color: "var(--rose)" }}>{emailForm.formState.errors.email.message}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700" htmlFor="fullName">{t.full_name}</label>
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }} htmlFor="fullName">{t.full_name}</label>
                   <Input id="fullName" type="text" autoComplete="name" {...emailForm.register("fullName")} />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700" htmlFor="password-email">{t.password}</label>
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }} htmlFor="password-email">{t.password}</label>
                   <Input id="password-email" type="password" autoComplete="new-password" {...emailForm.register("password")} />
                   {emailForm.formState.errors.password?.message && (
-                    <p className="text-sm text-red-600">{emailForm.formState.errors.password.message}</p>
+                    <p style={{ fontSize: "0.875rem", color: "var(--rose)" }}>{emailForm.formState.errors.password.message}</p>
                   )}
                 </div>
 
                 {promoField(emailForm.register)}
 
-                {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
+                {errorMessage && <p style={{ fontSize: "0.875rem", color: "var(--rose)" }}>{errorMessage}</p>}
 
                 <Button type="submit" disabled={emailForm.formState.isSubmitting} className="w-full">
                   {emailForm.formState.isSubmitting ? t.creating : t.create}
                 </Button>
 
-                <p className="text-center text-sm text-slate-600">
+                <p style={{ textAlign: "center", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
                   {t.have_account}{" "}
-                  <Link href="/login" className="font-medium text-slate-900 underline underline-offset-4 hover:text-yellow-600">
+                  <Link
+                    href="/login"
+                    style={{ fontWeight: 500, color: "var(--text-primary)", textDecoration: "underline", textUnderlineOffset: 4 }}
+                    className="hover:text-[var(--gold)]"
+                  >
                     {t.sign_in_link}
                   </Link>
                 </p>
@@ -219,7 +291,7 @@ export function SignupForm({ locale, t }: Props) {
             {tab === "username" && (
               <form className="space-y-4" onSubmit={usernameForm.handleSubmit(onUsernameSubmit)}>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700" htmlFor="username">{t.username}</label>
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }} htmlFor="username">{t.username}</label>
                   <Input
                     id="username"
                     type="text"
@@ -228,33 +300,46 @@ export function SignupForm({ locale, t }: Props) {
                     {...usernameForm.register("username")}
                   />
                   {usernameForm.formState.errors.username?.message && (
-                    <p className="text-sm text-red-600">{usernameForm.formState.errors.username.message}</p>
+                    <p style={{ fontSize: "0.875rem", color: "var(--rose)" }}>{usernameForm.formState.errors.username.message}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700" htmlFor="password-username">{t.password}</label>
+                  <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }} htmlFor="password-username">{t.password}</label>
                   <Input id="password-username" type="password" autoComplete="new-password" {...usernameForm.register("password")} />
                   {usernameForm.formState.errors.password?.message && (
-                    <p className="text-sm text-red-600">{usernameForm.formState.errors.password.message}</p>
+                    <p style={{ fontSize: "0.875rem", color: "var(--rose)" }}>{usernameForm.formState.errors.password.message}</p>
                   )}
                 </div>
 
                 {promoField(usernameForm.register)}
 
-                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                <p
+                  style={{
+                    borderRadius: 6,
+                    border: "1px solid var(--border-gold)",
+                    backgroundColor: "var(--gold-dim)",
+                    padding: "8px 12px",
+                    fontSize: "0.75rem",
+                    color: "var(--gold)",
+                  }}
+                >
                   {t.username_no_reset}
                 </p>
 
-                {errorMessage && <p className="text-sm text-red-600">{errorMessage}</p>}
+                {errorMessage && <p style={{ fontSize: "0.875rem", color: "var(--rose)" }}>{errorMessage}</p>}
 
                 <Button type="submit" disabled={usernameForm.formState.isSubmitting} className="w-full">
                   {usernameForm.formState.isSubmitting ? t.creating : t.create}
                 </Button>
 
-                <p className="text-center text-sm text-slate-600">
+                <p style={{ textAlign: "center", fontSize: "0.875rem", color: "var(--text-secondary)" }}>
                   {t.have_account}{" "}
-                  <Link href="/login" className="font-medium text-slate-900 underline underline-offset-4 hover:text-yellow-600">
+                  <Link
+                    href="/login"
+                    style={{ fontWeight: 500, color: "var(--text-primary)", textDecoration: "underline", textUnderlineOffset: 4 }}
+                    className="hover:text-[var(--gold)]"
+                  >
                     {t.sign_in_link}
                   </Link>
                 </p>

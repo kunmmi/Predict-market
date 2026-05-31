@@ -11,7 +11,7 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-[var(--gold)] text-[#070809] shadow-sm hover:opacity-90 active:opacity-80",
+          "bg-gradient-to-br from-[var(--gold-btn-light)] to-[var(--gold-btn)] text-[#070809] shadow-sm hover:opacity-90 active:opacity-80",
         secondary:
           "border border-[var(--border-strong)] bg-[var(--bg-elevated)] text-[var(--text-primary)] hover:border-[var(--border-gold)] hover:text-[var(--gold)]",
         destructive:
