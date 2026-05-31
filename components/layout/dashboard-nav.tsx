@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import type { Locale, T } from "@/lib/i18n/translations";
 
 type Props = { locale: Locale; t: T["nav"] };
@@ -42,7 +43,7 @@ export function DashboardNav({ locale, t }: Props) {
           top: 0,
           zIndex: 50,
           borderBottom: "1px solid var(--border-dim)",
-          backgroundColor: "rgba(7,8,9,0.92)",
+          backgroundColor: "var(--bg-nav-glass)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
         }}
@@ -107,7 +108,7 @@ export function DashboardNav({ locale, t }: Props) {
                         borderBottom: isActive ? "2px solid var(--gold)" : "2px solid transparent",
                         marginBottom: "-1px",
                       }}
-                      className={isActive ? "" : "hover:!text-white"}
+                      className={isActive ? "" : "hover:!text-[--text-primary]"}
                     >
                       <Icon style={{ width: 13, height: 13, flexShrink: 0 }} />
                       {label}
@@ -146,6 +147,7 @@ export function DashboardNav({ locale, t }: Props) {
 
           {/* Right controls */}
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <LanguageSwitcher locale={locale} />
             <div className="hidden md:block">
               <LogoutButton label={t.logout} />
@@ -164,7 +166,7 @@ export function DashboardNav({ locale, t }: Props) {
                 cursor: "pointer",
                 transition: "all 150ms ease",
               }}
-              className="md:hidden hover:!border-[--border-strong] hover:!text-white"
+              className="md:hidden hover:!border-[--border-strong] hover:!text-[--text-primary]"
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X style={{ width: 16, height: 16 }} /> : <Menu style={{ width: 16, height: 16 }} />}
@@ -178,7 +180,7 @@ export function DashboardNav({ locale, t }: Props) {
         <div
           style={{
             position: "fixed", inset: 0, zIndex: 40,
-            backgroundColor: "rgba(0,0,0,0.7)",
+            backgroundColor: "var(--bg-scrim)",
             backdropFilter: "blur(4px)",
           }}
           className="md:hidden"
@@ -197,7 +199,7 @@ export function DashboardNav({ locale, t }: Props) {
           flexDirection: "column",
           backgroundColor: "var(--bg-surface)",
           borderLeft: "1px solid var(--border-subtle)",
-          boxShadow: "-32px 0 64px rgba(0,0,0,0.5)",
+          boxShadow: "-32px 0 64px var(--shadow-drawer)",
           transform: mobileOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 280ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
