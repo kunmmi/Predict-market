@@ -369,51 +369,126 @@ export function TradeForm({
               </p>
             ) : null}
 
-            {/* ── Action bar — inline on all screen sizes ──────────────────── */}
+            {/* ── Action bar ───────────────────────────────────────────────── */}
             <div className="space-y-3">
-              {/* Direction buttons */}
-              <div style={{ display: "flex", gap: 10 }}>
-                {(
-                  [
-                    { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, accent: "var(--teal)", dimBg: "rgba(13,184,145,0.12)", dimBorder: "rgba(13,184,145,0.25)", selBg: "rgba(13,184,145,0.22)", selBorder: "rgba(13,184,145,0.5)" },
-                    { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  accent: "var(--rose)", dimBg: "rgba(232,68,90,0.12)",  dimBorder: "rgba(232,68,90,0.25)",  selBg: "rgba(232,68,90,0.22)",  selBorder: "rgba(232,68,90,0.5)"  },
-                  ] as const
-                ).map(({ s, label, livePrice, accent, dimBg, dimBorder, selBg, selBorder }) => {
-                  const p    = livePrice != null ? parseFloat(livePrice) : null;
-                  const mult = p != null && p > 0 ? (1 / p).toFixed(2) : null;
-                  const isSelected = side === s;
-                  return (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setSide(s)}
-                      disabled={isPredictionClosed}
-                      style={{
-                        flex: 1,
-                        borderRadius: "var(--radius-md)",
-                        border: `2px solid ${isSelected ? selBorder : dimBorder}`,
-                        backgroundColor: isSelected ? selBg : dimBg,
-                        padding: "12px",
-                        textAlign: "center",
-                        cursor: isPredictionClosed ? "not-allowed" : "pointer",
-                        opacity: isPredictionClosed ? 0.6 : 1,
-                        transition: "background-color 200ms ease, opacity 200ms ease, box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)",
-                        boxShadow: isSelected ? `0 0 16px ${dimBg}` : "none",
-                      }}
-                    >
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: accent, opacity: 0.9 }}>
-                        {label}
-                      </div>
-                      <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em", color: accent }}>
-                        {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
-                      </div>
-                      <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 600, color: accent, opacity: isSelected ? 0.9 : 0.6 }}>
-                        {mult != null ? `${mult}× payout` : ""}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+
+              {/* Direction selector — compact tabs in mobile sheet, big cards on desktop */}
+              {compact ? (
+                /* ── Compact: tab-style UP / DOWN row ── */
+                <div style={{ display: "flex", gap: 8, borderRadius: "var(--radius-md)", padding: 4, backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border-subtle)" }}>
+                  {(
+                    [
+                      { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, accent: "var(--teal)", selBg: "rgba(13,184,145,0.22)", selBorder: "rgba(13,184,145,0.5)" },
+                      { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  accent: "var(--rose)", selBg: "rgba(232,68,90,0.22)",  selBorder: "rgba(232,68,90,0.5)"  },
+                    ] as const
+                  ).map(({ s, label, livePrice, accent, selBg, selBorder }) => {
+                    const p = livePrice != null ? parseFloat(livePrice) : null;
+                    const isSelected = side === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setSide(s)}
+                        disabled={isPredictionClosed}
+                        style={{
+                          flex: 1,
+                          borderRadius: "calc(var(--radius-md) - 4px)",
+                          border: `1.5px solid ${isSelected ? selBorder : "transparent"}`,
+                          backgroundColor: isSelected ? selBg : "transparent",
+                          padding: "8px 0",
+                          textAlign: "center",
+                          cursor: isPredictionClosed ? "not-allowed" : "pointer",
+                          opacity: isPredictionClosed ? 0.5 : 1,
+                          transition: "background-color 180ms ease, border-color 180ms ease",
+                        }}
+                      >
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 700, color: accent }}>
+                          {label} {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* ── Desktop: big price cards ── */
+                <div style={{ display: "flex", gap: 10 }}>
+                  {(
+                    [
+                      { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, accent: "var(--teal)", dimBg: "rgba(13,184,145,0.12)", dimBorder: "rgba(13,184,145,0.25)", selBg: "rgba(13,184,145,0.22)", selBorder: "rgba(13,184,145,0.5)" },
+                      { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  accent: "var(--rose)", dimBg: "rgba(232,68,90,0.12)",  dimBorder: "rgba(232,68,90,0.25)",  selBg: "rgba(232,68,90,0.22)",  selBorder: "rgba(232,68,90,0.5)"  },
+                    ] as const
+                  ).map(({ s, label, livePrice, accent, dimBg, dimBorder, selBg, selBorder }) => {
+                    const p    = livePrice != null ? parseFloat(livePrice) : null;
+                    const mult = p != null && p > 0 ? (1 / p).toFixed(2) : null;
+                    const isSelected = side === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setSide(s)}
+                        disabled={isPredictionClosed}
+                        style={{
+                          flex: 1,
+                          borderRadius: "var(--radius-md)",
+                          border: `2px solid ${isSelected ? selBorder : dimBorder}`,
+                          backgroundColor: isSelected ? selBg : dimBg,
+                          padding: "12px",
+                          textAlign: "center",
+                          cursor: isPredictionClosed ? "not-allowed" : "pointer",
+                          opacity: isPredictionClosed ? 0.6 : 1,
+                          transition: "background-color 200ms ease, opacity 200ms ease, box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+                          boxShadow: isSelected ? `0 0 16px ${dimBg}` : "none",
+                        }}
+                      >
+                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: accent, opacity: 0.9 }}>{label}</div>
+                        <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em", color: accent }}>
+                          {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
+                        </div>
+                        <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 600, color: accent, opacity: isSelected ? 0.9 : 0.6 }}>
+                          {mult != null ? `${mult}× payout` : ""}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── Quick-amount presets (compact / mobile only) ─────────────── */}
+              {compact && priceNum != null && !isPredictionClosed && (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                  {[5, 10, 25, 50].map((preset) => {
+                    const win = (preset / priceNum).toFixed(2);
+                    const isActive = amount === String(preset);
+                    const accent = side === "yes" ? "var(--teal)" : "var(--rose)";
+                    const activeBg = side === "yes" ? "rgba(13,184,145,0.18)" : "rgba(232,68,90,0.18)";
+                    const activeBorder = side === "yes" ? "rgba(13,184,145,0.5)" : "rgba(232,68,90,0.5)";
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => { setAmount(String(preset)); setError(null); }}
+                        style={{
+                          borderRadius: "var(--radius-md)",
+                          border: `1.5px solid ${isActive ? activeBorder : "var(--border-subtle)"}`,
+                          backgroundColor: isActive ? activeBg : "var(--bg-elevated)",
+                          padding: "10px 4px",
+                          textAlign: "center",
+                          cursor: "pointer",
+                          transition: "background-color 150ms ease, border-color 150ms ease",
+                        }}
+                        className="active:scale-[0.95]"
+                      >
+                        <div style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", fontWeight: 700, color: isActive ? accent : "var(--text-primary)" }}>
+                          ${preset}
+                        </div>
+                        <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: isActive ? accent : "var(--text-dim)" }}>
+                          win ${win}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               <div className="flex items-center gap-2">
                 <Input
