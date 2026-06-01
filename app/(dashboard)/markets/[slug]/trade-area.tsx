@@ -214,120 +214,71 @@ export function TradeArea(props: Props) {
             </div>
           </div>
 
-          {/* ── Collapsed pill — always floats above bottom nav ────────────── */}
-          <div
+          {/* ── Collapsed button — right-anchored rectangle ───────────────── */}
+          <button
+            type="button"
+            onClick={() => setIsExpanded(true)}
+            className="lg:hidden"
             style={{
               position: "fixed",
-              left: 0,
-              right: 0,
-              bottom: "calc(64px + env(safe-area-inset-bottom))",
+              right: 12,
+              bottom: "calc(64px + 14px + env(safe-area-inset-bottom))",
               zIndex: 47,
-              padding: "0 12px 8px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 5,
+              width: 72,
+              padding: "10px 0",
+              borderRadius: 16,
+              backgroundColor: "rgba(7,8,9,0.94)",
+              border: "1px solid var(--border-subtle)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "0 4px 24px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset",
+              cursor: "pointer",
               opacity: isExpanded ? 0 : 1,
               pointerEvents: isExpanded ? "none" : "auto",
               transition: "opacity 220ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
+            aria-label={zh ? "下单" : "Trade"}
           >
-            <button
-              type="button"
-              onClick={() => setIsExpanded(true)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                width: "100%",
-                gap: 10,
-                height: 52,
-                padding: "0 14px",
-                borderRadius: 14,
-                backgroundColor: "rgba(7,8,9,0.94)",
-                border: "1px solid var(--border-subtle)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                boxShadow: "0 4px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset",
-                cursor: "pointer",
-              }}
-            >
-              {hasPosition && view === "position" ? (
-                /* ── Position indicator ── */
-                <>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      backgroundColor: "var(--teal)",
-                      boxShadow: "0 0 8px var(--teal)",
-                      flexShrink: 0,
-                      animation: "pulseDot 1.4s ease-in-out infinite",
-                    }}
-                  />
-                  <div style={{ flex: 1, textAlign: "left" }}>
-                    <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--teal)" }}>
-                      {zh ? "持仓已开立" : "Position open"}
-                    </p>
-                    <p style={{ marginTop: 1, fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                      {zh ? "点击查看 · 卖出 · 加仓" : "Tap to view · sell · buy more"}
-                    </p>
-                  </div>
-                  <ChevronUp style={{ width: 15, height: 15, color: "var(--text-dim)", flexShrink: 0 }} />
-                </>
-              ) : (
-                /* ── Trade price chips ── */
-                <>
-                  <div style={{ display: "flex", flex: 1, alignItems: "center", gap: 8 }}>
-                    {yesP != null && (
-                      <div
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: 100,
-                          border: "1px solid rgba(13,184,145,0.35)",
-                          backgroundColor: "rgba(13,184,145,0.1)",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.875rem",
-                          fontWeight: 700,
-                          color: "var(--teal)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {upLabel} {(yesP * 100).toFixed(0)}¢
-                      </div>
-                    )}
-                    {noP != null && (
-                      <div
-                        style={{
-                          padding: "4px 10px",
-                          borderRadius: 100,
-                          border: "1px solid rgba(232,68,90,0.35)",
-                          backgroundColor: "rgba(232,68,90,0.1)",
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.875rem",
-                          fontWeight: 700,
-                          color: "var(--rose)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {downLabel} {(noP * 100).toFixed(0)}¢
-                      </div>
-                    )}
-                    {hasPosition && (
-                      <span
-                        style={{
-                          width: 7,
-                          height: 7,
-                          borderRadius: "50%",
-                          backgroundColor: "var(--teal)",
-                          boxShadow: "0 0 6px var(--teal)",
-                          flexShrink: 0,
-                        }}
-                        title={zh ? "持仓中" : "Position open"}
-                      />
-                    )}
-                  </div>
-                  <ChevronUp style={{ width: 15, height: 15, color: "var(--text-dim)", flexShrink: 0 }} />
-                </>
-              )}
-            </button>
-          </div>
+            {hasPosition ? (
+              /* Position open state */
+              <>
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    backgroundColor: "var(--teal)",
+                    boxShadow: "0 0 8px var(--teal)",
+                    animation: "pulseDot 1.4s ease-in-out infinite",
+                  }}
+                />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 700, color: "var(--teal)", letterSpacing: "0.04em" }}>
+                  {zh ? "持仓" : "OPEN"}
+                </span>
+                <ChevronUp style={{ width: 13, height: 13, color: "var(--text-dim)" }} />
+              </>
+            ) : (
+              /* Trade state — stacked UP / DOWN prices */
+              <>
+                {yesP != null && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 700, color: "var(--teal)", letterSpacing: "-0.01em" }}>
+                    ↑{(yesP * 100).toFixed(0)}¢
+                  </span>
+                )}
+                {noP != null && (
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 700, color: "var(--rose)", letterSpacing: "-0.01em" }}>
+                    ↓{(noP * 100).toFixed(0)}¢
+                  </span>
+                )}
+                <ChevronUp style={{ width: 13, height: 13, color: "var(--text-dim)", marginTop: 1 }} />
+              </>
+            )}
+          </button>
         </div>,
         document.body,
       )}
