@@ -258,7 +258,7 @@ export function TradeForm({
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <form onSubmit={handleSubmit} className={compact ? "space-y-2" : "space-y-4"} noValidate>
             {/* Upcoming round info banner */}
             {!compact && isUpcoming && isShortDuration && durationMinutes != null && now != null && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12, borderRadius: "var(--radius-md)", border: "1px solid var(--border-gold)", backgroundColor: "var(--gold-dim)", padding: 16 }}>
@@ -370,7 +370,7 @@ export function TradeForm({
             ) : null}
 
             {/* ── Action bar ───────────────────────────────────────────────── */}
-            <div className="space-y-3">
+            <div className={compact ? "space-y-2" : "space-y-3"}>
 
               {/* Direction selector — compact tabs in mobile sheet, big cards on desktop */}
               {compact ? (
@@ -395,14 +395,14 @@ export function TradeForm({
                           borderRadius: "calc(var(--radius-md) - 4px)",
                           border: `1.5px solid ${isSelected ? selBorder : "transparent"}`,
                           backgroundColor: isSelected ? selBg : "transparent",
-                          padding: "8px 0",
+                          padding: "5px 0",
                           textAlign: "center",
                           cursor: isPredictionClosed ? "not-allowed" : "pointer",
                           opacity: isPredictionClosed ? 0.5 : 1,
                           transition: "background-color 180ms ease, border-color 180ms ease",
                         }}
                       >
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 700, color: accent }}>
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fontWeight: 700, color: accent }}>
                           {label} {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
                         </span>
                       </button>
@@ -455,7 +455,7 @@ export function TradeForm({
 
               {/* ── Quick-amount presets (compact / mobile only) ─────────────── */}
               {compact && priceNum != null && !isPredictionClosed && (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
                   {[5, 10, 25, 50].map((preset) => {
                     const win = (preset / priceNum).toFixed(2);
                     const isActive = amount === String(preset);
@@ -471,17 +471,17 @@ export function TradeForm({
                           borderRadius: "var(--radius-md)",
                           border: `1.5px solid ${isActive ? activeBorder : "var(--border-subtle)"}`,
                           backgroundColor: isActive ? activeBg : "var(--bg-elevated)",
-                          padding: "10px 4px",
+                          padding: "6px 4px",
                           textAlign: "center",
                           cursor: "pointer",
                           transition: "background-color 150ms ease, border-color 150ms ease",
                         }}
                         className="active:scale-[0.95]"
                       >
-                        <div style={{ fontFamily: "var(--font-sans)", fontSize: "0.9375rem", fontWeight: 700, color: isActive ? accent : "var(--text-primary)" }}>
+                        <div style={{ fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 700, color: isActive ? accent : "var(--text-primary)" }}>
                           ${preset}
                         </div>
-                        <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: isActive ? accent : "var(--text-dim)" }}>
+                        <div style={{ marginTop: 1, fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: isActive ? accent : "var(--text-dim)" }}>
                           win ${win}
                         </div>
                       </button>
