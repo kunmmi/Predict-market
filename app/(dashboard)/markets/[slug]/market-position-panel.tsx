@@ -29,6 +29,8 @@ type Props = {
   locale: Locale;
   /** Bumped by TradeArea when a new trade is placed. */
   refreshTick?: number;
+  /** Called when the user taps "Buy Again" */
+  onBuyAgain?: () => void;
 };
 
 export function MarketPositionPanel({
@@ -39,6 +41,7 @@ export function MarketPositionPanel({
   spotPriceAtOpen,
   locale,
   refreshTick,
+  onBuyAgain,
 }: Props) {
   const zh = locale === "zh";
 
@@ -54,17 +57,14 @@ export function MarketPositionPanel({
 
   const { refetch: refetchWallet } = useWallet();
 
-  // Live spot price from Binance (only for short-duration markets)
   const binanceSymbol = isShortDuration ? (ASSET_TO_BINANCE[assetSymbol] ?? null) : null;
   const { currentPrice: liveSpotPrice, candles } = useBinanceKlineStream(binanceSymbol);
 
-  // Tick every second so time-based prices stay fresh
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1_000);
     return () => window.clearInterval(id);
   }, []);
 
-  // Live YES price (same formula as trade-form)
   const liveYesPrice = useMemo(() => {
     if (!isShortDuration || liveSpotPrice == null || spotPriceAtOpen == null) return null;
     const secondsRemaining = Math.max(0, Math.floor((new Date(closeAt).getTime() - now) / 1_000));
@@ -110,25 +110,21 @@ export function MarketPositionPanel({
   const hasYes = yesUnits > 0.0001;
   const hasNo  = noUnits  > 0.0001;
 
-  // Current market value of holdings
   const yesPriceForCalc = liveYesPrice ?? null;
   const noPriceForCalc  = liveNoPrice  ?? null;
 
   const yesCurrentValue = hasYes && yesPriceForCalc != null ? yesUnits * yesPriceForCalc : null;
   const noCurrentValue  = hasNo  && noPriceForCalc  != null ? noUnits  * noPriceForCalc  : null;
 
-  // Cost basis
   const yesCost = hasYes && avgYesPrice != null ? yesUnits * avgYesPrice : null;
   const noCost  = hasNo  && avgNoPrice  != null ? noUnits  * avgNoPrice  : null;
 
   const yesPnl = yesCurrentValue != null && yesCost != null ? yesCurrentValue - yesCost : null;
   const noPnl  = noCurrentValue  != null && noCost  != null ? noCurrentValue  - noCost  : null;
 
-  // Payout if wins ($1 per unit)
-  const upLabel   = isShortDuration ? (zh ? "UP"   : "UP")   : "YES";
-  const downLabel = isShortDuration ? (zh ? "DOWN" : "DOWN") : "NO";
+  const upLabel   = isShortDuration ? (zh ? "看涨" : "UP")   : "YES";
+  const downLabel = isShortDuration ? (zh ? "看跌" : "DOWN") : "NO";
 
-  // Sell form helpers
   const openSell = (side: "yes" | "no") => {
     setSellSide(side);
     setSellUnits(side === "yes" ? String(yesUnits) : String(noUnits));
@@ -137,15 +133,12 @@ export function MarketPositionPanel({
   };
   const closeSell = () => { setSellSide(null); setSellUnits(""); setSellError(null); };
 
-  const sellUnitsNum = parseFloat(sellUnits);
-  const maxSellUnits = sellSide === "yes" ? yesUnits : noUnits;
-  const sellPrice    = sellSide === "yes" ? yesPriceForCalc : noPriceForCalc;
+  const sellUnitsNum  = parseFloat(sellUnits);
+  const maxSellUnits  = sellSide === "yes" ? yesUnits : noUnits;
+  const sellPrice     = sellSide === "yes" ? yesPriceForCalc : noPriceForCalc;
   const estimatedGross = !isNaN(sellUnitsNum) && sellUnitsNum > 0 && sellPrice != null
-    ? sellUnitsNum * sellPrice
-    : null;
-  const estimatedPayout = estimatedGross != null
-    ? estimatedGross * (1 - SELL_FEE_RATE)
-    : null;
+    ? sellUnitsNum * sellPrice : null;
+  const estimatedPayout = estimatedGross != null ? estimatedGross * (1 - SELL_FEE_RATE) : null;
 
   const handleSell = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,188 +164,308 @@ export function MarketPositionPanel({
     }
   };
 
-  const fmt = (n: number) => n.toFixed(2);
-  const fmtPnl = (n: number) => `${n >= 0 ? "+" : ""}$${fmt(Math.abs(n))}`;
+  const fmt    = (n: number) => n.toFixed(2);
+  const fmtPnl = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toFixed(2)}`;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
-        {zh ? "我的持仓" : "Your Position"}
-      </p>
+    <div
+      style={{
+        borderRadius: "var(--radius-lg)",
+        border: "1px solid var(--border-subtle)",
+        backgroundColor: "var(--bg-surface)",
+        padding: "16px",
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+          {zh ? "我的持仓" : "Your Position"}
+        </p>
+        {/* Buy Again */}
+        {onBuyAgain && (
+          <button
+            type="button"
+            onClick={onBuyAgain}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              height: 30,
+              padding: "0 14px",
+              borderRadius: 100,
+              background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
+              color: "#070809",
+              fontFamily: "var(--font-sans)",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              border: "none",
+              cursor: "pointer",
+              boxShadow: "0 2px 12px rgba(232,160,32,0.25)",
+              transition: "opacity 150ms ease",
+            }}
+            className="active:scale-[0.97] hover:opacity-90"
+          >
+            {zh ? "继续买入" : "Buy Again"}
+          </button>
+        )}
+      </div>
 
+      {/* Sell success */}
       {sellSuccess && (
-        <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
-          {zh ? "出售成功，收益已到账。" : "Sold successfully — proceeds credited to your wallet."}
+        <div style={{ marginBottom: 12, borderRadius: "var(--radius-sm)", border: "1px solid rgba(13,184,145,0.3)", backgroundColor: "var(--teal-dim)", padding: "10px 14px", fontSize: "0.8125rem", fontWeight: 500, color: "var(--teal)" }}>
+          {zh ? "出售成功，收益已到账。" : "Sold — proceeds credited to your wallet."}
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* Position cards */}
+      <div style={{ display: "grid", gap: 10, gridTemplateColumns: hasYes && hasNo ? "1fr 1fr" : "1fr" }}>
         {hasYes && (
-          <div className="rounded-lg border border-green-200 bg-white px-4 py-3 space-y-3">
-            {/* Header row */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wide text-green-600">{upLabel}</span>
-              {sellSide !== "yes" && (
-                <button
-                  onClick={() => openSell("yes")}
-                  className="rounded-md bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors"
-                >
-                  {zh ? "卖出" : "Sell"}
-                </button>
-              )}
-            </div>
-
-            {/* Units + value */}
-            <div>
-              <p className="text-xl font-bold tabular-nums text-slate-900">
-                {yesUnits.toFixed(4)} {zh ? "份" : "units"}
-              </p>
-              <div className="mt-0.5 flex items-baseline gap-2 text-xs text-slate-500">
-                {avgYesPrice != null && (
-                  <span>{zh ? "均价" : "Avg"} ${avgYesPrice.toFixed(3)}</span>
-                )}
-                {yesCurrentValue != null && (
-                  <span className="ml-auto">{zh ? "当前" : "Value"} <span className="font-semibold text-slate-800">${fmt(yesCurrentValue)}</span></span>
-                )}
-              </div>
-              {yesPnl != null && (
-                <p className={`mt-0.5 text-xs font-semibold ${yesPnl >= 0 ? "text-green-600" : "text-red-500"}`}>
-                  {fmtPnl(yesPnl)} {zh ? "浮动盈亏" : "unrealized"}
-                </p>
-              )}
-              <p className="mt-1 text-xs text-slate-400">
-                {zh ? "满仓赢得" : "To win"} <span className="font-semibold text-green-600">${fmt(yesUnits)}</span>
-              </p>
-            </div>
-
-            {/* Inline sell form */}
-            {sellSide === "yes" && (
-              <form onSubmit={handleSell} className="space-y-2 border-t border-slate-100 pt-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">{zh ? "卖出 UP" : "Sell UP"}</span>
-                  <button type="button" onClick={closeSell} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0.0001"
-                    max={maxSellUnits}
-                    step="0.0001"
-                    value={sellUnits}
-                    onChange={(e) => setSellUnits(e.target.value)}
-                    className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-                    placeholder={zh ? "数量" : "Units"}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSellUnits(String(yesUnits))}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-800"
-                  >
-                    {zh ? "全部" : "Max"}
-                  </button>
-                </div>
-                {estimatedPayout != null && (
-                  <p className="text-xs text-slate-500">
-                    {zh ? "预计到账" : "Proceeds"}{" "}
-                    <span className="font-semibold text-slate-800">${fmt(estimatedPayout)}</span>
-                  </p>
-                )}
-                {sellError && <p className="text-xs text-red-600">{sellError}</p>}
-                <button
-                  type="submit"
-                  disabled={selling || isNaN(sellUnitsNum) || sellUnitsNum <= 0 || sellUnitsNum > maxSellUnits}
-                  className="w-full rounded-md bg-green-600 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
-                >
-                  {selling ? (zh ? "处理中…" : "Processing…") : zh ? `确认卖出 $${estimatedPayout != null ? fmt(estimatedPayout) : "—"}` : `Confirm sell · $${estimatedPayout != null ? fmt(estimatedPayout) : "—"}`}
-                </button>
-              </form>
-            )}
-          </div>
+          <PositionCard
+            label={upLabel}
+            accent="var(--teal)"
+            accentDim="var(--teal-dim)"
+            accentBorder="rgba(13,184,145,0.3)"
+            units={yesUnits}
+            avgPrice={avgYesPrice}
+            currentValue={yesCurrentValue}
+            pnl={yesPnl}
+            winPayout={yesUnits}
+            sellSide={sellSide}
+            side="yes"
+            sellUnits={sellUnits}
+            setSellUnits={setSellUnits}
+            maxSellUnits={maxSellUnits}
+            estimatedPayout={sellSide === "yes" ? estimatedPayout : null}
+            selling={selling}
+            sellError={sellSide === "yes" ? sellError : null}
+            onOpenSell={() => openSell("yes")}
+            onCloseSell={closeSell}
+            onSubmitSell={handleSell}
+            zh={zh}
+          />
         )}
-
         {hasNo && (
-          <div className="rounded-lg border border-red-200 bg-white px-4 py-3 space-y-3">
-            {/* Header row */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wide text-red-500">{downLabel}</span>
-              {sellSide !== "no" && (
-                <button
-                  onClick={() => openSell("no")}
-                  className="rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
-                >
-                  {zh ? "卖出" : "Sell"}
-                </button>
-              )}
-            </div>
-
-            {/* Units + value */}
-            <div>
-              <p className="text-xl font-bold tabular-nums text-slate-900">
-                {noUnits.toFixed(4)} {zh ? "份" : "units"}
-              </p>
-              <div className="mt-0.5 flex items-baseline gap-2 text-xs text-slate-500">
-                {avgNoPrice != null && (
-                  <span>{zh ? "均价" : "Avg"} ${avgNoPrice.toFixed(3)}</span>
-                )}
-                {noCurrentValue != null && (
-                  <span className="ml-auto">{zh ? "当前" : "Value"} <span className="font-semibold text-slate-800">${fmt(noCurrentValue)}</span></span>
-                )}
-              </div>
-              {noPnl != null && (
-                <p className={`mt-0.5 text-xs font-semibold ${noPnl >= 0 ? "text-green-600" : "text-red-500"}`}>
-                  {fmtPnl(noPnl)} {zh ? "浮动盈亏" : "unrealized"}
-                </p>
-              )}
-              <p className="mt-1 text-xs text-slate-400">
-                {zh ? "满仓赢得" : "To win"} <span className="font-semibold text-red-500">${fmt(noUnits)}</span>
-              </p>
-            </div>
-
-            {/* Inline sell form */}
-            {sellSide === "no" && (
-              <form onSubmit={handleSell} className="space-y-2 border-t border-slate-100 pt-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">{zh ? "卖出 DOWN" : "Sell DOWN"}</span>
-                  <button type="button" onClick={closeSell} className="text-xs text-slate-400 hover:text-slate-600">✕</button>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min="0.0001"
-                    max={maxSellUnits}
-                    step="0.0001"
-                    value={sellUnits}
-                    onChange={(e) => setSellUnits(e.target.value)}
-                    className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                    placeholder={zh ? "数量" : "Units"}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSellUnits(String(noUnits))}
-                    className="text-xs font-semibold text-slate-500 hover:text-slate-800"
-                  >
-                    {zh ? "全部" : "Max"}
-                  </button>
-                </div>
-                {estimatedPayout != null && (
-                  <p className="text-xs text-slate-500">
-                    {zh ? "预计到账" : "Proceeds"}{" "}
-                    <span className="font-semibold text-slate-800">${fmt(estimatedPayout)}</span>
-                  </p>
-                )}
-                {sellError && <p className="text-xs text-red-600">{sellError}</p>}
-                <button
-                  type="submit"
-                  disabled={selling || isNaN(sellUnitsNum) || sellUnitsNum <= 0 || sellUnitsNum > maxSellUnits}
-                  className="w-full rounded-md bg-red-600 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-                >
-                  {selling ? (zh ? "处理中…" : "Processing…") : zh ? `确认卖出 $${estimatedPayout != null ? fmt(estimatedPayout) : "—"}` : `Confirm sell · $${estimatedPayout != null ? fmt(estimatedPayout) : "—"}`}
-                </button>
-              </form>
-            )}
-          </div>
+          <PositionCard
+            label={downLabel}
+            accent="var(--rose)"
+            accentDim="var(--rose-dim)"
+            accentBorder="rgba(232,68,90,0.3)"
+            units={noUnits}
+            avgPrice={avgNoPrice}
+            currentValue={noCurrentValue}
+            pnl={noPnl}
+            winPayout={noUnits}
+            sellSide={sellSide}
+            side="no"
+            sellUnits={sellUnits}
+            setSellUnits={setSellUnits}
+            maxSellUnits={maxSellUnits}
+            estimatedPayout={sellSide === "no" ? estimatedPayout : null}
+            selling={selling}
+            sellError={sellSide === "no" ? sellError : null}
+            onOpenSell={() => openSell("no")}
+            onCloseSell={closeSell}
+            onSubmitSell={handleSell}
+            zh={zh}
+          />
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── Individual position card ──────────────────────────────────────────────── */
+
+type PositionCardProps = {
+  label: string;
+  accent: string;
+  accentDim: string;
+  accentBorder: string;
+  units: number;
+  avgPrice: number | null;
+  currentValue: number | null;
+  pnl: number | null;
+  winPayout: number;
+  side: "yes" | "no";
+  sellSide: "yes" | "no" | null;
+  sellUnits: string;
+  setSellUnits: (v: string) => void;
+  maxSellUnits: number;
+  estimatedPayout: number | null;
+  selling: boolean;
+  sellError: string | null;
+  onOpenSell: () => void;
+  onCloseSell: () => void;
+  onSubmitSell: (e: React.FormEvent) => void;
+  zh: boolean;
+};
+
+function PositionCard({
+  label, accent, accentDim, accentBorder,
+  units, avgPrice, currentValue, pnl, winPayout,
+  side, sellSide, sellUnits, setSellUnits, maxSellUnits,
+  estimatedPayout, selling, sellError,
+  onOpenSell, onCloseSell, onSubmitSell,
+  zh,
+}: PositionCardProps) {
+  const fmt    = (n: number) => n.toFixed(2);
+  const fmtPnl = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toFixed(2)}`;
+  const sellUnitsNum = parseFloat(sellUnits);
+  const isThisSell = sellSide === side;
+
+  return (
+    <div
+      style={{
+        borderRadius: "var(--radius-md)",
+        border: `1px solid ${accentBorder}`,
+        backgroundColor: accentDim,
+        padding: "12px 14px",
+      }}
+    >
+      {/* Label + sell button */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: accent }}>
+          {label}
+        </span>
+        {!isThisSell && (
+          <button
+            type="button"
+            onClick={onOpenSell}
+            style={{
+              padding: "3px 10px",
+              borderRadius: 100,
+              border: `1px solid ${accentBorder}`,
+              backgroundColor: "var(--bg-elevated)",
+              color: accent,
+              fontFamily: "var(--font-sans)",
+              fontSize: "0.6875rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "background-color 150ms ease",
+            }}
+          >
+            {zh ? "卖出" : "Sell"}
+          </button>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div style={{ marginBottom: 8 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: "1.375rem", fontWeight: 700, color: accent, letterSpacing: "-0.02em" }}>
+          {units.toFixed(4)}
+          <span style={{ fontSize: "0.75rem", fontWeight: 500, marginLeft: 4, color: accent, opacity: 0.7 }}>
+            {zh ? "份" : "units"}
+          </span>
+        </p>
+
+        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 3 }}>
+          {avgPrice != null && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+              <span style={{ color: "var(--text-dim)" }}>{zh ? "均价" : "Avg price"}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500, color: "var(--text-secondary)" }}>${avgPrice.toFixed(3)}</span>
+            </div>
+          )}
+          {currentValue != null && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+              <span style={{ color: "var(--text-dim)" }}>{zh ? "当前市值" : "Market value"}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>${fmt(currentValue)}</span>
+            </div>
+          )}
+          {pnl != null && (
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+              <span style={{ color: "var(--text-dim)" }}>{zh ? "浮盈亏" : "Unrealized"}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: pnl >= 0 ? "var(--teal)" : "var(--rose)" }}>{fmtPnl(pnl)}</span>
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 4, marginTop: 2 }}>
+            <span style={{ color: "var(--text-dim)" }}>{zh ? "赢得" : "If wins"}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: accent }}>${fmt(winPayout)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Inline sell form */}
+      {isThisSell && (
+        <form
+          onSubmit={onSubmitSell}
+          style={{ borderTop: `1px solid ${accentBorder}`, paddingTop: 10, marginTop: 4 }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-primary)" }}>
+              {zh ? `卖出 ${label}` : `Sell ${label}`}
+            </span>
+            <button type="button" onClick={onCloseSell} style={{ fontSize: "0.75rem", color: "var(--text-dim)", cursor: "pointer", border: "none", backgroundColor: "transparent", padding: 2 }}>✕</button>
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="number"
+              min="0.0001"
+              max={maxSellUnits}
+              step="0.0001"
+              value={sellUnits}
+              onChange={(e) => setSellUnits(e.target.value)}
+              placeholder={zh ? "数量" : "Units"}
+              style={{
+                flex: 1,
+                height: 36,
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border-subtle)",
+                backgroundColor: "var(--bg-elevated)",
+                color: "var(--text-primary)",
+                padding: "0 10px",
+                fontSize: "0.875rem",
+                fontFamily: "var(--font-mono)",
+                outline: "none",
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setSellUnits(String(side === "yes" ? units : units))}
+              style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-dim)", cursor: "pointer", border: "none", backgroundColor: "transparent", padding: "0 4px", whiteSpace: "nowrap" }}
+            >
+              {zh ? "全部" : "Max"}
+            </button>
+          </div>
+
+          {estimatedPayout != null && (
+            <p style={{ marginTop: 6, fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+              {zh ? "预计到账 " : "Proceeds "}<span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, color: "var(--text-primary)" }}>${fmt(estimatedPayout)}</span>
+            </p>
+          )}
+
+          {sellError && (
+            <p style={{ marginTop: 4, fontSize: "0.75rem", color: "var(--rose)" }}>{sellError}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={selling || isNaN(sellUnitsNum) || sellUnitsNum <= 0 || sellUnitsNum > maxSellUnits}
+            style={{
+              marginTop: 8,
+              width: "100%",
+              height: 36,
+              borderRadius: "var(--radius-sm)",
+              border: "none",
+              backgroundColor: accent,
+              color: "#070809",
+              fontFamily: "var(--font-sans)",
+              fontSize: "0.8125rem",
+              fontWeight: 700,
+              cursor: selling ? "not-allowed" : "pointer",
+              opacity: selling ? 0.6 : 1,
+              transition: "opacity 150ms ease",
+            }}
+            className="active:scale-[0.97]"
+          >
+            {selling
+              ? (zh ? "处理中…" : "Processing…")
+              : zh
+                ? `确认卖出 $${estimatedPayout != null ? fmt(estimatedPayout) : "—"}`
+                : `Confirm sell · $${estimatedPayout != null ? fmt(estimatedPayout) : "—"}`}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

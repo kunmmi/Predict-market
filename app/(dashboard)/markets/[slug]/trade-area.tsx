@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { TradeForm } from "./trade-form";
 import { MarketPositionPanel } from "./market-position-panel";
 import type { Locale, T } from "@/lib/i18n/translations";
@@ -23,13 +23,20 @@ type Props = {
 
 export function TradeArea(props: Props) {
   const [tick, setTick] = useState(0);
+  const tradeFormRef = useRef<HTMLDivElement>(null);
+
+  const handleBuyAgain = () => {
+    tradeFormRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   return (
     <div className="space-y-4">
-      <TradeForm
-        {...props}
-        onTradeSuccess={() => setTick((n) => n + 1)}
-      />
+      <div ref={tradeFormRef}>
+        <TradeForm
+          {...props}
+          onTradeSuccess={() => setTick((n) => n + 1)}
+        />
+      </div>
       <MarketPositionPanel
         marketId={props.marketId}
         isShortDuration={props.isShortDuration}
@@ -38,6 +45,7 @@ export function TradeArea(props: Props) {
         spotPriceAtOpen={props.spotPriceAtOpen}
         locale={props.locale}
         refreshTick={tick}
+        onBuyAgain={handleBuyAgain}
       />
     </div>
   );
