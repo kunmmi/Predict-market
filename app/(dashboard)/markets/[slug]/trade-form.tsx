@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,12 +72,9 @@ export function TradeForm({
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState<number | null>(null);
-  const [mounted, setMounted] = useState(false);
 
   // Shared wallet state across the dashboard — one fetch, many consumers
   const { wallet, loading: walletLoading, refetch: refetchWallet } = useWallet();
-
-  useEffect(() => setMounted(true), []);
 
   const binanceSymbol = isShortDuration ? ASSET_TO_BINANCE[assetSymbol] ?? null : null;
   const { currentPrice: liveSpotPrice, candles } = useBinanceKlineStream(binanceSymbol);
@@ -374,134 +370,97 @@ export function TradeForm({
               </p>
             ) : null}
 
-            {/* Spacer so content above isn't hidden by the sticky action bar + bottom nav on mobile */}
-            <div className="h-64 lg:hidden" aria-hidden />
+            {/* ── Action bar — inline on all screen sizes ──────────────────── */}
+            <div className="space-y-3">
+              {/* Direction buttons */}
+              <div style={{ display: "flex", gap: 10 }}>
+                {(
+                  [
+                    { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, accent: "var(--teal)", dimBg: "rgba(13,184,145,0.12)", dimBorder: "rgba(13,184,145,0.25)", selBg: "rgba(13,184,145,0.22)", selBorder: "rgba(13,184,145,0.5)" },
+                    { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  accent: "var(--rose)", dimBg: "rgba(232,68,90,0.12)",  dimBorder: "rgba(232,68,90,0.25)",  selBg: "rgba(232,68,90,0.22)",  selBorder: "rgba(232,68,90,0.5)"  },
+                  ] as const
+                ).map(({ s, label, livePrice, accent, dimBg, dimBorder, selBg, selBorder }) => {
+                  const p    = livePrice != null ? parseFloat(livePrice) : null;
+                  const mult = p != null && p > 0 ? (1 / p).toFixed(2) : null;
+                  const isSelected = side === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSide(s)}
+                      disabled={isPredictionClosed}
+                      style={{
+                        flex: 1,
+                        borderRadius: "var(--radius-md)",
+                        border: `2px solid ${isSelected ? selBorder : dimBorder}`,
+                        backgroundColor: isSelected ? selBg : dimBg,
+                        padding: "12px",
+                        textAlign: "center",
+                        cursor: isPredictionClosed ? "not-allowed" : "pointer",
+                        opacity: isPredictionClosed ? 0.6 : 1,
+                        transition: "background-color 200ms ease, opacity 200ms ease, box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+                        boxShadow: isSelected ? `0 0 16px ${dimBg}` : "none",
+                      }}
+                    >
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: accent, opacity: 0.9 }}>
+                        {label}
+                      </div>
+                      <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em", color: accent }}>
+                        {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
+                      </div>
+                      <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 600, color: accent, opacity: isSelected ? 0.9 : 0.6 }}>
+                        {mult != null ? `${mult}× payout` : ""}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
 
-            {/* ── Sticky bottom action bar — rendered via Portal on mobile so it ───
-                  escapes any ancestor `transform` (animations) that would break
-                  position:fixed. On desktop it renders inline inside the card. */}
-            {(() => {
-              const actionBar = (
-                <div className="mx-auto max-w-3xl space-y-3">
-                {/* Direction buttons — show price + multiplier for both sides so the
-                    contrast between the obvious and long-shot side is instantly visible */}
-                <div style={{ display: "flex", gap: 10 }}>
-                  {(
-                    [
-                      { s: "yes" as TradeSide, label: upLabel,   livePrice: liveYesPrice, accent: "var(--teal)", dimBg: "rgba(13,184,145,0.12)", dimBorder: "rgba(13,184,145,0.25)", selBg: "rgba(13,184,145,0.22)", selBorder: "rgba(13,184,145,0.5)" },
-                      { s: "no"  as TradeSide, label: downLabel, livePrice: liveNoPrice,  accent: "var(--rose)", dimBg: "rgba(232,68,90,0.12)",  dimBorder: "rgba(232,68,90,0.25)",  selBg: "rgba(232,68,90,0.22)",  selBorder: "rgba(232,68,90,0.5)"  },
-                    ] as const
-                  ).map(({ s, label, livePrice, accent, dimBg, dimBorder, selBg, selBorder }) => {
-                    const p    = livePrice != null ? parseFloat(livePrice) : null;
-                    const mult = p != null && p > 0 ? (1 / p).toFixed(2) : null;
-                    const isSelected = side === s;
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setSide(s)}
-                        disabled={isPredictionClosed}
-                        style={{
-                          flex: 1,
-                          borderRadius: "var(--radius-md)",
-                          border: `2px solid ${isSelected ? selBorder : dimBorder}`,
-                          backgroundColor: isSelected ? selBg : dimBg,
-                          padding: "12px",
-                          textAlign: "center",
-                          cursor: isPredictionClosed ? "not-allowed" : "pointer",
-                          opacity: isPredictionClosed ? 0.6 : 1,
-                          transition: "background-color 200ms ease, opacity 200ms ease, box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)",
-                          boxShadow: isSelected ? `0 0 16px ${dimBg}` : "none",
-                        }}
-                      >
-                        <div style={{ fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: accent, opacity: 0.9 }}>
-                          {label}
-                        </div>
-                        <div style={{ marginTop: 4, fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em", color: accent }}>
-                          {p != null ? `${(p * 100).toFixed(0)}¢` : "—"}
-                        </div>
-                        <div style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 600, color: accent, opacity: isSelected ? 0.9 : 0.6 }}>
-                          {mult != null ? `${mult}× payout` : ""}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  placeholder={t.amount_label}
+                  value={amount}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    setError(null);
+                  }}
+                  required
+                  disabled={isPredictionClosed}
+                  className="flex-1"
+                  form={`trade-form-${marketId}`}
+                />
+                <Button
+                  type="submit"
+                  disabled={submitDisabled}
+                  className="shrink-0"
+                  form={`trade-form-${marketId}`}
+                >
+                  {loading
+                    ? t.placing
+                    : isPredictionClosed
+                      ? uiText.predictionsClosed
+                      : `${activeLabel} $${isValidAmount ? amountNum.toFixed(2) : "0"}`}
+                </Button>
+              </div>
 
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min="0.01"
-                    max="100"
-                    step="0.01"
-                    placeholder={t.amount_label}
-                    value={amount}
-                    onChange={(e) => {
-                      setAmount(e.target.value);
-                      setError(null);
-                    }}
-                    required
-                    disabled={isPredictionClosed}
-                    className="flex-1"
-                    form={`trade-form-${marketId}`}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={submitDisabled}
-                    className="shrink-0"
-                    form={`trade-form-${marketId}`}
-                  >
-                    {loading
-                      ? t.placing
-                      : isPredictionClosed
-                        ? uiText.predictionsClosed
-                        : `${activeLabel} $${isValidAmount ? amountNum.toFixed(2) : "0"}`}
-                  </Button>
-                </div>
-
-                {walletLoading ? (
-                  <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t.loading_balance}</p>
-                ) : availableBalance != null ? (
-                  <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
-                    {t.available} ${availableBalance.toFixed(2)}
-                    {insufficientFunds ? (
-                      <span style={{ marginLeft: 4, fontWeight: 500, color: "var(--rose)" }}>{t.insufficient}</span>
-                    ) : null}
-                    {!Number.isNaN(amountNum) && amountNum > 100 && (
-                      <span style={{ marginLeft: 8, fontWeight: 500, color: "var(--rose)" }}>Max $100.</span>
-                    )}
-                  </p>
-                ) : null}
-                </div>
-              );
-
-              return (
-                <>
-                  {/* Mobile: render via portal so position:fixed works correctly */}
-                  {mounted &&
-                    createPortal(
-                      <div
-                        className="fixed left-0 right-0 z-40 lg:hidden"
-                        style={{
-                          bottom: "calc(64px + env(safe-area-inset-bottom))",
-                          borderTop: "1px solid var(--border-subtle)",
-                          backgroundColor: "rgba(7,8,9,0.96)",
-                          backdropFilter: "blur(20px)",
-                          WebkitBackdropFilter: "blur(20px)",
-                          padding: "12px 16px",
-                          boxShadow: "0 -6px 24px rgba(0,0,0,0.4)",
-                        }}
-                      >
-                        {actionBar}
-                      </div>,
-                      document.body,
-                    )}
-
-                  {/* Desktop: inline inside the card */}
-                  <div className="hidden lg:block">{actionBar}</div>
-                </>
-              );
-            })()}
+              {walletLoading ? (
+                <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t.loading_balance}</p>
+              ) : availableBalance != null ? (
+                <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
+                  {t.available} ${availableBalance.toFixed(2)}
+                  {insufficientFunds && (
+                    <span style={{ marginLeft: 4, fontWeight: 500, color: "var(--rose)" }}>{t.insufficient}</span>
+                  )}
+                  {!Number.isNaN(amountNum) && amountNum > 100 && (
+                    <span style={{ marginLeft: 8, fontWeight: 500, color: "var(--rose)" }}>Max $100.</span>
+                  )}
+                </p>
+              ) : null}
+            </div>
           </form>
         )}
       </CardContent>
