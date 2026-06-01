@@ -122,7 +122,7 @@ export function TradeArea(props: Props) {
               boxShadow: "0 -20px 60px rgba(0,0,0,0.65)",
               transform: isExpanded ? "translateY(0)" : "translateY(100%)",
               transition: "transform 340ms cubic-bezier(0.22, 1, 0.36, 1)",
-              maxHeight: "82vh",
+              maxHeight: "56vh",
               display: "flex",
               flexDirection: "column",
               paddingBottom: "max(0px, env(safe-area-inset-bottom))",
@@ -132,7 +132,7 @@ export function TradeArea(props: Props) {
             <div
               style={{
                 flexShrink: 0,
-                padding: "10px 16px 12px",
+                padding: "8px 12px 8px",
                 borderBottom: "1px solid var(--border-dim)",
                 display: "flex",
                 alignItems: "center",
@@ -227,7 +227,7 @@ export function TradeArea(props: Props) {
             </div>
 
             {/* Sheet content — scrollable */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "10px 12px" }}>
               {view === "trade" ? (
                 <TradeForm
                   key={formKey}
