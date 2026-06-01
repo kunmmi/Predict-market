@@ -31,6 +31,8 @@ type Props = {
   refreshTick?: number;
   /** Called when the user taps "Buy Again" */
   onBuyAgain?: () => void;
+  /** When true: no outer container (used inside the mobile sheet). */
+  compact?: boolean;
 };
 
 export function MarketPositionPanel({
@@ -42,6 +44,7 @@ export function MarketPositionPanel({
   locale,
   refreshTick,
   onBuyAgain,
+  compact = false,
 }: Props) {
   const zh = locale === "zh";
 
@@ -167,15 +170,8 @@ export function MarketPositionPanel({
   const fmt    = (n: number) => n.toFixed(2);
   const fmtPnl = (n: number) => `${n >= 0 ? "+" : "-"}$${Math.abs(n).toFixed(2)}`;
 
-  return (
-    <div
-      style={{
-        borderRadius: "var(--radius-lg)",
-        border: "1px solid var(--border-subtle)",
-        backgroundColor: "var(--bg-surface)",
-        padding: "16px",
-      }}
-    >
+  const content = (
+    <div style={compact ? undefined : { borderRadius: "var(--radius-lg)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-surface)", padding: "16px" }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
         <p style={{ fontFamily: "var(--font-mono)", fontSize: "10px", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--text-dim)" }}>
@@ -272,6 +268,8 @@ export function MarketPositionPanel({
       </div>
     </div>
   );
+
+  return content;
 }
 
 /* ── Individual position card ──────────────────────────────────────────────── */

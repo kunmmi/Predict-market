@@ -36,6 +36,8 @@ type Props = {
   locale: Locale;
   t: T["trade"];
   onTradeSuccess?: () => void;
+  /** When true: renders content only (no Card wrapper). Used inside the mobile bottom sheet. */
+  compact?: boolean;
 };
 
 // House economics imported from lib/config/trading-constants.ts
@@ -65,6 +67,7 @@ export function TradeForm({
   locale,
   t,
   onTradeSuccess,
+  compact = false,
 }: Props) {
   const [side, setSide] = useState<TradeSide>("yes");
   const [amount, setAmount] = useState("");
@@ -237,12 +240,8 @@ export function TradeForm({
     }
   }
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t.title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+  const inner = (
+        <>
         {success ? (
           <div className="space-y-4">
             <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid rgba(13,184,145,0.25)", backgroundColor: "var(--teal-dim)", padding: "12px 16px", fontSize: "0.875rem", fontWeight: 500, color: "var(--teal)" }}>
@@ -463,7 +462,17 @@ export function TradeForm({
             </div>
           </form>
         )}
-      </CardContent>
+        </>
+  );
+
+  if (compact) return inner;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t.title}</CardTitle>
+      </CardHeader>
+      <CardContent>{inner}</CardContent>
     </Card>
   );
 }
