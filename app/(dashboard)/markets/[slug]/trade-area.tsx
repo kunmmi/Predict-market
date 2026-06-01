@@ -154,21 +154,54 @@ export function TradeArea(props: Props) {
                   backgroundColor: "var(--border-strong)",
                 }}
               />
-              <p
-                style={{
-                  paddingTop: 6,
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "10px",
-                  fontWeight: 700,
-                  letterSpacing: "0.18em",
-                  textTransform: "uppercase",
-                  color: "var(--text-dim)",
-                }}
-              >
-                {view === "trade"
-                  ? (zh ? "下单" : "Place Trade")
-                  : (zh ? "我的持仓" : "Your Position")}
-              </p>
+              {/* Tab row when position exists, plain label otherwise */}
+              {hasPosition ? (
+                <div style={{ display: "flex", gap: 4, paddingTop: 6 }}>
+                  {(["trade", "position"] as const).map((v) => {
+                    const active = view === v;
+                    const label = v === "trade"
+                      ? (zh ? "下单" : "Trade")
+                      : (zh ? "持仓" : "Position");
+                    return (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setView(v)}
+                        style={{
+                          padding: "4px 12px",
+                          borderRadius: 100,
+                          border: `1px solid ${active ? "var(--border-gold)" : "var(--border-subtle)"}`,
+                          backgroundColor: active ? "var(--gold-dim)" : "transparent",
+                          color: active ? "var(--gold)" : "var(--text-dim)",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "10px",
+                          fontWeight: 700,
+                          letterSpacing: "0.14em",
+                          textTransform: "uppercase",
+                          cursor: "pointer",
+                          transition: "background-color 150ms ease, color 150ms ease, border-color 150ms ease",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p
+                  style={{
+                    paddingTop: 6,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    letterSpacing: "0.18em",
+                    textTransform: "uppercase",
+                    color: "var(--text-dim)",
+                  }}
+                >
+                  {zh ? "下单" : "Place Trade"}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => setIsExpanded(false)}
@@ -215,7 +248,7 @@ export function TradeArea(props: Props) {
           {/* ── Collapsed button — right-anchored rectangle ───────────────── */}
           <button
             type="button"
-            onClick={() => setIsExpanded(true)}
+            onClick={() => { if (hasPosition) setView("position"); setIsExpanded(true); }}
             className="lg:hidden"
             style={{
               position: "fixed",
