@@ -410,7 +410,7 @@ export function TradeForm({
                           textAlign: "center",
                           cursor: isPredictionClosed ? "not-allowed" : "pointer",
                           opacity: isPredictionClosed ? 0.6 : 1,
-                          transition: "all 200ms ease",
+                          transition: "background-color 200ms ease, opacity 200ms ease, box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1)",
                           boxShadow: isSelected ? `0 0 16px ${dimBg}` : "none",
                         }}
                       >

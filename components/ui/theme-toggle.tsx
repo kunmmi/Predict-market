@@ -22,13 +22,21 @@ export function ThemeToggle() {
         backgroundColor: "transparent",
         color: "var(--text-secondary)",
         cursor: "pointer",
-        transition: "all 150ms ease",
+        transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 100ms cubic-bezier(0.22, 1, 0.36, 1)",
         flexShrink: 0,
       }}
     >
-      {theme === "dark"
-        ? <Sun style={{ width: 15, height: 15 }} />
-        : <Moon style={{ width: 15, height: 15 }} />}
+      <span
+        key={theme}
+        style={{
+          display: "flex",
+          animation: "scaleIn 200ms cubic-bezier(0.22, 1, 0.36, 1) both",
+        }}
+      >
+        {theme === "dark"
+          ? <Sun style={{ width: 15, height: 15 }} />
+          : <Moon style={{ width: 15, height: 15 }} />}
+      </span>
     </button>
   );
 }

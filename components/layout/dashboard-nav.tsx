@@ -164,7 +164,7 @@ export function DashboardNav({ locale, t }: Props) {
                 backgroundColor: "transparent",
                 color: "var(--text-secondary)",
                 cursor: "pointer",
-                transition: "all 150ms ease",
+                transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
               }}
               className="md:hidden hover:!border-[--border-strong] hover:!text-[--text-primary]"
               aria-label="Toggle menu"
@@ -269,7 +269,7 @@ export function DashboardNav({ locale, t }: Props) {
                   color: isActive ? "var(--gold)" : "var(--text-secondary)",
                   backgroundColor: isActive ? "var(--gold-dim)" : "transparent",
                   textDecoration: "none",
-                  transition: "all 150ms ease",
+                  transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
                   border: isActive ? "1px solid var(--border-gold)" : "1px solid transparent",
                 }}
               >

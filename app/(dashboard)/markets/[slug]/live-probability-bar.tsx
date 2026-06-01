@@ -50,13 +50,31 @@ export function LiveProbabilityBar({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="bg-green-500 transition-all duration-500" style={{ width: `${upPct}%` }} />
-        <div className="bg-red-400 transition-all duration-500" style={{ width: `${downPct}%` }} />
+      {/* Use scaleX transform (not width) — only transform & opacity for movement */}
+      <div
+        style={{
+          position: "relative",
+          height: 8,
+          width: "100%",
+          overflow: "hidden",
+          borderRadius: 9999,
+          backgroundColor: "var(--rose-dim)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            transformOrigin: "left",
+            transform: `scaleX(${upPct / 100})`,
+            transition: "transform 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+            backgroundColor: "var(--teal)",
+          }}
+        />
       </div>
-      <div className="flex justify-between text-xs text-slate-400">
-        <span className="font-medium text-green-600">{upPct.toFixed(1)}% {upLabel}</span>
-        <span className="font-medium text-red-500">{downPct.toFixed(1)}% {downLabel}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+        <span style={{ fontWeight: 500, color: "var(--teal)" }}>{upPct.toFixed(1)}% {upLabel}</span>
+        <span style={{ fontWeight: 500, color: "var(--rose)" }}>{downPct.toFixed(1)}% {downLabel}</span>
       </div>
     </div>
   );

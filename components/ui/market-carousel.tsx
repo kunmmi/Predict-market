@@ -234,7 +234,7 @@ function ShortDurationCard({
             padding: "9px 12px",
             textAlign: "left",
             textDecoration: "none",
-            transition: "all 200ms ease",
+            transition: "background-color 200ms ease, border-color 200ms ease, opacity 200ms ease",
           }}
           className="hover:border-[rgba(16,207,160,0.6)] hover:bg-[rgba(16,207,160,0.15)]"
         >
@@ -257,7 +257,7 @@ function ShortDurationCard({
             padding: "9px 12px",
             textAlign: "left",
             textDecoration: "none",
-            transition: "all 200ms ease",
+            transition: "background-color 200ms ease, border-color 200ms ease, opacity 200ms ease",
           }}
           className="hover:border-[rgba(242,56,96,0.6)]"
         >
@@ -520,7 +520,7 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
                     color: "var(--text-secondary)",
                     cursor: "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 150ms ease",
+                    transition: "background-color 150ms ease, border-color 150ms ease, transform 150ms cubic-bezier(0.22, 1, 0.36, 1)",
                   }}
                   className="hover:!border-[--border-gold] hover:!text-[--gold]"
                 >
@@ -542,7 +542,7 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
                     backgroundColor: i === current ? "var(--gold)" : "var(--border-strong)",
                     border: "none",
                     cursor: "pointer",
-                    transition: "all 300ms ease",
+                    transition: "width 300ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease",
                     padding: 0,
                   }}
                 />

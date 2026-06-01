@@ -58,7 +58,7 @@ function SettledPill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean 
         borderRadius: 12,
         padding: "8px 12px",
         textAlign: "center",
-        transition: "all 150ms ease",
+        transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
         border: "none",
         cursor: "pointer",
         flexShrink: 0,
@@ -87,7 +87,7 @@ function LivePill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean }) 
         borderRadius: 12,
         padding: "8px 12px",
         textAlign: "center",
-        transition: "all 150ms ease",
+        transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
         border: "1px solid rgba(239,68,68,0.3)",
         cursor: "pointer",
         flexShrink: 0,
@@ -132,7 +132,7 @@ function UpcomingPill({ slot, isCurrent }: { slot: RoundSlot; isCurrent: boolean
         borderRadius: 12,
         padding: "8px 12px",
         textAlign: "center",
-        transition: "all 150ms ease",
+        transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
         border: isCurrent
           ? "1px solid var(--border-gold)"
           : "1px dashed var(--border-subtle)",

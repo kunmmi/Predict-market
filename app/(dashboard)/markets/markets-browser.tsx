@@ -544,7 +544,7 @@ export function MarketsBrowser({
                   textTransform: "uppercase",
                   cursor: "pointer",
                   border: "none",
-                  transition: "all 150ms ease",
+                  transition: "background-color 150ms ease, color 150ms ease, box-shadow 150ms ease",
                   backgroundColor: tab === tabItem ? "var(--bg-surface)" : "transparent",
                   color: tab === tabItem ? "var(--gold)" : "var(--text-dim)",
                   boxShadow: tab === tabItem ? "0 1px 4px rgba(0,0,0,0.3), 0 0 0 1px var(--border-gold)" : "none",
