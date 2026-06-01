@@ -260,7 +260,7 @@ export function TradeForm({
         ) : (
           <form id={`trade-form-${marketId}`} onSubmit={handleSubmit} className="space-y-4">
             {/* Upcoming round info banner */}
-            {isUpcoming && isShortDuration && durationMinutes != null && now != null && (
+            {!compact && isUpcoming && isShortDuration && durationMinutes != null && now != null && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12, borderRadius: "var(--radius-md)", border: "1px solid var(--border-gold)", backgroundColor: "var(--gold-dim)", padding: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.875rem", fontWeight: 600, color: "var(--gold)" }}>
                   <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "var(--gold)", animation: "pulseDot 1s ease-in-out infinite", flexShrink: 0 }} />
@@ -281,7 +281,7 @@ export function TradeForm({
               </div>
             )}
 
-            {isShortDuration && !isUpcoming && rewardPreview && now != null ? (
+            {!compact && isShortDuration && !isUpcoming && rewardPreview && now != null ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 10, borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: 14 }}>
                 <div className="grid gap-2 sm:grid-cols-3">
                   {[
@@ -336,7 +336,7 @@ export function TradeForm({
               </div>
             ) : null}
 
-            {isValidAmount && priceNum != null ? (
+            {!compact && isValidAmount && priceNum != null ? (
               <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: 12 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -361,9 +361,9 @@ export function TradeForm({
               </div>
             ) : null}
 
-            {priceNum == null ? <p style={{ fontSize: "0.875rem", color: "var(--gold)" }}>{t.no_price}</p> : null}
+            {!compact && priceNum == null ? <p style={{ fontSize: "0.875rem", color: "var(--gold)" }}>{t.no_price}</p> : null}
 
-            {isShortDuration ? (
+            {!compact && isShortDuration ? (
               <p style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>
                 {uiText.cutoffNote.replace("{seconds}", String(SHORT_DURATION_CUTOFF_SECONDS))}
               </p>
