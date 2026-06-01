@@ -38,7 +38,7 @@ export function LanguageSwitcher({ locale }: { locale: Locale }) {
               padding: "4px 8px",
               lineHeight: 1,
               cursor: "pointer",
-              transition: "all 150ms ease",
+              transition: "background-color 150ms ease, color 150ms ease",
               background: isActive
                 ? "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)"
                 : "transparent",

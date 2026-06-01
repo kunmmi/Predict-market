@@ -159,7 +159,7 @@ export default async function Home() {
                   background: "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)",
                   textDecoration: "none",
                   boxShadow: "0 0 30px rgba(232,160,32,0.2)",
-                  transition: "all 200ms ease",
+                  transition: "opacity 150ms ease, box-shadow 200ms ease",
                 }}
                 className="hover:opacity-90 hover:shadow-[0_0_40px_rgba(232,160,32,0.35)]"
               >
@@ -182,7 +182,7 @@ export default async function Home() {
                     borderRadius: 10,
                     border: "1px solid var(--border-strong)",
                     textDecoration: "none",
-                    transition: "all 200ms ease",
+                    transition: "color 150ms ease, border-color 150ms ease",
                     backgroundColor: "var(--bg-surface)",
                   }}
                   className="hover:text-white hover:border-[--border-gold]"

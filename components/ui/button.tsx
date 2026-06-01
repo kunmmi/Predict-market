@@ -4,9 +4,11 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/helpers/cn";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-sm)] text-sm font-medium transition-all duration-150 cursor-pointer " +
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-sm)] text-sm font-medium cursor-pointer " +
+    "transition-[background-color,border-color,color,opacity,transform,box-shadow] duration-[150ms] ease-[cubic-bezier(0.22,1,0.36,1)] " +
+    "active:scale-[0.97] " +
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg-base)] " +
-    "disabled:pointer-events-none disabled:opacity-40",
+    "disabled:pointer-events-none disabled:opacity-40 disabled:active:scale-100",
   {
     variants: {
       variant: {

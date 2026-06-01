@@ -439,7 +439,7 @@ export default function LiveCryptoChart({
                   style={{
                     borderRadius: 16,
                     padding: "8px 12px",
-                    transition: "all 500ms",
+                    transition: "background-color 500ms ease, box-shadow 500ms ease",
                     ...(pulseDirection === "up" && { backgroundColor: "rgba(13,184,145,0.08)", boxShadow: "0 0 0 1px rgba(13,184,145,0.18)" }),
                     ...(pulseDirection === "down" && { backgroundColor: "rgba(232,68,90,0.08)", boxShadow: "0 0 0 1px rgba(232,68,90,0.18)" }),
                   }}

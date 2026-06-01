@@ -342,26 +342,54 @@
 /* ============================================================
    Keyframes
    ============================================================ */
+
+/* Entrance */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Feedback */
 @keyframes pulseDot {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.5; transform: scale(0.7); }
 }
 
+/* Price flash — spring easing for snappiness */
 @keyframes flashUp {
   0%   { color: var(--teal); background-color: var(--teal-dim); }
+  70%  { color: var(--teal); background-color: transparent; }
   100% { color: inherit; background-color: transparent; }
 }
 
 @keyframes flashDown {
   0%   { color: var(--rose); background-color: var(--rose-dim); }
+  70%  { color: var(--rose); background-color: transparent; }
   100% { color: inherit; background-color: transparent; }
 }
 
+/* Shimmer skeleton */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+/* Background blobs */
 @keyframes moveHorizontal {
   0%   { transform: translateX(-50%) translateY(-10%); }
   50%  { transform: translateX(50%) translateY(10%); }
@@ -380,8 +408,37 @@
   100% { transform: translateY(-50%); }
 }
 
+/* ============================================================
+   Animation utility classes
+   ============================================================ */
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-scale-in {
+    animation: scaleIn 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-slide-down {
+    animation: slideDown 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--bg-elevated) 25%,
+      var(--bg-overlay) 50%,
+      var(--bg-elevated) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-slide-down,
+  .skeleton,
   .price-flash-up,
   .price-flash-down { animation: none; }
 }

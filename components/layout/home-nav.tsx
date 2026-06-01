@@ -112,7 +112,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                     borderRadius: 8,
                     border: "1px solid var(--border-subtle)",
                     textDecoration: "none",
-                    transition: "all 150ms ease",
+                    transition: "color 150ms ease",
                   }}
                   className="hover:border-[--border-strong] hover:text-white"
                 >
@@ -210,7 +210,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                 backgroundColor: "transparent",
                 color: "var(--text-secondary)",
                 cursor: "pointer",
-                transition: "all 150ms ease",
+                transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
               }}
             >
               {mobileOpen ? <X style={{ width: 16, height: 16 }} /> : <Menu style={{ width: 16, height: 16 }} />}
@@ -311,7 +311,7 @@ export function HomeNav({ locale, user, navLinks, labels }: Props) {
                 fontWeight: 500,
                 color: "var(--text-secondary)",
                 textDecoration: "none",
-                transition: "all 150ms ease",
+                transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
                 border: "1px solid transparent",
               }}
               className="hover:bg-[var(--bg-elevated)] hover:text-[--text-primary] hover:border-[var(--border-subtle)]"

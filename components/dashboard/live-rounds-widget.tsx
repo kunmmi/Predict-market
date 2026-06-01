@@ -87,7 +87,7 @@ function LiveRoundCard({
         border: `1px solid ${isClosed ? "var(--border-dim)" : "var(--border-gold)"}`,
         backgroundColor: "var(--bg-surface)",
         padding: "1rem",
-        transition: "all 200ms ease",
+        transition: "border-color 200ms ease, opacity 200ms ease, box-shadow 200ms ease",
         opacity: isClosed ? 0.55 : 1,
         boxShadow: isClosed ? "none" : "0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px rgba(232,160,32,0.06)",
       }}
@@ -401,7 +401,7 @@ export function LiveRoundsWidget({
               border: "1px solid var(--border-strong)",
               backgroundColor: "var(--bg-elevated)",
               color: "var(--text-secondary)",
-              cursor: "pointer", transition: "all 150ms ease",
+              cursor: "pointer", transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
               boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
             }}
             className="hover:border-[var(--border-gold)] hover:text-[var(--gold)]"
@@ -444,7 +444,7 @@ export function LiveRoundsWidget({
               border: "1px solid var(--border-strong)",
               backgroundColor: "var(--bg-elevated)",
               color: "var(--text-secondary)",
-              cursor: "pointer", transition: "all 150ms ease",
+              cursor: "pointer", transition: "background-color 150ms ease, border-color 150ms ease, color 150ms ease",
               boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
             }}
             className="hover:border-[var(--border-gold)] hover:text-[var(--gold)]"
@@ -465,7 +465,7 @@ export function LiveRoundsWidget({
               aria-label={`Go to slide ${i + 1}`}
               style={{
                 borderRadius: 100, border: "none", cursor: "pointer",
-                transition: "all 300ms ease",
+                transition: "width 300ms cubic-bezier(0.22, 1, 0.36, 1), background-color 150ms ease",
                 height: 6,
                 width: i === index ? 20 : 6,
                 backgroundColor: i === index ? "var(--gold)" : "var(--border-strong)",
