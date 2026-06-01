@@ -258,7 +258,7 @@ export function TradeForm({
             </Button>
           </div>
         ) : (
-          <form id={`trade-form-${marketId}`} onSubmit={handleSubmit} className="space-y-4">
+          <form id={`trade-form-${marketId}`} onSubmit={handleSubmit} className="space-y-4" noValidate>
             {/* Upcoming round info banner */}
             {!compact && isUpcoming && isShortDuration && durationMinutes != null && now != null && (
               <div style={{ display: "flex", flexDirection: "column", gap: 12, borderRadius: "var(--radius-md)", border: "1px solid var(--border-gold)", backgroundColor: "var(--gold-dim)", padding: 16 }}>
