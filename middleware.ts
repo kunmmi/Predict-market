@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import type { User } from "@supabase/supabase-js";
 
 import { config as appConfig } from "@/lib/config";
 
@@ -8,37 +7,6 @@ function hasSupabaseAuthCookie(request: NextRequest) {
   return request.cookies
     .getAll()
     .some(({ name }) => name.startsWith("sb-") && name.includes("auth-token"));
-}
-
-async function getRequestUserWithFallback(
-  supabase: ReturnType<typeof createServerClient>,
-): Promise<{ user: User | null; errorMessage: string | null }> {
-  let errorMessage: string | null = null;
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (!error) return { user, errorMessage: null };
-
-    errorMessage = error.message;
-    if (attempt < 1) {
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-  }
-
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (!sessionError && session?.user) {
-    return { user: session.user, errorMessage: null };
-  }
-
-  return { user: null, errorMessage };
 }
 
 export async function middleware(request: NextRequest) {
@@ -82,11 +50,22 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/profile") ||
     pathname.startsWith("/admin");
 
-  const { user, errorMessage } = await getRequestUserWithFallback(supabase);
+  // Single auth call — no retries, no sleep, no fallback getSession().
+  // Retrying inside middleware was causing MIDDLEWARE_INVOCATION_TIMEOUT on
+  // Vercel's edge runtime (hard cap ~1.5 s). For non-protected routes we
+  // still call getUser() so Supabase SSR can refresh the auth cookie, but
+  // we never block the request on an error.
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
   if (isProtected && !user) {
-    if (errorMessage && hasSupabaseAuthCookie(request)) {
-      console.error("Middleware auth lookup failed; preserving request with session cookie.", errorMessage);
+    // If Supabase itself errored but the browser has a session cookie, let
+    // the request through rather than bouncing the user — the page-level
+    // requireUser() will handle it properly.
+    if (error && hasSupabaseAuthCookie(request)) {
+      console.error("Middleware auth lookup failed; preserving request with session cookie.", error.message);
       return supabaseResponse;
     }
 
