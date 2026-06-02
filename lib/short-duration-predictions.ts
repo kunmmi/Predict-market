@@ -1,4 +1,4 @@
-export const SHORT_DURATION_CUTOFF_SECONDS = 10;
+export const SHORT_DURATION_CUTOFF_SECONDS = 5;
 
 /** Canonical title for a short-duration UP/DOWN round. */
 export function shortDurationTitle(asset: string, durationMinutes: number): string {
