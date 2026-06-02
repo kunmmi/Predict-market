@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ChevronRight, Loader2, MinusCircle, TrendingDown, TrendingUp } from "lucide-react";
 
 import { useWallet } from "@/lib/contexts/wallet-context";
@@ -30,7 +29,6 @@ type Result = {
  * user explicitly jump into the current live market for the same asset.
  */
 export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDuration, durationMinutes, locale }: Props) {
-  const router = useRouter();
   const { wallet, refetch: refetchWallet } = useWallet();
   const [isClosed, setIsClosed] = useState(() => (
     isShortDuration && Date.now() >= new Date(closeAt).getTime()
@@ -121,7 +119,9 @@ export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDurat
         throw new Error(json.message ?? "No live market is available yet.");
       }
 
-      router.push(`/markets/${json.slug}`);
+      // Hard navigation — bypasses Next.js router cache so the new round's
+      // server data is always fetched fresh, never served stale.
+      window.location.href = `/markets/${json.slug}`;
     } catch (err) {
       setLiveMarketError(
         err instanceof Error
