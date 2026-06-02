@@ -38,3 +38,5 @@ yarn-error.log*
 # typescript
 next-env.d.ts
 cloudflared.exe
+.env.vercel-prod
+.env.vercel-pulled
