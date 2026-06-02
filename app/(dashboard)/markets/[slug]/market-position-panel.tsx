@@ -386,6 +386,7 @@ function PositionCard({
       {isThisSell && (
         <form
           onSubmit={onSubmitSell}
+          noValidate
           style={{ borderTop: `1px solid ${accentBorder}`, paddingTop: 10, marginTop: 4 }}
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -400,7 +401,7 @@ function PositionCard({
               type="number"
               min="0.0001"
               max={maxSellUnits}
-              step="0.0001"
+              step="any"
               value={sellUnits}
               onChange={(e) => setSellUnits(e.target.value)}
               placeholder={zh ? "数量" : "Units"}
