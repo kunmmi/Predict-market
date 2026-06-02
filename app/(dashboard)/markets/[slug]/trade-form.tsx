@@ -520,6 +520,31 @@ export function TradeForm({
                 </div>
               )}
 
+              {/* ── Compact breakdown: win / fee shown inline when amount is entered ── */}
+              {compact && isValidAmount && priceNum != null && (
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "6px 10px",
+                  borderRadius: "var(--radius-sm)",
+                  backgroundColor: "var(--bg-elevated)",
+                  border: "1px solid var(--border-subtle)",
+                }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-dim)" }}>
+                    Fee&nbsp;
+                    <span style={{ color: "var(--text-secondary)", fontWeight: 600 }}>${fee}</span>
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-dim)" }}>
+                    If you win&nbsp;
+                    <span style={{ color: side === "yes" ? "var(--teal)" : "var(--rose)", fontWeight: 700 }}>${potentialPayout}</span>
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-dim)" }}>
+                    Total&nbsp;
+                    <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>${totalDebit}</span>
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
