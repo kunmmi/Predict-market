@@ -12,6 +12,7 @@ type Props = {
   assetSymbol: string;
   closeAt: string;
   isShortDuration: boolean;
+  durationMinutes?: number | null;
   locale: Locale;
 };
 
@@ -28,7 +29,7 @@ type Result = {
  * Permanent ended-round banner. It shows settlement/result state and lets the
  * user explicitly jump into the current live market for the same asset.
  */
-export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDuration, locale }: Props) {
+export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDuration, durationMinutes, locale }: Props) {
   const router = useRouter();
   const { wallet, refetch: refetchWallet } = useWallet();
   const [isClosed, setIsClosed] = useState(() => (
@@ -110,7 +111,8 @@ export function RoundClosedBanner({ marketId, assetSymbol, closeAt, isShortDurat
     setLiveMarketError(null);
 
     try {
-      const res = await fetch(`/api/markets/active?asset=${encodeURIComponent(assetSymbol)}`, {
+      const durationQuery = durationMinutes != null ? `&duration=${durationMinutes}` : "";
+      const res = await fetch(`/api/markets/active?asset=${encodeURIComponent(assetSymbol)}${durationQuery}`, {
         cache: "no-store",
       });
       const json = (await res.json()) as { success?: boolean; slug?: string; message?: string };

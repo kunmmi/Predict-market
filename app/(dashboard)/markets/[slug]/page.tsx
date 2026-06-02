@@ -219,6 +219,7 @@ export default async function MarketDetailPage({ params }: Props) {
         assetSymbol={market.assetSymbol}
         closeAt={market.closeAt}
         isShortDuration={isShortDuration}
+        durationMinutes={market.durationMinutes}
         locale={locale}
       />
 

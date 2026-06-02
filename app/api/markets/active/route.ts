@@ -5,8 +5,12 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export const dynamic = "force-dynamic";
 
-async function findLiveMarket(supabase: ReturnType<typeof createSupabaseAdminClient>, asset: string) {
-  return supabase
+async function findLiveMarket(
+  supabase: ReturnType<typeof createSupabaseAdminClient>,
+  asset: string,
+  duration: number | null,
+) {
+  let q = supabase
     .from("markets")
     .select("id, slug, asset_symbol, close_at, duration_minutes")
     .eq("asset_symbol", asset)
@@ -14,13 +18,20 @@ async function findLiveMarket(supabase: ReturnType<typeof createSupabaseAdminCli
     .not("duration_minutes", "is", null)
     .gt("close_at", new Date().toISOString())
     .order("close_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (duration != null) {
+    q = q.eq("duration_minutes", duration);
+  }
+
+  return q.maybeSingle();
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const asset = searchParams.get("asset")?.trim().toUpperCase();
+  const durationParam = searchParams.get("duration");
+  const duration = durationParam != null ? parseInt(durationParam, 10) : null;
 
   if (!asset) {
     return NextResponse.json(
@@ -31,10 +42,10 @@ export async function GET(request: Request) {
 
   const supabase = createSupabaseAdminClient();
 
-  let { data, error } = await findLiveMarket(supabase, asset);
+  let { data, error } = await findLiveMarket(supabase, asset, duration);
 
   if (!data && !error) {
-    const expired = await supabase
+    let expiredQ = supabase
       .from("markets")
       .select("id")
       .eq("asset_symbol", asset)
@@ -42,12 +53,17 @@ export async function GET(request: Request) {
       .not("duration_minutes", "is", null)
       .lte("close_at", new Date().toISOString())
       .order("close_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (duration != null) {
+      expiredQ = expiredQ.eq("duration_minutes", duration);
+    }
+
+    const expired = await expiredQ.maybeSingle();
 
     if (expired.data?.id) {
       await settleShortDurationMarketById(expired.data.id as string);
-      const live = await findLiveMarket(supabase, asset);
+      const live = await findLiveMarket(supabase, asset, duration);
       data = live.data;
       error = live.error;
     }
