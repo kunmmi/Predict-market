@@ -40,7 +40,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   // Pull position(s) for this user + market
   const { data: positions } = await supabase
     .from("positions")
-    .select("status, pnl_amount, yes_units, no_units")
+    .select("status, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price")
     .eq("market_id", params.id)
     .eq("profile_id", profileId);
 
@@ -64,8 +64,20 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     });
   }
 
-  // Sum pnl across positions (usually one row per market+user)
-  const pnlAmount = positions.reduce((sum, p) => sum + Number(p.pnl_amount ?? 0), 0);
+  // Compute actual P&L: pnl_amount stores the raw payout (0 for a loss).
+  // For losses we calculate the staked amount and return it as a negative value
+  // so the banner can show "You lost $X" with the correct amount.
+  const isVoidOutcome = market.resolution_outcome === "void" || market.resolution_outcome === "cancelled";
+  const pnlAmount = positions.reduce((sum, p) => {
+    const payout = Number(p.pnl_amount ?? 0);
+    if (payout > 0) return sum + payout;              // win
+    if (isVoidOutcome) return sum;                     // void / refunded → 0
+    // Loss — use staked amount as the loss figure
+    const staked =
+      Number(p.yes_units ?? 0) * Number(p.avg_yes_price ?? 0) +
+      Number(p.no_units ?? 0) * Number(p.avg_no_price ?? 0);
+    return sum - staked;
+  }, 0);
 
   return NextResponse.json({
     success: true,

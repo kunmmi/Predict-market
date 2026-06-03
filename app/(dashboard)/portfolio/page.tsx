@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { DollarSign, BarChart2, TrendingUp, Trophy } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
-import { getPortfolioData } from "@/lib/services/portfolio-data";
+import { effectivePnl, getPortfolioData } from "@/lib/services/portfolio-data";
 import { getWalletData } from "@/lib/services/wallet-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
@@ -31,9 +31,9 @@ export default async function PortfolioPage() {
     return sum + yesVal + noVal;
   }, 0);
 
-  const totalPnl = settledPositions.reduce((sum, pos) => sum + parseFloat(pos.pnlAmount), 0);
-  const wins   = settledPositions.filter((p) => parseFloat(p.pnlAmount) > 0).length;
-  const losses = settledPositions.filter((p) => parseFloat(p.pnlAmount) < 0).length;
+  const totalPnl = settledPositions.reduce((sum, pos) => sum + effectivePnl(pos), 0);
+  const wins   = settledPositions.filter((p) => effectivePnl(p) > 0).length;
+  const losses = settledPositions.filter((p) => effectivePnl(p) < 0).length;
   const pnlPositive = totalPnl >= 0;
 
   const stats = [

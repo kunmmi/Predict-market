@@ -228,3 +228,41 @@ export async function getPortfolioData(profileId: string): Promise<PortfolioData
 
   return { openPositions, settledPositions, recentTrades };
 }
+
+// ---------------------------------------------------------------------------
+// P&L helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * The DB stores pnl_amount as the raw payout (0 for a loss, positive for a win).
+ * This helper returns the *actual* profit/loss:
+ *   - Win:              positive (payout)
+ *   - Loss:             negative (-amount staked)
+ *   - Void/cancelled:   0
+ */
+export function effectivePnl(pos: {
+  pnlAmount: string;
+  yesUnits: string;
+  noUnits: string;
+  avgYesPrice: string | null;
+  avgNoPrice: string | null;
+  status: string;
+  resolutionOutcome?: string | null;
+}): number {
+  const pnl = parseFloat(pos.pnlAmount);
+  if (pnl > 0) return pnl;                              // win
+  if (pnl < 0) return pnl;                              // already negative (future-proof)
+
+  // pnl === 0 → either void/cancelled (refunded) or a loss
+  const isVoid =
+    pos.status === "cancelled" ||
+    pos.resolutionOutcome === "void" ||
+    pos.resolutionOutcome === "cancelled";
+  if (isVoid) return 0;
+
+  // Loss — the staked amount is units × average price paid
+  const staked =
+    parseFloat(pos.yesUnits) * parseFloat(pos.avgYesPrice ?? "0") +
+    parseFloat(pos.noUnits) * parseFloat(pos.avgNoPrice ?? "0");
+  return -staked;
+}

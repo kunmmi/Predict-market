@@ -7,6 +7,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { sideLabel } from "@/lib/i18n/labels";
+import { effectivePnl } from "@/lib/services/portfolio-data";
 import type { PortfolioPosition, PortfolioTrade } from "@/lib/services/portfolio-data";
 import type { Locale } from "@/lib/i18n/translations";
 
@@ -73,9 +74,9 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {settledPositions.map((pos) => {
-                const pnl = parseFloat(pos.pnlAmount);
+                const pnl = effectivePnl(pos);
                 const isWin  = pnl > 0;
-                const isVoid = pos.resolutionOutcome === "void" || pos.resolutionOutcome === "cancelled";
+                const isVoid = pos.resolutionOutcome === "void" || pos.resolutionOutcome === "cancelled" || pos.status === "cancelled";
                 const playedYes = parseFloat(pos.yesUnits) > 0;
                 const playedNo  = parseFloat(pos.noUnits)  > 0;
                 const isShort = pos.durationMinutes != null;
@@ -176,7 +177,7 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
                     }}>
                       {isVoid
                         ? (zh ? "已退款" : "Refunded")
-                        : `${pnl >= 0 ? "+" : ""}$${Math.abs(pnl).toFixed(2)}`}
+                        : `${pnl >= 0 ? "+" : "-"}$${Math.abs(pnl).toFixed(2)}`}
                     </p>
                   </div>
                 );
