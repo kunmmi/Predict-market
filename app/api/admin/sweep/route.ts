@@ -28,6 +28,7 @@ import {
   initializeDepositAddress,
   sweepDepositAddress,
   MIN_SWEEP_AMOUNT,
+  USDT_DECIMALS,
   getUsdtAllowance,
 } from "@/lib/blockchain/bsc-sweep";
 import { ethers } from "ethers";
@@ -120,6 +121,29 @@ export async function POST() {
   const provider = createProvider();
   const master   = getMasterWallet(provider);
 
+  // ── Determine how much the platform has legitimately earned ─────────────
+  // Only sweep up to the platform wallet balance (fees + loser stakes).
+  // This ensures we never touch user funds that haven't been lost/paid yet.
+  const { data: platformWallet } = await supabase
+    .from("platform_wallets")
+    .select("available_balance")
+    .eq("wallet_key", "general_admin")
+    .maybeSingle();
+
+  const platformEarned = parseFloat(String(platformWallet?.available_balance ?? "0"));
+
+  if (platformEarned < 1) {
+    return NextResponse.json({
+      success: true,
+      summary: { swept: 0, errored: 0, skipped: 0, totalSweptUsdt: "0.00", masterAddress: master.address },
+      results: [],
+      message: "Platform wallet balance is below $1 — nothing to sweep.",
+    });
+  }
+
+  // Convert platform balance to raw USDT units (18 decimals) for on-chain cap.
+  let remainingQuota = ethers.parseUnits(platformEarned.toFixed(6), USDT_DECIMALS);
+
   const { data: walletRows } = await supabase
     .from("wallets")
     .select("profile_id, deposit_address, deposit_address_index, sweep_approved_at");
@@ -135,6 +159,9 @@ export async function POST() {
   // Process sequentially — master wallet can't sign two txs at the same time
   // without explicit nonce management; sequential is simpler and safe.
   for (const w of eligible) {
+    // Stop once the full platform-earned quota has been swept.
+    if (remainingQuota < MIN_SWEEP_AMOUNT) break;
+
     const addr  = w.deposit_address;
     const index = w.deposit_address_index as number | null;
 
@@ -187,14 +214,19 @@ export async function POST() {
         entry.action = "sweep";
       }
 
-      // ── Sweep ──────────────────────────────────────────────────────────
-      const sweepResult = await sweepDepositAddress(addr, provider);
+      // ── Sweep — capped to remaining platform-earned quota ──────────────
+      const sweepResult = await sweepDepositAddress(addr, provider, remainingQuota);
 
       if (sweepResult.status === "swept") {
-        entry.status    = "ok";
-        entry.txHash    = sweepResult.txHash;
+        entry.status     = "ok";
+        entry.txHash     = sweepResult.txHash;
         entry.amountUsdt = sweepResult.amountUsdt;
+        const sweptRaw   = ethers.parseUnits(
+          parseFloat(sweepResult.amountUsdt).toFixed(6),
+          USDT_DECIMALS,
+        );
         totalSweptUsdt  += parseFloat(sweepResult.amountUsdt);
+        remainingQuota   = remainingQuota > sweptRaw ? remainingQuota - sweptRaw : BigInt(0);
 
         // Log to admin_logs
         await supabase.from("admin_logs").insert({

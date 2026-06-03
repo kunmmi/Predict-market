@@ -187,12 +187,17 @@ export type SweepResult =
   | { status: "not_approved" };
 
 /**
- * Pulls all USDT from depositAddress into masterWallet via transferFrom.
+ * Pulls USDT from depositAddress into masterWallet via transferFrom.
  * Requires the deposit address to have previously approved the master wallet.
+ *
+ * @param maxAmount - Optional cap in raw USDT units (bigint). When provided,
+ *   only `min(balance, maxAmount)` is swept — so we never take more than the
+ *   platform has legitimately earned (fees + loser stakes).
  */
 export async function sweepDepositAddress(
   depositAddress: string,
   provider: ethers.Provider,
+  maxAmount?: bigint,
 ): Promise<SweepResult> {
   const master = getMasterWallet(provider);
 
@@ -202,15 +207,21 @@ export async function sweepDepositAddress(
     return { status: "below_minimum", balanceUsdt: ethers.formatUnits(balance, USDT_DECIMALS) };
   }
 
+  // Cap to platform-earned quota if provided — never sweep user funds.
+  const sweepAmount = maxAmount !== undefined && maxAmount < balance ? maxAmount : balance;
+  if (sweepAmount < MIN_SWEEP_AMOUNT) {
+    return { status: "below_minimum", balanceUsdt: ethers.formatUnits(sweepAmount, USDT_DECIMALS) };
+  }
+
   const allowance = await getUsdtAllowance(depositAddress, master.address, provider);
-  if (allowance < balance) return { status: "not_approved" };
+  if (allowance < sweepAmount) return { status: "not_approved" };
 
   const usdt = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, master);
   const tx = await (
     usdt.transferFrom as (
       from: string, to: string, amount: bigint
     ) => Promise<ethers.TransactionResponse>
-  )(depositAddress, master.address, balance);
+  )(depositAddress, master.address, sweepAmount);
 
   const receipt = await tx.wait(1);
   if (!receipt || receipt.status !== 1) {
@@ -220,7 +231,7 @@ export async function sweepDepositAddress(
   return {
     status: "swept",
     txHash: tx.hash,
-    amountUsdt: ethers.formatUnits(balance, USDT_DECIMALS),
+    amountUsdt: ethers.formatUnits(sweepAmount, USDT_DECIMALS),
   };
 }
 
