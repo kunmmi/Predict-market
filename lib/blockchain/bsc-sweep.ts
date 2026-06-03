@@ -32,7 +32,7 @@ export const USDT_CONTRACT  = "0x55d398326f99059fF775485246999027B3197955";
 export const USDT_DECIMALS  = 18;
 
 /** Minimum USDT balance worth sweeping — avoids burning gas for dust. */
-export const MIN_SWEEP_AMOUNT = ethers.parseUnits("1", USDT_DECIMALS); // $1
+export const MIN_SWEEP_AMOUNT = ethers.parseUnits("0.10", USDT_DECIMALS); // $0.10
 
 /**
  * BNB sent to each deposit address exactly once to fund the approve() call.

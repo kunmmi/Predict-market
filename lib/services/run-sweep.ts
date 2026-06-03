@@ -90,7 +90,7 @@ export async function runSweep(
       const onChainBalance = parseFloat(preview?.usdtBalance ?? "0");
       const sweepableUsdt  = Math.max(0, onChainBalance - userPlatformBalance);
 
-      if (sweepableUsdt < 1) {
+      if (sweepableUsdt < 0.10) {
         entry.detail = `Nothing to sweep (on-chain $${onChainBalance.toFixed(2)}, user balance $${userPlatformBalance.toFixed(2)})`;
         results.push(entry);
         continue;
