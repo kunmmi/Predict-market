@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { sideLabel } from "@/lib/i18n/labels";
-import { effectivePnl } from "@/lib/services/portfolio-data";
+import { effectivePnl } from "@/lib/helpers/pnl";
 import type { PortfolioPosition, PortfolioTrade } from "@/lib/services/portfolio-data";
 import type { Locale } from "@/lib/i18n/translations";
 

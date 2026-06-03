@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import { DollarSign, BarChart2, TrendingUp, Trophy } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
-import { effectivePnl, getPortfolioData } from "@/lib/services/portfolio-data";
+import { getPortfolioData } from "@/lib/services/portfolio-data";
+import { effectivePnl } from "@/lib/helpers/pnl";
 import { getWalletData } from "@/lib/services/wallet-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
