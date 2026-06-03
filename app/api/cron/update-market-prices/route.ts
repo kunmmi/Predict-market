@@ -24,7 +24,12 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    // Return 200 so the GitHub Actions workflow doesn't spam failure emails.
+    // A price-update failure (usually CoinGecko rate-limiting) is non-critical —
+    // short-duration markets are unaffected and long-duration market prices simply
+    // stay at their last known values until the next successful run.
     const message = error instanceof Error ? error.message : "Market price update failed.";
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    console.error("[update-market-prices] cron error:", message);
+    return NextResponse.json({ success: false, message, timestamp: new Date().toISOString() });
   }
 }
