@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { ThemeProvider } from "@/lib/contexts/theme-context";
-import { CrispChat } from "@/components/crisp-chat";
 import "./globals.css";
 
 const displayFont = Cormorant_Garamond({
@@ -59,7 +58,6 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
         </ThemeProvider>
-        <CrispChat />
       </body>
     </html>
   );

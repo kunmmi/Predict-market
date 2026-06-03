@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   BarChart3, LayoutDashboard, TrendingUp, Briefcase,
-  Wallet, Users, User, Menu, X, Trophy,
+  Wallet, Users, User, Menu, X, Trophy, MessageCircle,
 } from "lucide-react";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -33,6 +33,7 @@ export function DashboardNav({ locale, t }: Props) {
     { href: "/wallet",      label: t.wallet,      en: "Wallet",      icon: Wallet },
     { href: "/promoter",    label: t.promoter,    en: "Promoter",    icon: Users },
     { href: "/profile",     label: t.profile,     en: "Profile",     icon: User },
+    { href: "/support",     label: "Support",     en: "Support",     icon: MessageCircle },
   ];
 
   return (
