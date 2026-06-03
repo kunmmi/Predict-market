@@ -49,16 +49,24 @@ const ERC20_ABI = [
 ];
 
 export const BSC_RPCS = [
-  "https://rpc.ankr.com/bsc",
   "https://bsc-dataseed.binance.org",
+  "https://bsc-dataseed1.binance.org",
+  "https://bsc-dataseed2.binance.org",
   "https://bsc-dataseed1.ninicoin.io",
   "https://bsc-dataseed2.defibit.io",
 ];
 
 // ── Provider ───────────────────────────────────────────────────────────────
 
-export function createProvider(): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(BSC_RPCS[0]);
+/**
+ * Returns a FallbackProvider across all public BSC RPC endpoints.
+ * If the first RPC fails or rate-limits, ethers automatically retries the others.
+ */
+export function createProvider(): ethers.FallbackProvider {
+  const providers = BSC_RPCS.map(
+    (url, i) => ({ provider: new ethers.JsonRpcProvider(url), priority: i + 1, stallTimeout: 2000 })
+  );
+  return new ethers.FallbackProvider(providers, 56 /* BSC chainId */);
 }
 
 // ── Wallet helpers ─────────────────────────────────────────────────────────
@@ -131,7 +139,7 @@ export type InitResult =
 export async function initializeDepositAddress(
   depositAddress: string,
   depositIndex: number,
-  provider: ethers.JsonRpcProvider,
+  provider: ethers.Provider,
 ): Promise<InitResult> {
   const master = getMasterWallet(provider);
 
@@ -184,7 +192,7 @@ export type SweepResult =
  */
 export async function sweepDepositAddress(
   depositAddress: string,
-  provider: ethers.JsonRpcProvider,
+  provider: ethers.Provider,
 ): Promise<SweepResult> {
   const master = getMasterWallet(provider);
 
@@ -230,7 +238,7 @@ export type AddressPreview = {
 
 export async function previewAddresses(
   wallets: Array<{ profile_id: string; deposit_address: string; deposit_address_index: number | null }>,
-  provider: ethers.JsonRpcProvider,
+  provider: ethers.Provider,
 ): Promise<{ masterAddress: string; addresses: AddressPreview[]; totalPendingUsdt: string }> {
   const master = getMasterWallet(provider);
   const masterAddress = master.address;
