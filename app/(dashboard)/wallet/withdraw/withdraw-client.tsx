@@ -76,7 +76,7 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
   }, [loadHistory, result]);
 
   const amountNum = parseFloat(amount);
-  const isValidAmount = !isNaN(amountNum) && amountNum > 0;
+  const isValidAmount = !isNaN(amountNum) && amountNum >= 0.30;
   const insufficientFunds =
     isValidAmount && availableBalance != null && amountNum > availableBalance;
 
@@ -85,7 +85,7 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
     setError(null);
 
     if (!isValidAmount) {
-      setError("Please enter a valid amount.");
+      setError("Minimum withdrawal is $0.30.");
       return;
     }
     if (!address.trim()) {
@@ -176,7 +176,7 @@ export function WithdrawPageClient({ t, locale }: { t: T["withdraw"]; locale: Lo
                 <label style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--text-secondary)" }}>{t.label_amount} *</label>
                 <Input
                   type="number"
-                  min="1"
+                  min="0.30"
                   step="0.01"
                   placeholder="100.00"
                   value={amount}
