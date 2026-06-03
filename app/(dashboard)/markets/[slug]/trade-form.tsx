@@ -336,36 +336,6 @@ export function TradeForm({
               </div>
             ) : null}
 
-            {/* ── Compact cost summary (mobile sheet only) ─────────────────── */}
-            {compact && isValidAmount && priceNum != null ? (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--border-subtle)",
-                backgroundColor: "var(--bg-elevated)",
-                padding: "6px 10px",
-                gap: 6,
-              }}>
-                {[
-                  { label: "Fee",   value: `$${fee}`,              color: "var(--text-dim)" },
-                  { label: "Win",   value: `$${potentialPayout}`,  color: side === "yes" ? "var(--teal)" : "var(--rose)" },
-                  { label: "Total", value: `$${totalDebit}`,       color: "var(--text-primary)" },
-                ].map(({ label, value, color }, i, arr) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>{label}</div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fontWeight: 700, color }}>{value}</div>
-                    </div>
-                    {i < arr.length - 1 && (
-                      <div style={{ width: 1, height: 20, backgroundColor: "var(--border-dim)", flexShrink: 0 }} />
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
             {!compact && isValidAmount && priceNum != null ? (
               <div style={{ borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)", backgroundColor: "var(--bg-elevated)", padding: 12 }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>

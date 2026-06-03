@@ -58,14 +58,14 @@ function requireEnv(key) {
 
 const MNEMONIC         = requireEnv("DEPOSIT_WALLET_MNEMONIC");
 const MAIN_ADDRESS     = requireEnv("DEPOSIT_ADDRESS_BSC");
-const MAIN_PRIVATE_KEY = requireEnv("WALLET_PRIVATE_KEY_ETH");
+const MAIN_PRIVATE_KEY = EXECUTE ? requireEnv("WALLET_PRIVATE_KEY_ETH") : (process.env.WALLET_PRIVATE_KEY_ETH ?? null);
 const SUPABASE_URL     = requireEnv("NEXT_PUBLIC_SUPABASE_URL");
 const SERVICE_KEY      = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
 
 // ── Setup ─────────────────────────────────────────────────────────────────────
 
 const provider   = new ethers.JsonRpcProvider(BSC_RPC);
-const mainWallet = new ethers.Wallet(MAIN_PRIVATE_KEY, provider);
+const mainWallet = MAIN_PRIVATE_KEY ? new ethers.Wallet(MAIN_PRIVATE_KEY, provider) : null;
 const usdt       = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, provider);
 const supabase   = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 

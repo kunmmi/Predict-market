@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 /**
  * Invisible component that redirects to the base slug the moment an upcoming
@@ -10,7 +9,10 @@ import { useRouter } from "next/navigation";
  *      the now-live round at the base slug when the timer hits zero.
  *   2. The user arrives after openAt has already passed — redirected immediately.
  *
- * Uses router.replace so the upcoming-round URL doesn't stay in history.
+ * Uses window.location.replace (not router.replace) so the redirect bypasses
+ * Next.js router cache and always fetches fresh server data — otherwise the
+ * user would land on a stale cached page showing the old round with the wrong
+ * marketId, causing their position to not appear.
  */
 export function UpcomingRoundRedirector({
   openAt,
@@ -19,8 +21,6 @@ export function UpcomingRoundRedirector({
   openAt: string;
   baseSlug: string;
 }) {
-  const router = useRouter();
-
   useEffect(() => {
     const openMs = new Date(openAt).getTime();
     const delay = openMs - Date.now();
@@ -35,11 +35,14 @@ export function UpcomingRoundRedirector({
     }
 
     const id = setTimeout(() => {
-      router.replace(`/markets/${baseSlug}`);
+      // window.location.replace: replaces history entry (no back-button bloat)
+      // AND forces a full page reload — bypassing Next.js router cache so the
+      // new round's server data is always fetched fresh.
+      window.location.replace(`/markets/${baseSlug}`);
     }, delay);
 
     return () => clearTimeout(id);
-  }, [openAt, baseSlug, router]);
+  }, [openAt, baseSlug]);
 
   return null;
 }
