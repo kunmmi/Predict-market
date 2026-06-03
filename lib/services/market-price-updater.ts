@@ -1,9 +1,10 @@
 import {
   ASSET_ANNUALISED_VOLATILITY,
-  COINGECKO_ASSET_IDS,
   MARKET_TARGETS,
   type MarketTargetDirection,
 } from "@/lib/config/market-targets";
+import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
+import { getBinanceSpotPrice } from "@/lib/services/binance-price";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const MS_PER_YEAR = 1000 * 60 * 60 * 24 * 365;
@@ -22,38 +23,20 @@ export type UpdateResult = {
 };
 
 async function fetchCurrentPrices(assets: string[]): Promise<Record<string, number>> {
-  const ids = Array.from(
-    new Set(
-      assets
-        .map((asset) => COINGECKO_ASSET_IDS[asset])
-        .filter((assetId): assetId is string => Boolean(assetId)),
-    ),
-  );
-
-  if (ids.length === 0) return {};
-
-  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids.join(
-    ",",
-  )}&vs_currencies=usd`;
-
-  const res = await fetch(url, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 60 * 60 },
-  } as RequestInit);
-
-  if (!res.ok) {
-    throw new Error(`CoinGecko price fetch failed with status ${res.status}.`);
-  }
-
-  const data = (await res.json()) as Record<string, { usd?: number }>;
+  const uniqueAssets = Array.from(new Set(assets));
   const prices: Record<string, number> = {};
 
-  for (const [symbol, geckoId] of Object.entries(COINGECKO_ASSET_IDS)) {
-    const usd = data[geckoId]?.usd;
-    if (typeof usd === "number" && usd > 0) {
-      prices[symbol] = usd;
-    }
-  }
+  await Promise.all(
+    uniqueAssets.map(async (asset) => {
+      const binanceSymbol = ASSET_TO_BINANCE[asset];
+      if (!binanceSymbol) return;
+      try {
+        prices[asset] = await getBinanceSpotPrice(binanceSymbol);
+      } catch {
+        // Leave this asset out — the caller treats missing prices as skipped.
+      }
+    }),
+  );
 
   return prices;
 }
