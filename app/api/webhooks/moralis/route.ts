@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createProvider, initializeDepositAddress } from "@/lib/blockchain/bsc-sweep";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +174,42 @@ export async function POST(request: Request) {
     credited += amount;
     console.log(`[moralis-webhook] Credited ${amount} USDT to ${profileId} — tx ${txHash}`);
     results.push(`${txHash}: credited ${amount}`);
+
+    // Pre-initialize deposit address in background — so the next withdrawal
+    // can use a single transferFrom rather than 3 sequential transactions.
+    void (async () => {
+      try {
+        const { data: walletRow } = await supabase
+          .from("wallets")
+          .select("deposit_address, deposit_address_index, sweep_approved_at")
+          .eq("profile_id", profileId)
+          .maybeSingle();
+
+        if (
+          !walletRow?.deposit_address ||
+          walletRow.deposit_address_index === null ||
+          walletRow.sweep_approved_at // already initialized
+        ) return;
+
+        const provider = createProvider();
+        const result = await initializeDepositAddress(
+          walletRow.deposit_address,
+          walletRow.deposit_address_index as number,
+          provider,
+        );
+
+        if (result.status === "initialized") {
+          await supabase
+            .from("wallets")
+            .update({ sweep_approved_at: new Date().toISOString() })
+            .eq("deposit_address", walletRow.deposit_address);
+          console.log(`[moralis-webhook] Background init complete for ${walletRow.deposit_address}`);
+        }
+      } catch (err) {
+        // Non-critical — fallback withdrawal will handle init on demand.
+        console.warn("[moralis-webhook] background init failed:", err instanceof Error ? err.message : err);
+      }
+    })();
   }
 
   return NextResponse.json({ ok: true, credited, results });
