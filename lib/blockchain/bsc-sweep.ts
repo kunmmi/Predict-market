@@ -189,7 +189,7 @@ export async function sweepDepositAddress(
   const master = getMasterWallet(provider);
 
   const balance = await getUsdtBalance(depositAddress, provider);
-  if (balance === 0n) return { status: "zero_balance" };
+  if (balance === BigInt(0)) return { status: "zero_balance" };
   if (balance < MIN_SWEEP_AMOUNT) {
     return { status: "below_minimum", balanceUsdt: ethers.formatUnits(balance, USDT_DECIMALS) };
   }
