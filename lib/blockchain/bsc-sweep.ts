@@ -235,6 +235,75 @@ export async function sweepDepositAddress(
   };
 }
 
+// ── Direct withdrawal from deposit address ────────────────────────────────
+
+export type DirectWithdrawResult =
+  | { status: "sent"; txHash: string; amountUsdt: string; bnbTxHash?: string }
+  | { status: "insufficient_deposit"; depositBalance: string; requested: string }
+  | { status: "no_index" };
+
+/**
+ * Sends USDT directly from a user's deposit address to their requested
+ * withdrawal address — bypassing the hot wallet entirely.
+ *
+ * Used as a fallback when the hot wallet has insufficient funds.
+ *
+ *   1. If not yet approved: master sends BNB → deposit address approves.
+ *   2. Master calls transferFrom(depositAddress, toAddress, amount).
+ *
+ * @param amountRaw - Exact amount in raw USDT units (18 decimals) to send.
+ */
+export async function directWithdrawFromDepositAddress(
+  depositAddress: string,
+  depositIndex: number | null,
+  toAddress: string,
+  amountRaw: bigint,
+  provider: ethers.Provider,
+): Promise<DirectWithdrawResult> {
+  const master = getMasterWallet(provider);
+
+  // Verify deposit address has enough on-chain balance.
+  const balance = await getUsdtBalance(depositAddress, provider);
+  if (balance < amountRaw) {
+    return {
+      status: "insufficient_deposit",
+      depositBalance: ethers.formatUnits(balance, USDT_DECIMALS),
+      requested: ethers.formatUnits(amountRaw, USDT_DECIMALS),
+    };
+  }
+
+  // Initialize (one-time approve) if the master wallet isn't approved yet.
+  let bnbTxHash: string | undefined;
+  const allowance = await getUsdtAllowance(depositAddress, master.address, provider);
+  if (allowance < amountRaw) {
+    if (depositIndex === null) return { status: "no_index" };
+    const initResult = await initializeDepositAddress(depositAddress, depositIndex, provider);
+    if (initResult.status === "initialized") {
+      bnbTxHash = initResult.bnbTxHash;
+    }
+  }
+
+  // transferFrom(depositAddress → user's destination) via master wallet.
+  const usdt = new ethers.Contract(USDT_CONTRACT, ERC20_ABI, master);
+  const tx = await (
+    usdt.transferFrom as (
+      from: string, to: string, amount: bigint
+    ) => Promise<ethers.TransactionResponse>
+  )(depositAddress, toAddress, amountRaw);
+
+  const receipt = await tx.wait(1);
+  if (!receipt || receipt.status !== 1) {
+    throw new Error(`Direct withdrawal transferFrom failed: ${tx.hash}`);
+  }
+
+  return {
+    status: "sent",
+    txHash: tx.hash,
+    amountUsdt: ethers.formatUnits(amountRaw, USDT_DECIMALS),
+    bnbTxHash,
+  };
+}
+
 // ── Preview helper (no transactions) ──────────────────────────────────────
 
 export type AddressPreview = {

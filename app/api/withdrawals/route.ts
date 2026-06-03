@@ -12,6 +12,12 @@ import {
 import { usdToAsset } from "@/lib/services/crypto-price";
 import { sendCrypto } from "@/lib/services/tatum-send";
 import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import {
+  createProvider,
+  directWithdrawFromDepositAddress,
+  USDT_DECIMALS,
+} from "@/lib/blockchain/bsc-sweep";
+import { ethers } from "ethers";
 
 /**
  * GET /api/withdrawals
@@ -162,7 +168,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: msg }, { status: 502 });
   }
 
-  // 4. Send via Tatum
+  // 4. Send via hot wallet — with deposit-address fallback if hot wallet is dry
   let txHash: string;
   try {
     txHash = await sendCrypto({
@@ -171,18 +177,73 @@ export async function POST(request: Request) {
       toAddress: withdrawal_address,
       cryptoAmount,
     });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Transaction failed.";
-    console.error("[withdrawals] Tatum send failed:", msg);
-    await supabaseAdmin.rpc("reject_withdrawal", {
-      p_withdrawal_id: withdrawalId,
-      p_admin_profile_id: systemAdminId,
-      p_admin_notes: `Auto-rejected: ${msg}`,
-    });
-    return NextResponse.json(
-      { success: false, message: `Could not send transaction: ${msg}` },
-      { status: 502 },
-    );
+  } catch (hotWalletErr) {
+    const hotMsg = hotWalletErr instanceof Error ? hotWalletErr.message : "Transaction failed.";
+    const isInsufficient = hotMsg.toLowerCase().includes("temporarily unavailable") ||
+                           hotMsg.toLowerCase().includes("insufficient");
+
+    // ── Fallback: pull directly from user's deposit address ──────────────
+    if (isInsufficient && (asset_symbol === "USDT" || asset_symbol === "USDC")) {
+      try {
+        const { data: walletRow } = await supabaseAdmin
+          .from("wallets")
+          .select("deposit_address, deposit_address_index")
+          .eq("profile_id", profileId)
+          .maybeSingle();
+
+        const depositAddress = walletRow?.deposit_address as string | null;
+        const depositIndex   = walletRow?.deposit_address_index as number | null;
+
+        if (depositAddress) {
+          const provider  = createProvider();
+          const amountRaw = ethers.parseUnits(
+            parseFloat(cryptoAmount.toFixed(6)).toString(),
+            USDT_DECIMALS,
+          );
+
+          const result = await directWithdrawFromDepositAddress(
+            depositAddress,
+            depositIndex,
+            withdrawal_address,
+            amountRaw,
+            provider,
+          );
+
+          if (result.status === "sent") {
+            txHash = result.txHash;
+            // Fall through to the approve step below
+          } else if (result.status === "insufficient_deposit") {
+            throw new Error(
+              `Insufficient funds in your deposit address ($${result.depositBalance} available, $${result.requested} requested). Please contact support.`
+            );
+          } else {
+            throw new Error("Could not process withdrawal from deposit address. Please contact support.");
+          }
+        } else {
+          throw new Error(hotMsg);
+        }
+      } catch (fallbackErr) {
+        const msg = fallbackErr instanceof Error ? fallbackErr.message : "Fallback withdrawal failed.";
+        console.error("[withdrawals] fallback failed:", msg);
+        await supabaseAdmin.rpc("reject_withdrawal", {
+          p_withdrawal_id: withdrawalId,
+          p_admin_profile_id: systemAdminId,
+          p_admin_notes: `Auto-rejected (fallback): ${msg}`,
+        });
+        return NextResponse.json({ success: false, message: msg }, { status: 502 });
+      }
+    } else {
+      console.error("[withdrawals] send failed:", hotMsg);
+      await supabaseAdmin.rpc("reject_withdrawal", {
+        p_withdrawal_id: withdrawalId,
+        p_admin_profile_id: systemAdminId,
+        p_admin_notes: `Auto-rejected: ${hotMsg}`,
+      });
+      return NextResponse.json(
+        { success: false, message: `Could not send transaction: ${hotMsg}` },
+        { status: 502 },
+      );
+    }
   }
 
   // 5. Approve — debits wallet, stores tx hash
