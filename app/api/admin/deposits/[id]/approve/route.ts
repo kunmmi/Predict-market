@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAdminForApi } from "@/lib/auth/require-admin-api";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { sendDepositApprovedEmail } from "@/lib/services/email-notifications";
+import { createProvider, initializeDepositAddress } from "@/lib/blockchain/bsc-sweep";
 
 const approveSchema = z.object({
   amountReceived: z
@@ -66,21 +67,60 @@ export async function POST(
       );
     }
 
-    // Fetch user details for the email notification (non-blocking)
+    // Fetch deposit + user details for email + background init
     const { data: deposit } = await supabase
       .from("deposits")
-      .select("amount_received, asset_symbol, profiles(email, full_name)")
+      .select("amount_received, asset_symbol, profile_id, profiles(email, full_name)")
       .eq("id", params.id)
       .maybeSingle();
 
     if (deposit) {
       const profile = Array.isArray(deposit.profiles) ? deposit.profiles[0] : deposit.profiles;
+
+      // Email notification (non-blocking)
       sendDepositApprovedEmail({
         toEmail: profile?.email ?? "",
         toName: profile?.full_name ?? null,
         amount: Number(deposit.amount_received ?? parsed.data.amountReceived),
         assetSymbol: deposit.asset_symbol,
       }).catch(() => {});
+
+      // Pre-initialize deposit address in background — so when the user
+      // withdraws later, the address is already approved and the fallback
+      // is a single transferFrom rather than 3 sequential transactions.
+      void (async () => {
+        try {
+          const { data: wallet } = await supabase
+            .from("wallets")
+            .select("deposit_address, deposit_address_index, sweep_approved_at")
+            .eq("profile_id", deposit.profile_id)
+            .maybeSingle();
+
+          if (
+            !wallet?.deposit_address ||
+            wallet.deposit_address_index === null ||
+            wallet.sweep_approved_at  // already initialized
+          ) return;
+
+          const provider = createProvider();
+          const result = await initializeDepositAddress(
+            wallet.deposit_address,
+            wallet.deposit_address_index as number,
+            provider,
+          );
+
+          if (result.status === "initialized") {
+            await supabase
+              .from("wallets")
+              .update({ sweep_approved_at: new Date().toISOString() })
+              .eq("deposit_address", wallet.deposit_address);
+          }
+        } catch (err) {
+          // Non-critical — log and move on. Fallback withdrawal will
+          // handle init on demand if this didn't run.
+          console.warn("[deposit-approve] background init failed:", err instanceof Error ? err.message : err);
+        }
+      })();
     }
 
     return NextResponse.json({ success: true }, { status: 200 });
