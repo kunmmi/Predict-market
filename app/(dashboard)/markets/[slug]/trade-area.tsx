@@ -39,6 +39,31 @@ export function TradeArea(props: Props) {
 
   useEffect(() => setMounted(true), []);
 
+  // On mount (and whenever marketId changes — e.g. after navigation), check
+  // whether the user already has a position so the mobile sheet shows the
+  // "Position" tab and the FAB navigates there directly. Without this,
+  // hasPosition stays false until a *new* trade is placed in this session,
+  // making pre-existing positions (e.g. bought into a future round) invisible
+  // in the mobile UI.
+  useEffect(() => {
+    let cancelled = false;
+    const checkPosition = async () => {
+      try {
+        const res = await fetch(`/api/markets/${props.marketId}/my-position`, { cache: "no-store" });
+        if (!res.ok || cancelled) return;
+        const json = await res.json() as { hasPosition?: boolean };
+        if (json.hasPosition && !cancelled) {
+          setHasPosition(true);
+          setView("position");
+        }
+      } catch {
+        // non-critical
+      }
+    };
+    void checkPosition();
+    return () => { cancelled = true; };
+  }, [props.marketId]);
+
   const isActive = marketStatus === "active";
 
   const handleTradeSuccess = () => {
