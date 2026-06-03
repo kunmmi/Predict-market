@@ -1,33 +1,52 @@
 import { format } from "date-fns";
+import { Wallet, ArrowUpRight, ArrowDownLeft, TrendingUp } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getPlatformWalletData } from "@/lib/services/platform-wallet-data";
 import { PlatformWalletWithdrawForm } from "./withdraw-form";
 
-function statusBadge(status: string) {
-  if (status === "active") return "bg-green-100 text-green-700";
-  if (status === "locked") return "bg-red-100 text-red-700";
-  return "bg-slate-100 text-slate-600";
-}
-
-function txLabel(txType: string) {
-  const labels: Record<string, string> = {
-    fee_credit: "Platform fee",
-    withdrawal_debit: "Withdrawal",
-    adjustment_credit: "Adjustment",
-    adjustment_debit: "Adjustment",
+function StatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    active: "border-teal-400/20 bg-teal-400/10 text-teal-400",
+    locked: "border-rose-400/20 bg-rose-400/10 text-rose-400",
   };
-
-  return labels[txType] ?? txType;
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold capitalize ${map[status] ?? "border-slate-600 bg-slate-800 text-slate-400"}`}>
+      {status}
+    </span>
+  );
 }
 
-function withdrawalStatusBadge(status: string) {
-  if (status === "approved") return "bg-green-100 text-green-700";
-  if (status === "rejected") return "bg-red-100 text-red-700";
-  if (status === "pending") return "bg-yellow-100 text-yellow-800";
-  return "bg-slate-100 text-slate-600";
+function TxTypePill({ txType }: { txType: string }) {
+  const labels: Record<string, string> = {
+    fee_credit:        "Platform fee",
+    withdrawal_debit:  "Withdrawal",
+    adjustment_credit: "Adjustment",
+    adjustment_debit:  "Adjustment",
+  };
+  return <span className="text-xs text-slate-400">{labels[txType] ?? txType}</span>;
+}
+
+function WithdrawalStatusPill({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    approved: "border-teal-400/20 bg-teal-400/10 text-teal-400",
+    rejected: "border-rose-400/20 bg-rose-400/10 text-rose-400",
+    pending:  "border-amber-400/20 bg-amber-400/10 text-amber-400",
+  };
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${map[status] ?? "border-slate-600 bg-slate-800 text-slate-400"}`}>
+      {status}
+    </span>
+  );
+}
+
+function SectionHeader({ title }: { title: string }) {
+  return (
+    <div className="border-b border-white/[0.06] px-5 py-4">
+      <h2 className="text-sm font-semibold text-white">{title}</h2>
+    </div>
+  );
 }
 
 export default async function PlatformWalletPage() {
@@ -36,84 +55,92 @@ export default async function PlatformWalletPage() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="page-title">Platform wallet</h1>
-        <p className="text-sm text-slate-600">
-          Shared admin wallet for platform fee inflows and treasury withdrawals.
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Platform Wallet</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Shared treasury — platform fee inflows and admin withdrawals.
         </p>
       </div>
 
-      {wallet ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Total balance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold text-slate-900">${formatDecimal(wallet.balance, 2)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Available</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold text-slate-900">${formatDecimal(wallet.availableBalance, 2)}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge(wallet.status)}`}>
-                {wallet.status}
-              </span>
-            </CardContent>
-          </Card>
+      {/* Balance cards */}
+      {wallet && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="relative overflow-hidden rounded-xl border border-teal-400/30 bg-[#111318] p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-400/10">
+                <Wallet className="h-4 w-4 text-teal-400" />
+              </div>
+            </div>
+            <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
+              ${formatDecimal(wallet.balance, 2)}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Total Balance</p>
+            <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-teal-400/5" />
+          </div>
+
+          <div className="rounded-xl border border-white/[0.06] bg-[#111318] p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10">
+              <TrendingUp className="h-4 w-4 text-amber-400" />
+            </div>
+            <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
+              ${formatDecimal(wallet.availableBalance, 2)}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Available</p>
+          </div>
+
+          <div className="rounded-xl border border-white/[0.06] bg-[#111318] p-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-700/50">
+              <ArrowUpRight className="h-4 w-4 text-slate-400" />
+            </div>
+            <div className="mt-3">
+              <StatusPill status={wallet.status} />
+            </div>
+            <p className="mt-2 text-xs text-slate-500">Wallet Status</p>
+          </div>
         </div>
-      ) : null}
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Withdraw funds</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Withdraw form */}
+      <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
+        <SectionHeader title="Withdraw Funds" />
+        <div className="p-5">
           <PlatformWalletWithdrawForm availableBalance={wallet?.availableBalance ?? "0"} />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent platform wallet transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {transactions.length === 0 ? (
-            <p className="text-sm text-slate-500">No platform wallet transactions yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
+      {/* Transactions */}
+      <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
+        <SectionHeader title="Recent Platform Transactions" />
+
+        {transactions.length === 0 ? (
+          <div className="py-12 text-center text-sm text-slate-600">No platform wallet transactions yet.</div>
+        ) : (
+          <>
+            {/* Desktop */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    <th className="px-3 py-3">Date</th>
-                    <th className="px-3 py-3">Type</th>
-                    <th className="px-3 py-3">Description</th>
-                    <th className="px-3 py-3 text-right">Amount</th>
-                    <th className="px-3 py-3 text-right">Balance after</th>
+                  <tr className="border-b border-white/[0.06]">
+                    {["Date", "Type", "Description", "Amount", "Balance After"].map((h) => (
+                      <th key={h} className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-slate-500 last:text-right">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-white/[0.04]">
                   {transactions.map((tx) => (
-                    <tr key={tx.id}>
-                      <td className="whitespace-nowrap px-3 py-3 text-slate-500">
+                    <tr key={tx.id} className="transition-colors hover:bg-white/[0.02]">
+                      <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-500">
                         {format(new Date(tx.createdAt), "dd MMM yyyy, HH:mm")}
                       </td>
-                      <td className="px-3 py-3">{txLabel(tx.transactionType)}</td>
-                      <td className="px-3 py-3 text-slate-600">{tx.description ?? "—"}</td>
-                      <td className={`px-3 py-3 text-right font-mono ${tx.direction === "credit" ? "text-green-600" : "text-slate-700"}`}>
+                      <td className="px-5 py-3"><TxTypePill txType={tx.transactionType} /></td>
+                      <td className="px-5 py-3 text-xs text-slate-500">{tx.description ?? "—"}</td>
+                      <td className={`px-5 py-3 text-right font-mono text-xs font-semibold ${tx.direction === "credit" ? "text-teal-400" : "text-rose-400"}`}>
                         {tx.direction === "credit" ? "+" : "-"}${formatDecimal(tx.amount, 2)}
                       </td>
-                      <td className="px-3 py-3 text-right font-mono text-slate-600">
+                      <td className="px-5 py-3 text-right font-mono text-xs text-slate-400">
                         ${formatDecimal(tx.balanceAfter, 2)}
                       </td>
                     </tr>
@@ -121,63 +148,105 @@ export default async function PlatformWalletPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Platform withdrawal history</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {withdrawals.length === 0 ? (
-            <p className="text-sm text-slate-500">No platform withdrawals yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
+            {/* Mobile */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {transactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <TxTypePill txType={tx.transactionType} />
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-slate-600">{tx.description ?? "—"}</p>
+                    <p className="mt-0.5 font-mono text-[10px] text-slate-600">
+                      {format(new Date(tx.createdAt), "dd MMM yyyy, HH:mm")}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`font-mono text-sm font-semibold ${tx.direction === "credit" ? "text-teal-400" : "text-rose-400"}`}>
+                      {tx.direction === "credit" ? "+" : "-"}${formatDecimal(tx.amount, 2)}
+                    </p>
+                    <p className="font-mono text-[10px] text-slate-600">${formatDecimal(tx.balanceAfter, 2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Withdrawal history */}
+      <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
+        <SectionHeader title="Platform Withdrawal History" />
+
+        {withdrawals.length === 0 ? (
+          <div className="py-12 text-center text-sm text-slate-600">No platform withdrawals yet.</div>
+        ) : (
+          <>
+            {/* Desktop */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-                    <th className="px-3 py-3">Date</th>
-                    <th className="px-3 py-3">Requested by</th>
-                    <th className="px-3 py-3">Asset</th>
-                    <th className="px-3 py-3">Amount</th>
-                    <th className="px-3 py-3">Address</th>
-                    <th className="px-3 py-3">Status</th>
+                  <tr className="border-b border-white/[0.06]">
+                    {["Date", "Requested By", "Asset", "Amount", "Address", "Status"].map((h) => (
+                      <th key={h} className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-slate-500 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {withdrawals.map((withdrawal) => (
-                    <tr key={withdrawal.id}>
-                      <td className="whitespace-nowrap px-3 py-3 text-slate-500">
-                        {format(new Date(withdrawal.createdAt), "dd MMM yyyy, HH:mm")}
+                <tbody className="divide-y divide-white/[0.04]">
+                  {withdrawals.map((w) => (
+                    <tr key={w.id} className="transition-colors hover:bg-white/[0.02]">
+                      <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-500">
+                        {format(new Date(w.createdAt), "dd MMM yyyy, HH:mm")}
                       </td>
-                      <td className="px-3 py-3 text-slate-700">{withdrawal.requestedByAdminEmail}</td>
-                      <td className="px-3 py-3 font-medium">{withdrawal.assetSymbol}</td>
-                      <td className="px-3 py-3 font-mono text-slate-700">
-                        ${formatDecimal(withdrawal.amount, 2)}
+                      <td className="px-5 py-3 text-xs text-slate-400">{w.requestedByAdminEmail}</td>
+                      <td className="px-5 py-3 font-mono text-xs font-semibold text-slate-200">{w.assetSymbol}</td>
+                      <td className="px-5 py-3 font-mono text-xs font-semibold text-amber-400">
+                        ${formatDecimal(w.amount, 2)}
                       </td>
-                      <td className="max-w-[220px] truncate px-3 py-3 font-mono text-xs text-slate-500">
-                        <span title={withdrawal.withdrawalAddress}>{withdrawal.withdrawalAddress}</span>
+                      <td className="px-5 py-3 max-w-[200px] truncate font-mono text-xs text-slate-600">
+                        <span title={w.withdrawalAddress}>{w.withdrawalAddress}</span>
                       </td>
-                      <td className="px-3 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${withdrawalStatusBadge(withdrawal.status)}`}>
-                          {withdrawal.status}
-                        </span>
-                        {withdrawal.txHash ? (
-                          <p className="mt-1 text-xs text-slate-400">TX: {withdrawal.txHash}</p>
-                        ) : null}
-                        {withdrawal.adminNotes ? (
-                          <p className="mt-1 text-xs text-slate-400">{withdrawal.adminNotes}</p>
-                        ) : null}
+                      <td className="px-5 py-3">
+                        <WithdrawalStatusPill status={w.status} />
+                        {w.txHash && <p className="mt-1 font-mono text-[10px] text-slate-600">TX: {w.txHash}</p>}
+                        {w.adminNotes && <p className="mt-1 text-xs text-slate-600">{w.adminNotes}</p>}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Mobile */}
+            <div className="md:hidden space-y-3 p-4">
+              {withdrawals.map((w) => (
+                <div key={w.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-mono font-semibold text-amber-400">${formatDecimal(w.amount, 2)}</p>
+                      <p className="mt-0.5 text-[10px] text-slate-600">{w.requestedByAdminEmail}</p>
+                    </div>
+                    <WithdrawalStatusPill status={w.status} />
+                  </div>
+                  <div className="rounded-lg bg-white/[0.03] px-3 py-2">
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-600">Address</p>
+                    <p className="mt-0.5 truncate font-mono text-[10px] text-slate-500">{w.withdrawalAddress}</p>
+                  </div>
+                  {w.txHash && (
+                    <p className="font-mono text-[10px] text-slate-600">TX: {w.txHash}</p>
+                  )}
+                  <p className="font-mono text-[10px] text-slate-600">
+                    {format(new Date(w.createdAt), "dd MMM yyyy, HH:mm")}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

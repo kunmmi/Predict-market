@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { getAdminLogs } from "@/lib/services/admin-data";
 
@@ -9,45 +8,47 @@ export default async function AdminLogsPage() {
   const logs = await getAdminLogs(200);
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h1 className="page-title">Admin logs</h1>
-        <p className="page-subtitle">
-          Audit trail for admin financial and operational actions.
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Admin Logs</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Audit trail for admin financial and operational actions — last 200 events.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent events</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {logs.length === 0 ? (
-            <p className="text-sm text-slate-600">No admin logs available.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-collapse text-sm">
+      <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
+        {logs.length === 0 ? (
+          <div className="py-16 text-center text-sm text-slate-600">No admin logs available.</div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-slate-600">
-                    <th className="px-2 py-2 font-medium">Action</th>
-                    <th className="px-2 py-2 font-medium">Target table</th>
-                    <th className="px-2 py-2 font-medium">Target id</th>
-                    <th className="px-2 py-2 font-medium">Notes</th>
-                    <th className="px-2 py-2 font-medium">Created at</th>
+                  <tr className="border-b border-white/[0.06]">
+                    {["Action", "Target Table", "Target ID", "Notes", "Timestamp"].map((h) => (
+                      <th key={h} className="px-5 py-3.5 text-left text-[10px] font-semibold uppercase tracking-widest text-slate-500 whitespace-nowrap">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-white/[0.04]">
                   {logs.map((log) => (
-                    <tr key={log.id} className="border-b border-slate-100 align-top">
-                      <td className="px-2 py-2 font-medium text-slate-900">
+                    <tr key={log.id} className="align-top transition-colors hover:bg-white/[0.02]">
+                      <td className="px-5 py-3.5 text-sm font-semibold text-slate-200">
                         {log.actionType}
                       </td>
-                      <td className="px-2 py-2">{log.targetTable}</td>
-                      <td className="max-w-xs truncate px-2 py-2 font-mono text-xs text-slate-700">
+                      <td className="px-5 py-3.5">
+                        <span className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-xs text-slate-300">
+                          {log.targetTable}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 max-w-[200px] truncate font-mono text-xs text-slate-500">
                         {log.targetId}
                       </td>
-                      <td className="px-2 py-2">{log.notes ?? "—"}</td>
-                      <td className="whitespace-nowrap px-2 py-2 text-slate-600">
+                      <td className="px-5 py-3.5 text-xs text-slate-500">{log.notes ?? "—"}</td>
+                      <td className="whitespace-nowrap px-5 py-3.5 font-mono text-xs text-slate-600">
                         {new Date(log.createdAt).toLocaleString()}
                       </td>
                     </tr>
@@ -55,9 +56,32 @@ export default async function AdminLogsPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </CardContent>
-      </Card>
+
+            {/* Mobile list */}
+            <div className="md:hidden divide-y divide-white/[0.04]">
+              {logs.map((log) => (
+                <div key={log.id} className="flex items-start gap-3 px-4 py-3.5">
+                  <div className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400/60" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <span className="text-sm font-semibold text-slate-200">{log.actionType}</span>
+                      <span className="text-xs text-slate-500">on</span>
+                      <span className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-xs text-slate-300">
+                        {log.targetTable}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate font-mono text-xs text-slate-600">{log.targetId}</p>
+                    {log.notes && <p className="mt-1 text-xs text-slate-500">{log.notes}</p>}
+                    <p className="mt-1 font-mono text-[10px] text-slate-600">
+                      {new Date(log.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

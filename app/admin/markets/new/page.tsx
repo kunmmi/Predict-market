@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 const ASSET_SYMBOLS = ["BTC", "ETH", "SOL", "BNB", "USDT", "USDC", "XRP", "ADA", "DOGE"] as const;
 
@@ -17,6 +15,25 @@ function slugify(value: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 200);
+}
+
+const inputClass =
+  "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-amber-400/40 focus:outline-none transition-colors";
+const selectClass =
+  "w-full rounded-lg border border-white/[0.08] bg-[#111318] px-3 py-2.5 text-sm text-slate-200 focus:border-amber-400/40 focus:outline-none transition-colors";
+const labelClass = "block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5";
+const textareaClass =
+  "w-full resize-none rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-amber-400/40 focus:outline-none transition-colors";
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
+      <div className="border-b border-white/[0.06] px-5 py-4">
+        <h2 className="text-sm font-semibold text-white">{title}</h2>
+      </div>
+      <div className="p-5 space-y-4">{children}</div>
+    </div>
+  );
 }
 
 export default function AdminMarketNewPage() {
@@ -80,10 +97,7 @@ export default function AdminMarketNewPage() {
       };
 
       const body = isShortDuration
-        ? {
-            ...sharedBody,
-            duration_minutes: durationMinutes,
-          }
+        ? { ...sharedBody, duration_minutes: durationMinutes }
         : {
             ...sharedBody,
             close_at: form.close_at ? new Date(form.close_at).toISOString() : "",
@@ -112,245 +126,186 @@ export default function AdminMarketNewPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="page-title">Create Market</h1>
-        <p className="page-subtitle">Fill in the details to create a new prediction market.</p>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/admin/markets"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-colors hover:border-white/[0.14] hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Create Market</h1>
+          <p className="mt-0.5 text-sm text-slate-500">Fill in the details to create a new prediction market.</p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Market Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {error ? (
-              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            ) : null}
+        {error && (
+          <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-400">
+            {error}
+          </div>
+        )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Title *</label>
-                <Input
-                  name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  placeholder="Will SOL be up or down in the next 5 minutes?"
-                  required
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Slug *</label>
-                <Input
-                  name="slug"
-                  value={form.slug}
-                  onChange={handleChange}
-                  placeholder="will-sol-be-up-or-down-in-5-mins"
-                  required
-                />
-                <p className="text-xs text-slate-500">Lowercase, hyphens only. Auto-generated from title.</p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Asset Symbol *</label>
-                <select
-                  name="asset_symbol"
-                  value={form.asset_symbol}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                  required
-                >
-                  {ASSET_SYMBOLS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Category</label>
-                <Input
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                  placeholder="Price prediction"
-                />
-              </div>
-
-              <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:col-span-2">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-slate-800">Short-Duration Contract</p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      3-15 min up/down contract. Close time is auto-computed from activation.
-                    </p>
-                  </div>
-                  <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={isShortDuration}
-                      onChange={(event) => setIsShortDuration(event.target.checked)}
-                      className="h-4 w-4 rounded border-slate-300 text-yellow-500 focus:ring-yellow-400"
-                    />
-                    Enable
-                  </label>
-                </div>
-
-                {isShortDuration ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Duration</p>
-                      <div className="flex flex-wrap gap-2">
-                        {([3, 5, 10, 15, 30] as const).map((minutes) => (
-                          <button
-                            key={minutes}
-                            type="button"
-                            onClick={() => setDurationMinutes(minutes)}
-                            className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-                              durationMinutes === minutes
-                                ? "border-yellow-300 bg-yellow-100 text-yellow-900"
-                                : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                            }`}
-                          >
-                            {minutes} min
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <p className="rounded-md bg-white px-3 py-2 text-xs text-slate-500 ring-1 ring-slate-200">
-                      One live market offers both Up and Down. The opening price is captured at activation, and the round resolves Up if the finish price is at or above the opening price.
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Question Text</label>
-                <Input
-                  name="question_text"
-                  value={form.question_text}
-                  onChange={handleChange}
-                  placeholder="Leave blank to use title as question"
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Description</label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Market description..."
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Rules</label>
-                <textarea
-                  name="rules_text"
-                  value={form.rules_text}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="Resolution rules..."
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              <div className="sm:col-span-2 border-t border-slate-100 pt-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Chinese translations
-                </p>
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Title (ZH)</label>
-                <Input
-                  name="title_zh"
-                  value={form.title_zh}
-                  onChange={handleChange}
-                  placeholder="例如：SOL 在未来 5 分钟会上涨还是下跌？"
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Description (ZH)</label>
-                <textarea
-                  name="description_zh"
-                  value={form.description_zh}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="市场描述..."
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Rules (ZH)</label>
-                <textarea
-                  name="rules_text_zh"
-                  value={form.rules_text_zh}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="结算规则..."
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              {!isShortDuration ? (
-                <>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">Closes At *</label>
-                    <Input
-                      name="close_at"
-                      type="datetime-local"
-                      value={form.close_at}
-                      onChange={handleChange}
-                      required={!isShortDuration}
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700">Settles At *</label>
-                    <Input
-                      name="settle_at"
-                      type="datetime-local"
-                      value={form.settle_at}
-                      onChange={handleChange}
-                      required={!isShortDuration}
-                    />
-                  </div>
-                </>
-              ) : null}
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Status</label>
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                </select>
-              </div>
+        <SectionCard title="Market Details">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Title *</label>
+              <input
+                name="title"
+                value={form.title}
+                onChange={handleChange}
+                className={inputClass}
+                placeholder="Will SOL be up or down in the next 5 minutes?"
+                required
+              />
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Slug *</label>
+              <input
+                name="slug"
+                value={form.slug}
+                onChange={handleChange}
+                className={inputClass}
+                placeholder="will-sol-be-up-or-down-in-5-mins"
+                required
+              />
+              <p className="mt-1 text-xs text-slate-600">Lowercase, hyphens only. Auto-generated from title.</p>
+            </div>
+
+            <div>
+              <label className={labelClass}>Asset Symbol *</label>
+              <select name="asset_symbol" value={form.asset_symbol} onChange={handleChange} className={selectClass} required>
+                {ASSET_SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Category</label>
+              <input name="category" value={form.category} onChange={handleChange} className={inputClass} placeholder="Price prediction" />
+            </div>
+
+            {/* Short-Duration toggle */}
+            <div className="sm:col-span-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-200">Short-Duration Contract</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    3–30 min up/down contract. Close time is auto-computed from activation.
+                  </p>
+                </div>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isShortDuration}
+                    onChange={(e) => setIsShortDuration(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-600 bg-slate-800 accent-amber-400"
+                  />
+                  <span className="text-xs font-semibold text-slate-400">Enable</span>
+                </label>
+              </div>
+
+              {isShortDuration && (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Duration</p>
+                  <div className="flex flex-wrap gap-2">
+                    {([3, 5, 10, 15, 30] as const).map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => setDurationMinutes(mins)}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${
+                          durationMinutes === mins
+                            ? "border-amber-400/40 bg-amber-400/10 text-amber-400"
+                            : "border-white/[0.08] bg-white/[0.03] text-slate-400 hover:border-white/[0.14] hover:text-white"
+                        }`}
+                      >
+                        {mins} min
+                      </button>
+                    ))}
+                  </div>
+                  <p className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-xs text-slate-500">
+                    One live market offers both Up and Down. Opening price is captured at activation; round resolves Up if finish price ≥ opening price.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Question Text</label>
+              <input name="question_text" value={form.question_text} onChange={handleChange} className={inputClass} placeholder="Leave blank to use title as question" />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Description</label>
+              <textarea name="description" value={form.description} onChange={handleChange} rows={3} className={textareaClass} placeholder="Market description…" />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Rules</label>
+              <textarea name="rules_text" value={form.rules_text} onChange={handleChange} rows={4} className={textareaClass} placeholder="Resolution rules…" />
+            </div>
+
+            {!isShortDuration && (
+              <>
+                <div>
+                  <label className={labelClass}>Closes At *</label>
+                  <input name="close_at" type="datetime-local" value={form.close_at} onChange={handleChange} className={inputClass} required />
+                </div>
+                <div>
+                  <label className={labelClass}>Settles At *</label>
+                  <input name="settle_at" type="datetime-local" value={form.settle_at} onChange={handleChange} className={inputClass} required />
+                </div>
+              </>
+            )}
+
+            <div>
+              <label className={labelClass}>Status</label>
+              <select name="status" value={form.status} onChange={handleChange} className={selectClass}>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+              </select>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Chinese Translations (中文翻译)">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Title 标题</label>
+              <input name="title_zh" value={form.title_zh} onChange={handleChange} className={inputClass} placeholder="例如：SOL 在未来 5 分钟会上涨还是下跌？" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Description 描述</label>
+              <textarea name="description_zh" value={form.description_zh} onChange={handleChange} rows={3} className={textareaClass} placeholder="市场描述…" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Question Text 问题</label>
+              <input name="question_text_zh" value={form.question_text_zh} onChange={handleChange} className={inputClass} placeholder="中文问题…" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Rules 规则</label>
+              <textarea name="rules_text_zh" value={form.rules_text_zh} onChange={handleChange} rows={4} className={textareaClass} placeholder="结算规则…" />
+            </div>
+          </div>
+        </SectionCard>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
-            {loading ? "Creating..." : "Create Market"}
-          </Button>
-          <Button type="button" variant="outline" onClick={() => router.push("/admin/markets")}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-[0_0_16px_rgba(251,191,36,0.2)] transition-all hover:bg-amber-300 disabled:opacity-50"
+          >
+            {loading ? "Creating…" : "Create Market"}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.push("/admin/markets")}
+            className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:border-white/[0.14] hover:text-white"
+          >
             Cancel
-          </Button>
+          </button>
         </div>
       </form>
     </div>

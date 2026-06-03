@@ -2,23 +2,38 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import type { MarketDetail } from "@/lib/services/market-data";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const ASSET_SYMBOLS = ["BTC", "ETH", "SOL", "BNB", "USDT", "USDC", "XRP", "ADA", "DOGE"] as const;
 
 function toDatetimeLocal(iso: string | null | undefined): string {
   if (!iso) return "";
-  // datetime-local expects "YYYY-MM-DDTHH:MM"
   return iso.slice(0, 16);
 }
 
+const inputClass =
+  "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-amber-400/40 focus:outline-none transition-colors";
+const selectClass =
+  "w-full rounded-lg border border-white/[0.08] bg-[#111318] px-3 py-2.5 text-sm text-slate-200 focus:border-amber-400/40 focus:outline-none transition-colors";
+const labelClass = "block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5";
+const textareaClass =
+  "w-full resize-none rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:border-amber-400/40 focus:outline-none transition-colors";
+
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
+      <div className="border-b border-white/[0.06] px-5 py-4">
+        <h2 className="text-sm font-semibold text-white">{title}</h2>
+      </div>
+      <div className="p-5 space-y-4">{children}</div>
+    </div>
+  );
+}
+
 type Props = { market: MarketDetail };
-
-
 
 export function AdminMarketEditForm({ market }: Props) {
   const router = useRouter();
@@ -40,13 +55,11 @@ export function AdminMarketEditForm({ market }: Props) {
     rules_text_zh: market.rulesTextZh ?? "",
   });
 
-  // Settlement form state
   const [settlement, setSettlement] = useState({
     resolution: "yes" as "yes" | "no" | "cancelled",
     notes: "",
   });
 
-  // Price update state
   const [priceYes, setPriceYes] = useState(
     market.latestYesPrice != null ? String(market.latestYesPrice) : "0.50",
   );
@@ -54,6 +67,7 @@ export function AdminMarketEditForm({ market }: Props) {
     priceYes !== "" && !isNaN(parseFloat(priceYes))
       ? (1 - parseFloat(priceYes)).toFixed(4)
       : "—";
+
   const [priceError, setPriceError] = useState<string | null>(null);
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceSuccess, setPriceSuccess] = useState(false);
@@ -181,306 +195,240 @@ export function AdminMarketEditForm({ market }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Edit Market</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Update market details or settle the market.
-        </p>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <Link
+          href="/admin/markets"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] text-slate-400 transition-colors hover:border-white/[0.14] hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Edit Market</h1>
+          <p className="mt-0.5 text-sm text-slate-500">Update details, adjust prices, or settle the market.</p>
+        </div>
       </div>
 
-      {/* Edit Form */}
+      {/* Edit form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Market Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {error && (
-              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
+        {error && (
+          <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-400">
+            {error}
+          </div>
+        )}
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Title *</label>
-                <Input
-                  name="title"
-                  value={form.title}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Slug *</label>
-                <Input
-                  name="slug"
-                  value={form.slug}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Asset Symbol</label>
-                <select
-                  name="asset_symbol"
-                  value={form.asset_symbol}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  {ASSET_SYMBOLS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Status</label>
-                <select
-                  name="status"
-                  value={form.status}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="active">Active</option>
-                  <option value="closed">Closed</option>
-                  <option value="settled">Settled</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Category</label>
-                <Input
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Question Text</label>
-                <Input
-                  name="question_text"
-                  value={form.question_text}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Description</label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Rules</label>
-                <textarea
-                  name="rules_text"
-                  value={form.rules_text}
-                  onChange={handleChange}
-                  rows={4}
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              {/* Chinese translations */}
-              <div className="sm:col-span-2 border-t border-slate-100 pt-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Chinese translations (中文翻译)</p>
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Title 标题</label>
-                <Input
-                  name="title_zh"
-                  value={form.title_zh}
-                  onChange={handleChange}
-                  placeholder="中文标题…"
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Description 描述</label>
-                <textarea
-                  name="description_zh"
-                  value={form.description_zh}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="市场描述…"
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              <div className="space-y-1 sm:col-span-2">
-                <label className="text-sm font-medium text-slate-700">Rules 规则</label>
-                <textarea
-                  name="rules_text_zh"
-                  value={form.rules_text_zh}
-                  onChange={handleChange}
-                  rows={4}
-                  placeholder="结算规则…"
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Closes At</label>
-                <Input
-                  name="close_at"
-                  type="datetime-local"
-                  value={form.close_at}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Settles At</label>
-                <Input
-                  name="settle_at"
-                  type="datetime-local"
-                  value={form.settle_at}
-                  onChange={handleChange}
-                />
-              </div>
+        <SectionCard title="Market Details">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Title *</label>
+              <input name="title" value={form.title} onChange={handleChange} className={inputClass} required />
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Slug *</label>
+              <input name="slug" value={form.slug} onChange={handleChange} className={inputClass} required />
+            </div>
+
+            <div>
+              <label className={labelClass}>Asset Symbol</label>
+              <select name="asset_symbol" value={form.asset_symbol} onChange={handleChange} className={selectClass}>
+                {ASSET_SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Status</label>
+              <select name="status" value={form.status} onChange={handleChange} className={selectClass}>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
+                <option value="settled">Settled</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            <div>
+              <label className={labelClass}>Category</label>
+              <input name="category" value={form.category} onChange={handleChange} className={inputClass} />
+            </div>
+
+            <div>
+              <label className={labelClass}>Question Text</label>
+              <input name="question_text" value={form.question_text} onChange={handleChange} className={inputClass} />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Description</label>
+              <textarea name="description" value={form.description} onChange={handleChange} rows={3} className={textareaClass} />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Rules</label>
+              <textarea name="rules_text" value={form.rules_text} onChange={handleChange} rows={4} className={textareaClass} />
+            </div>
+
+            <div>
+              <label className={labelClass}>Closes At</label>
+              <input name="close_at" type="datetime-local" value={form.close_at} onChange={handleChange} className={inputClass} />
+            </div>
+
+            <div>
+              <label className={labelClass}>Settles At</label>
+              <input name="settle_at" type="datetime-local" value={form.settle_at} onChange={handleChange} className={inputClass} />
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Chinese Translations (中文翻译)">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Title 标题</label>
+              <input name="title_zh" value={form.title_zh} onChange={handleChange} className={inputClass} placeholder="中文标题…" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Description 描述</label>
+              <textarea name="description_zh" value={form.description_zh} onChange={handleChange} rows={3} className={textareaClass} placeholder="市场描述…" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelClass}>Rules 规则</label>
+              <textarea name="rules_text_zh" value={form.rules_text_zh} onChange={handleChange} rows={4} className={textareaClass} placeholder="结算规则…" />
+            </div>
+          </div>
+        </SectionCard>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={loading}>
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-lg bg-amber-400 px-5 py-2.5 text-sm font-bold text-slate-900 shadow-[0_0_16px_rgba(251,191,36,0.2)] transition-all hover:bg-amber-300 disabled:opacity-50"
+          >
             {loading ? "Saving…" : "Save Changes"}
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
-            variant="outline"
             onClick={() => router.push("/admin/markets")}
+            className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-slate-400 transition-colors hover:border-white/[0.14] hover:text-white"
           >
             Cancel
-          </Button>
+          </button>
         </div>
       </form>
 
-      {/* Price Update */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Update Prices</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handlePriceUpdate} className="space-y-4">
-            {priceError && (
-              <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {priceError}
-              </div>
-            )}
-            {priceSuccess && (
-              <div className="rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                Prices updated successfully.
-              </div>
-            )}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">YES Price (0.01–0.99)</label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  min="0.01"
-                  max="0.99"
-                  value={priceYes}
-                  onChange={(e) => {
-                    setPriceYes(e.target.value);
-                    setPriceSuccess(false);
-                  }}
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">NO Price (computed)</label>
-                <div className="flex h-10 items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
-                  {priceNo}
-                </div>
+      {/* Price update */}
+      <SectionCard title="Update Prices">
+        <form onSubmit={handlePriceUpdate} className="space-y-4">
+          {priceError && (
+            <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-400">
+              {priceError}
+            </div>
+          )}
+          {priceSuccess && (
+            <div className="rounded-lg border border-teal-400/20 bg-teal-400/10 px-4 py-3 text-sm text-teal-400">
+              Prices updated successfully.
+            </div>
+          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>YES Price (0.01 – 0.99)</label>
+              <input
+                type="number"
+                step="0.0001"
+                min="0.01"
+                max="0.99"
+                value={priceYes}
+                onChange={(e) => { setPriceYes(e.target.value); setPriceSuccess(false); }}
+                className={inputClass}
+                required
+              />
+            </div>
+            <div>
+              <label className={labelClass}>NO Price (computed)</label>
+              <div className="flex h-[42px] items-center rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 font-mono text-sm text-slate-500">
+                {priceNo}
               </div>
             </div>
-            <Button type="submit" disabled={priceLoading} variant="outline">
-              {priceLoading ? "Updating…" : "Update Price"}
-            </Button>
+          </div>
+          <button
+            type="submit"
+            disabled={priceLoading}
+            className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-400/20 disabled:opacity-50"
+          >
+            {priceLoading ? "Updating…" : "Update Price"}
+          </button>
+        </form>
+      </SectionCard>
+
+      {/* Settlement */}
+      <SectionCard title="Settle Market">
+        {isSettled ? (
+          <p className="text-sm text-slate-500">
+            This market is already{" "}
+            <span className="font-semibold text-slate-300">{market.status}</span>
+            {market.resolutionOutcome !== "unresolved" ? ` (outcome: ${market.resolutionOutcome})` : ""}.
+          </p>
+        ) : settleSuccess ? (
+          <p className="rounded-lg border border-teal-400/20 bg-teal-400/10 px-4 py-3 text-sm text-teal-400">
+            Market settled successfully.
+          </p>
+        ) : (
+          <form onSubmit={handleSettle} className="space-y-4">
+            {settleError && (
+              <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-400">
+                {settleError}
+              </div>
+            )}
+
+            <div>
+              <label className={labelClass}>Outcome *</label>
+              <div className="flex flex-wrap gap-3 mt-2">
+                {(["yes", "no", "cancelled"] as const).map((outcome) => (
+                  <label
+                    key={outcome}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-all ${
+                      settlement.resolution === outcome
+                        ? outcome === "yes"
+                          ? "border-teal-400/40 bg-teal-400/10 text-teal-400"
+                          : outcome === "no"
+                          ? "border-rose-400/40 bg-rose-400/10 text-rose-400"
+                          : "border-slate-500 bg-slate-700/50 text-slate-300"
+                        : "border-white/[0.08] bg-white/[0.03] text-slate-500 hover:border-white/[0.14] hover:text-slate-300"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="resolution"
+                      value={outcome}
+                      checked={settlement.resolution === outcome}
+                      onChange={() => setSettlement((s) => ({ ...s, resolution: outcome }))}
+                      className="sr-only"
+                    />
+                    <span className="capitalize">{outcome}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Resolution Notes</label>
+              <textarea
+                value={settlement.notes}
+                onChange={(e) => setSettlement((s) => ({ ...s, notes: e.target.value }))}
+                rows={2}
+                className={textareaClass}
+                placeholder="Optional notes about the resolution…"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={settleLoading}
+              className="rounded-lg bg-rose-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-rose-500 disabled:opacity-50"
+            >
+              {settleLoading ? "Settling…" : "Settle Market"}
+            </button>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Settlement Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Settle Market</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isSettled ? (
-            <p className="text-sm text-slate-500">
-              This market is already {market.status}
-              {market.resolutionOutcome !== "unresolved"
-                ? ` (outcome: ${market.resolutionOutcome})`
-                : ""}
-              .
-            </p>
-          ) : settleSuccess ? (
-            <p className="text-sm font-medium text-green-700">Market settled successfully.</p>
-          ) : (
-            <form onSubmit={handleSettle} className="space-y-4">
-              {settleError && (
-                <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {settleError}
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700">Outcome *</label>
-                <div className="flex gap-4">
-                  {(["yes", "no", "cancelled"] as const).map((outcome) => (
-                    <label key={outcome} className="flex cursor-pointer items-center gap-2 text-sm">
-                      <input
-                        type="radio"
-                        name="resolution"
-                        value={outcome}
-                        checked={settlement.resolution === outcome}
-                        onChange={() =>
-                          setSettlement((s) => ({ ...s, resolution: outcome }))
-                        }
-                      />
-                      <span className="capitalize">{outcome}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700">Resolution Notes</label>
-                <textarea
-                  value={settlement.notes}
-                  onChange={(e) =>
-                    setSettlement((s) => ({ ...s, notes: e.target.value }))
-                  }
-                  rows={2}
-                  placeholder="Optional notes about the resolution…"
-                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
-                />
-              </div>
-
-              <Button type="submit" disabled={settleLoading} variant="default">
-                {settleLoading ? "Settling…" : "Settle Market"}
-              </Button>
-            </form>
-          )}
-        </CardContent>
-      </Card>
+        )}
+      </SectionCard>
     </div>
   );
 }
