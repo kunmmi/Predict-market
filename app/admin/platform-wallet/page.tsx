@@ -1,11 +1,12 @@
 import { format } from "date-fns";
-import { Wallet, ArrowUpRight, ArrowDownLeft, TrendingUp } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownLeft, TrendingUp, AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getPlatformWalletData } from "@/lib/services/platform-wallet-data";
 import { PlatformWalletWithdrawForm } from "./withdraw-form";
 import { SweepPanel } from "./sweep-panel";
+import { getWithdrawalWalletBalance } from "@/lib/services/tatum-send";
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -50,9 +51,17 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
+const LOW_BALANCE_THRESHOLD = 200; // warn when withdrawal wallet drops below $200
+
 export default async function PlatformWalletPage() {
   await requireAdmin();
-  const { wallet, transactions, withdrawals } = await getPlatformWalletData();
+  const [{ wallet, transactions, withdrawals }, hotWallet] = await Promise.all([
+    getPlatformWalletData(),
+    getWithdrawalWalletBalance(),
+  ]);
+
+  const hotWalletBalance  = hotWallet ? parseFloat(hotWallet.usdtBalance) : null;
+  const hotWalletIsLow    = hotWalletBalance !== null && hotWalletBalance < LOW_BALANCE_THRESHOLD;
 
   return (
     <div className="space-y-6">
@@ -64,9 +73,25 @@ export default async function PlatformWalletPage() {
         </p>
       </div>
 
+      {/* Withdrawal wallet low-balance warning */}
+      {hotWalletIsLow && (
+        <div className="flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/5 p-4">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+          <div className="text-xs text-slate-400 leading-relaxed">
+            <p className="font-semibold text-rose-400">Withdrawal wallet is low — top it up</p>
+            <p className="mt-1">
+              The withdrawal wallet only has{" "}
+              <span className="font-mono text-white">${hotWalletBalance!.toFixed(2)} USDT</span> remaining.
+              User withdrawals will fail when it runs dry. Send USDT (BSC/BEP-20) to{" "}
+              <span className="font-mono text-amber-400 break-all">{hotWallet!.address}</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Balance cards */}
       {wallet && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="relative overflow-hidden rounded-xl border border-teal-400/30 bg-[#111318] p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-400/10">
@@ -76,7 +101,7 @@ export default async function PlatformWalletPage() {
             <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
               ${formatDecimal(wallet.balance, 2)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Total Balance</p>
+            <p className="mt-1 text-xs text-slate-500">Platform Earnings</p>
             <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-teal-400/5" />
           </div>
 
@@ -87,7 +112,35 @@ export default async function PlatformWalletPage() {
             <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
               ${formatDecimal(wallet.availableBalance, 2)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Available</p>
+            <p className="mt-1 text-xs text-slate-500">Available to Sweep</p>
+          </div>
+
+          {/* Hot wallet — pays out user withdrawals */}
+          <div className={`rounded-xl border bg-[#111318] p-4 ${
+            hotWalletIsLow
+              ? "border-rose-400/30"
+              : "border-white/[0.06]"
+          }`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+              hotWalletIsLow ? "bg-rose-400/10" : "bg-emerald-400/10"
+            }`}>
+              {hotWalletIsLow
+                ? <AlertTriangle className="h-4 w-4 text-rose-400" />
+                : <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              }
+            </div>
+            <p className={`mt-3 font-mono text-2xl font-semibold tracking-tight ${
+              hotWalletIsLow ? "text-rose-400" : "text-white"
+            }`}>
+              {hotWalletBalance !== null
+                ? `$${hotWalletBalance.toFixed(2)}`
+                : <span className="text-slate-600 text-sm">Unavailable</span>
+              }
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Withdrawal Wallet</p>
+            {hotWalletIsLow && (
+              <p className="mt-1 text-[10px] text-rose-400 font-semibold uppercase tracking-wider">Low — top up needed</p>
+            )}
           </div>
 
           <div className="rounded-xl border border-white/[0.06] bg-[#111318] p-4">

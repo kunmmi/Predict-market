@@ -184,6 +184,32 @@ export type SendCryptoParams = {
 };
 
 /**
+ * Returns the live on-chain USDT balance of the withdrawal wallet (BSC).
+ * Used by the admin dashboard to show liquidity and warn when low.
+ * Returns null if WALLET_PRIVATE_KEY_ETH is not configured or RPC fails.
+ */
+export async function getWithdrawalWalletBalance(): Promise<{
+  address: string;
+  usdtBalance: string;
+} | null> {
+  try {
+    const privateKey = process.env.WALLET_PRIVATE_KEY_ETH;
+    if (!privateKey) return null;
+    const provider = new ethers.JsonRpcProvider(RPC.BSC);
+    const wallet = new ethers.Wallet(privateKey, provider);
+    const contract = TOKEN_CONTRACTS.BSC.USDT;
+    const erc20 = new ethers.Contract(contract.address, ERC20_ABI, provider);
+    const balance = await (erc20.balanceOf as (addr: string) => Promise<bigint>)(wallet.address);
+    return {
+      address: wallet.address,
+      usdtBalance: ethers.formatUnits(balance, contract.decimals),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Sends crypto from the platform wallet to the user's address.
  * BEP-20/ERC-20 tokens go via ethers.js directly — no Tatum plan required.
  * Returns the on-chain transaction hash on success.
