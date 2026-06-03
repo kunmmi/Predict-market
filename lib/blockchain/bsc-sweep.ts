@@ -37,9 +37,9 @@ export const MIN_SWEEP_AMOUNT = ethers.parseUnits("0.10", USDT_DECIMALS); // $0.
 /**
  * BNB sent to each deposit address exactly once to fund the approve() call.
  * A BSC approve tx uses ~46 000 gas × 1–3 Gwei ≈ 0.00014 BNB ≈ $0.07.
- * Sending 0.0005 BNB leaves a safe buffer and costs ~$0.25.
+ * Sending 0.0002 BNB covers gas with a small buffer and costs ~$0.10.
  */
-export const BNB_FOR_APPROVE = ethers.parseEther("0.0005");
+export const BNB_FOR_APPROVE = ethers.parseEther("0.0002");
 
 const ERC20_ABI = [
   "function balanceOf(address owner) view returns (uint256)",
