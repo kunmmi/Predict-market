@@ -295,34 +295,35 @@ export type AdminUserRow = {
 };
 
 export async function getAdminUsers(): Promise<AdminUserRow[]> {
-  try {
-    const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, email, display_name, role, kyc_status, created_at")
-      .order("created_at", { ascending: false });
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, email, display_name, role, kyc_status, created_at")
+    .order("created_at", { ascending: false });
 
-    return (data ?? []).map((row) => {
-      const r = row as {
-        id: string;
-        email: string;
-        display_name: string | null;
-        role: string;
-        kyc_status: string;
-        created_at: string;
-      };
-      return {
-        id: r.id,
-        email: r.email,
-        displayName: r.display_name,
-        role: r.role,
-        kycStatus: r.kyc_status,
-        createdAt: r.created_at,
-      };
-    });
-  } catch {
-    return [];
+  if (error) {
+    console.error("[getAdminUsers] Supabase error:", error.message, error.code);
+    throw new Error(`Failed to load users: ${error.message}`);
   }
+
+  return (data ?? []).map((row) => {
+    const r = row as {
+      id: string;
+      email: string;
+      display_name: string | null;
+      role: string;
+      kyc_status: string;
+      created_at: string;
+    };
+    return {
+      id: r.id,
+      email: r.email,
+      displayName: r.display_name,
+      role: r.role,
+      kycStatus: r.kyc_status,
+      createdAt: r.created_at,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
