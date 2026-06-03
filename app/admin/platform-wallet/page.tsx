@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getPlatformWalletData } from "@/lib/services/platform-wallet-data";
 import { PlatformWalletWithdrawForm } from "./withdraw-form";
+import { SweepPanel } from "./sweep-panel";
 
 function StatusPill({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -100,6 +101,14 @@ export default async function PlatformWalletPage() {
           </div>
         </div>
       )}
+
+      {/* On-chain sweep */}
+      <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
+        <SectionHeader title="On-Chain USDT Sweep" />
+        <div className="p-5">
+          <SweepPanel />
+        </div>
+      </div>
 
       {/* Withdraw form */}
       <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
