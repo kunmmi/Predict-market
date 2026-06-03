@@ -16,7 +16,7 @@ import { NextResponse } from "next/server";
 import { runSweep } from "@/lib/services/run-sweep";
 
 export const dynamic    = "force-dynamic";
-export const maxDuration = 300; // seconds — requires Vercel Pro
+export const maxDuration = 60; // seconds — max on Vercel Hobby plan
 
 export async function POST(request: Request) {
   // Verify this is a genuine Vercel Cron invocation

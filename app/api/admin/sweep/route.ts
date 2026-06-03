@@ -29,7 +29,7 @@ import {
 import { runSweep } from "@/lib/services/run-sweep";
 
 export const dynamic    = "force-dynamic";
-export const maxDuration = 300; // seconds (Vercel Pro)
+export const maxDuration = 60; // seconds — max on Vercel Hobby plan
 
 // ── GET — preview ──────────────────────────────────────────────────────────
 
