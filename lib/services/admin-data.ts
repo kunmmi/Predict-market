@@ -480,6 +480,247 @@ export async function getAdminTrades(): Promise<AdminTradeRow[]> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Admin user detail — everything about one user
+// ---------------------------------------------------------------------------
+
+export type AdminUserDetail = {
+  profile: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    role: string;
+    kycStatus: string;
+    createdAt: string;
+  };
+  wallet: {
+    id: string;
+    balance: string;
+    availableBalance: string;
+    reservedBalance: string;
+    status: string;
+    depositAddress: string | null;
+    depositAddressIndex: number | null;
+  } | null;
+  walletTransactions: Array<{
+    id: string;
+    transactionType: string;
+    assetSymbol: string;
+    amount: string;
+    direction: string;
+    balanceBefore: string;
+    balanceAfter: string;
+    description: string | null;
+    createdAt: string;
+  }>;
+  deposits: Array<{
+    id: string;
+    assetSymbol: string;
+    networkName: string | null;
+    amountExpected: string | null;
+    amountReceived: string | null;
+    txHash: string | null;
+    status: string;
+    adminNotes: string | null;
+    createdAt: string;
+  }>;
+  withdrawals: Array<{
+    id: string;
+    assetSymbol: string;
+    networkName: string | null;
+    amount: string;
+    withdrawalAddress: string;
+    txHash: string | null;
+    status: string;
+    adminNotes: string | null;
+    createdAt: string;
+  }>;
+  trades: Array<{
+    id: string;
+    marketTitle: string;
+    side: string;
+    amount: string;
+    price: string;
+    feeAmount: string;
+    positionUnits: string;
+    status: string;
+    createdAt: string;
+  }>;
+  positions: Array<{
+    id: string;
+    marketTitle: string;
+    marketStatus: string;
+    yesUnits: string;
+    noUnits: string;
+    pnlAmount: string;
+    status: string;
+    updatedAt: string;
+  }>;
+};
+
+export async function getAdminUserDetail(userId: string): Promise<AdminUserDetail | null> {
+  const supabase = createSupabaseAdminClient();
+
+  const [
+    profileRes,
+    walletRes,
+    walletTxRes,
+    depositsRes,
+    withdrawalsRes,
+    tradesRes,
+    positionsRes,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, email, display_name, role, kyc_status, created_at")
+      .eq("id", userId)
+      .maybeSingle(),
+
+    supabase
+      .from("wallets")
+      .select("id, balance, available_balance, reserved_balance, status, deposit_address, deposit_address_index")
+      .eq("profile_id", userId)
+      .maybeSingle(),
+
+    supabase
+      .from("wallet_transactions")
+      .select("id, transaction_type, asset_symbol, amount, direction, balance_before, balance_after, description, created_at")
+      .eq("profile_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+
+    supabase
+      .from("deposits")
+      .select("id, asset_symbol, network_name, amount_expected, amount_received, tx_hash, status, admin_notes, created_at")
+      .eq("profile_id", userId)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("withdrawals")
+      .select("id, asset_symbol, network_name, amount, withdrawal_address, tx_hash, status, admin_notes, created_at")
+      .eq("profile_id", userId)
+      .order("created_at", { ascending: false }),
+
+    supabase
+      .from("trades")
+      .select("id, side, amount, price, fee_amount, position_units, status, created_at, markets ( title )")
+      .eq("profile_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(200),
+
+    supabase
+      .from("positions")
+      .select("id, yes_units, no_units, pnl_amount, status, updated_at, markets ( title, status )")
+      .eq("profile_id", userId)
+      .order("updated_at", { ascending: false })
+      .limit(100),
+  ]);
+
+  if (!profileRes.data) return null;
+
+  const p = profileRes.data as Record<string, unknown>;
+  const profile = {
+    id: String(p.id),
+    email: String(p.email),
+    displayName: p.display_name ? String(p.display_name) : null,
+    role: String(p.role),
+    kycStatus: String(p.kyc_status),
+    createdAt: String(p.created_at),
+  };
+
+  let wallet: AdminUserDetail["wallet"] = null;
+  if (walletRes.data) {
+    const w = walletRes.data as Record<string, unknown>;
+    wallet = {
+      id: String(w.id),
+      balance: String(w.balance ?? "0"),
+      availableBalance: String(w.available_balance ?? "0"),
+      reservedBalance: String(w.reserved_balance ?? "0"),
+      status: String(w.status ?? "active"),
+      depositAddress: w.deposit_address ? String(w.deposit_address) : null,
+      depositAddressIndex: w.deposit_address_index != null ? Number(w.deposit_address_index) : null,
+    };
+  }
+
+  const walletTransactions = (walletTxRes.data ?? []).map((row) => {
+    const r = row as Record<string, unknown>;
+    return {
+      id: String(r.id),
+      transactionType: String(r.transaction_type),
+      assetSymbol: String(r.asset_symbol),
+      amount: String(r.amount),
+      direction: String(r.direction),
+      balanceBefore: String(r.balance_before),
+      balanceAfter: String(r.balance_after),
+      description: r.description ? String(r.description) : null,
+      createdAt: String(r.created_at),
+    };
+  });
+
+  const deposits = (depositsRes.data ?? []).map((row) => {
+    const r = row as Record<string, unknown>;
+    return {
+      id: String(r.id),
+      assetSymbol: String(r.asset_symbol),
+      networkName: r.network_name ? String(r.network_name) : null,
+      amountExpected: r.amount_expected != null ? String(r.amount_expected) : null,
+      amountReceived: r.amount_received != null ? String(r.amount_received) : null,
+      txHash: r.tx_hash ? String(r.tx_hash) : null,
+      status: String(r.status),
+      adminNotes: r.admin_notes ? String(r.admin_notes) : null,
+      createdAt: String(r.created_at),
+    };
+  });
+
+  const withdrawals = (withdrawalsRes.data ?? []).map((row) => {
+    const r = row as Record<string, unknown>;
+    return {
+      id: String(r.id),
+      assetSymbol: String(r.asset_symbol),
+      networkName: r.network_name ? String(r.network_name) : null,
+      amount: String(r.amount),
+      withdrawalAddress: String(r.withdrawal_address),
+      txHash: r.tx_hash ? String(r.tx_hash) : null,
+      status: String(r.status),
+      adminNotes: r.admin_notes ? String(r.admin_notes) : null,
+      createdAt: String(r.created_at),
+    };
+  });
+
+  const trades = (tradesRes.data ?? []).map((row) => {
+    const r = row as Record<string, unknown>;
+    const market = r.markets as { title?: string } | null;
+    return {
+      id: String(r.id),
+      marketTitle: market?.title ?? "—",
+      side: String(r.side),
+      amount: String(r.amount),
+      price: String(r.price),
+      feeAmount: String(r.fee_amount),
+      positionUnits: String(r.position_units),
+      status: String(r.status),
+      createdAt: String(r.created_at),
+    };
+  });
+
+  const positions = (positionsRes.data ?? []).map((row) => {
+    const r = row as Record<string, unknown>;
+    const market = r.markets as { title?: string; status?: string } | null;
+    return {
+      id: String(r.id),
+      marketTitle: market?.title ?? "—",
+      marketStatus: market?.status ?? "—",
+      yesUnits: String(r.yes_units),
+      noUnits: String(r.no_units),
+      pnlAmount: String(r.pnl_amount ?? "0"),
+      status: String(r.status),
+      updatedAt: String(r.updated_at),
+    };
+  });
+
+  return { profile, wallet, walletTransactions, deposits, withdrawals, trades, positions };
+}
+
 export async function getAdminLogs(limit = 100): Promise<
   Array<{
     id: string;

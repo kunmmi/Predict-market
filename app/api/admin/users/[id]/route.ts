@@ -2,8 +2,28 @@ import { NextResponse } from "next/server";
 
 import { requireAdminForApi } from "@/lib/auth/require-admin-api";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getAdminUserDetail } from "@/lib/services/admin-data";
 
 type Params = { params: { id: string } };
+
+/**
+ * GET /api/admin/users/[id]
+ * Returns full detail for one user — profile, wallet, deposits, withdrawals, trades, positions.
+ */
+export async function GET(_request: Request, { params }: Params) {
+  try {
+    await requireAdminForApi();
+  } catch {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
+  }
+
+  const detail = await getAdminUserDetail(params.id);
+  if (!detail) {
+    return NextResponse.json({ success: false, message: "User not found." }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true, ...detail });
+}
 
 /**
  * PATCH /api/admin/users/[id]

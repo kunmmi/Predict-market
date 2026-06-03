@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Search, ShieldCheck, ShieldOff } from "lucide-react";
+import Link from "next/link";
+import { Search, ShieldCheck, ShieldOff, ExternalLink } from "lucide-react";
 
 type AdminUserRow = {
   id: string;
@@ -211,7 +212,12 @@ export default function AdminUsersPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {users.map((user) => (
                   <tr key={user.id} className="transition-colors hover:bg-white/[0.02]">
-                    <td className="px-5 py-3.5 font-medium text-slate-200">{user.email}</td>
+                    <td className="px-5 py-3.5">
+                      <Link href={`/admin/users/${user.id}`} className="group flex items-center gap-1.5">
+                        <span className="font-medium text-slate-200 group-hover:text-amber-400 transition-colors">{user.email}</span>
+                        <ExternalLink className="h-3 w-3 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </Link>
+                    </td>
                     <td className="px-5 py-3.5 text-slate-400">{user.displayName ?? "—"}</td>
                     <td className="px-5 py-3.5"><RolePill role={user.role} /></td>
                     <td className="px-5 py-3.5"><KycPill status={user.kycStatus} /></td>
@@ -235,7 +241,10 @@ export default function AdminUsersPage() {
               <div key={user.id} className="rounded-xl border border-white/[0.06] bg-[#111318] p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-200 break-all">{user.email}</p>
+                    <Link href={`/admin/users/${user.id}`} className="group flex items-center gap-1">
+                      <p className="text-sm font-medium text-slate-200 break-all group-hover:text-amber-400 transition-colors">{user.email}</p>
+                      <ExternalLink className="h-3 w-3 shrink-0 ml-1 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
                     {user.displayName && (
                       <p className="mt-0.5 text-xs text-slate-400">{user.displayName}</p>
                     )}
