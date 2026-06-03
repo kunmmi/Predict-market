@@ -10,16 +10,19 @@ import { ASSET_TO_BINANCE } from "@/lib/config/binance-symbols";
 
 /**
  * GET /api/admin/markets
- * Returns all markets for the admin.
+ * Returns markets for the admin, optionally filtered by status.
+ * ?status=active|draft|settled|cancelled|all|live
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await requireAdminForApi();
   } catch {
     return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
   }
 
-  const markets = await getAllMarketsAdmin();
+  const { searchParams } = new URL(request.url);
+  const status = searchParams.get("status") ?? "live";
+  const markets = await getAllMarketsAdmin(status);
   return NextResponse.json({ success: true, markets }, { status: 200 });
 }
 

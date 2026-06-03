@@ -378,16 +378,26 @@ export async function getMarketPriceHistory(marketId: string): Promise<PricePoin
 // Admin queries (uses admin client — bypasses RLS)
 // ---------------------------------------------------------------------------
 
-export async function getAllMarketsAdmin(): Promise<AdminMarketRow[]> {
+export async function getAllMarketsAdmin(statusFilter?: string): Promise<AdminMarketRow[]> {
   const supabase = createSupabaseAdminClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("markets")
     .select(
       `id, title, slug, asset_symbol, status, resolution_outcome, close_at, settle_at, created_at, updated_at,
        market_prices ( yes_price, no_price, created_at )`,
     )
     .order("created_at", { ascending: false });
+
+  if (statusFilter && statusFilter !== "all") {
+    if (statusFilter === "live") {
+      query = query.in("status", ["active", "draft"]);
+    } else {
+      query = query.eq("status", statusFilter);
+    }
+  }
+
+  const { data, error } = await query;
 
   if (error || !data) return [];
 
