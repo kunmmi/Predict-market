@@ -11,7 +11,7 @@ export const withdrawalCreateSchema = z.object({
     .string()
     .trim()
     .refine((v) => /^\d+(\.\d+)?$/.test(v), "Amount must be a positive decimal string.")
-    .refine((v) => Number.parseFloat(v) > 0, "Amount must be greater than zero."),
+    .refine((v) => Number.parseFloat(v) >= 0.30, "Minimum withdrawal is $0.30."),
   withdrawal_address: z
     .string()
     .trim()
