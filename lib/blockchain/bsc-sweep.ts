@@ -310,14 +310,20 @@ export type AddressPreview = {
   address: string;
   profileId: string;
   index: number | null;
-  usdtBalance: string;
+  usdtBalance: string;       // raw on-chain balance
+  sweepableBalance: string;  // on-chain minus user's platform balance (what platform can actually take)
   bnbBalance: string;
   approved: boolean;
   wouldSweep: boolean;
 };
 
 export async function previewAddresses(
-  wallets: Array<{ profile_id: string; deposit_address: string; deposit_address_index: number | null }>,
+  wallets: Array<{
+    profile_id: string;
+    deposit_address: string;
+    deposit_address_index: number | null;
+    userPlatformBalance?: number; // user's internal wallet balance — subtracted from sweepable
+  }>,
   provider: ethers.Provider,
 ): Promise<{ masterAddress: string; addresses: AddressPreview[]; totalPendingUsdt: string }> {
   const master = getMasterWallet(provider);
@@ -331,14 +337,22 @@ export async function previewAddresses(
         getUsdtAllowance(addr, masterAddress, provider),
         getBnbBalance(addr, provider),
       ]);
+
+      const onChainFloat      = parseFloat(ethers.formatUnits(balance, USDT_DECIMALS));
+      const userBalanceFloat  = w.userPlatformBalance ?? 0;
+      const sweepableFloat    = Math.max(0, onChainFloat - userBalanceFloat);
+      const sweepableRaw      = ethers.parseUnits(sweepableFloat.toFixed(6), USDT_DECIMALS);
+
       const approved   = allowance >= MIN_SWEEP_AMOUNT;
-      const wouldSweep = balance >= MIN_SWEEP_AMOUNT;
+      const wouldSweep = sweepableRaw >= MIN_SWEEP_AMOUNT;
+
       return {
-        address:    addr,
-        profileId:  w.profile_id,
-        index:      w.deposit_address_index,
-        usdtBalance: ethers.formatUnits(balance, USDT_DECIMALS),
-        bnbBalance:  ethers.formatEther(bnb),
+        address:         addr,
+        profileId:       w.profile_id,
+        index:           w.deposit_address_index,
+        usdtBalance:     ethers.formatUnits(balance, USDT_DECIMALS),
+        sweepableBalance: sweepableFloat.toFixed(6),
+        bnbBalance:      ethers.formatEther(bnb),
         approved,
         wouldSweep,
       };
@@ -347,7 +361,7 @@ export async function previewAddresses(
 
   const totalPendingUsdt = addresses
     .filter((a) => a.wouldSweep)
-    .reduce((s, a) => s + parseFloat(a.usdtBalance), 0)
+    .reduce((s, a) => s + parseFloat(a.sweepableBalance), 0)
     .toFixed(2);
 
   return { masterAddress, addresses, totalPendingUsdt };

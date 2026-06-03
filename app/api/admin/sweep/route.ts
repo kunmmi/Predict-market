@@ -45,7 +45,7 @@ export async function GET() {
 
   const { data: walletRows } = await supabase
     .from("wallets")
-    .select("profile_id, deposit_address, deposit_address_index, sweep_approved_at");
+    .select("profile_id, deposit_address, deposit_address_index, sweep_approved_at, balance");
 
   const eligible = (walletRows ?? []).filter(
     (w): w is typeof w & { deposit_address: string } =>
@@ -70,6 +70,7 @@ export async function GET() {
         profile_id: w.profile_id as string,
         deposit_address: w.deposit_address,
         deposit_address_index: w.deposit_address_index as number | null,
+        userPlatformBalance: parseFloat(String(w.balance ?? "0")),
       })),
       provider,
     );
