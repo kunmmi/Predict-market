@@ -23,11 +23,11 @@ function RolePill({ role }: { role: string }) {
   );
 }
 
-function KycPill({ status }: { status: string }) {
+function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    approved: "border-teal-400/20 bg-teal-400/10 text-teal-400",
-    pending:  "border-amber-400/20 bg-amber-400/10 text-amber-400",
-    rejected: "border-rose-400/20 bg-rose-400/10 text-rose-400",
+    active:    "border-teal-400/20 bg-teal-400/10 text-teal-400",
+    inactive:  "border-amber-400/20 bg-amber-400/10 text-amber-400",
+    suspended: "border-rose-400/20 bg-rose-400/10 text-rose-400",
   };
   return (
     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${styles[status] ?? "border-slate-600 bg-slate-800 text-slate-400"}`}>
@@ -113,7 +113,7 @@ export function UsersTable({ initialUsers }: { initialUsers: AdminUserRow[] }) {
         const q = search.toLowerCase();
         return (
           u.email.toLowerCase().includes(q) ||
-          (u.displayName?.toLowerCase().includes(q) ?? false)
+          (u.fullName?.toLowerCase().includes(q) ?? false)
         );
       })
     : users;
@@ -163,7 +163,7 @@ export function UsersTable({ initialUsers }: { initialUsers: AdminUserRow[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.06]">
-                  {["Email", "Display Name", "Role", "KYC", "Joined", "Actions"].map((h) => (
+                  {["Email", "Name", "Role", "Status", "Joined", "Actions"].map((h) => (
                     <th key={h} className="px-5 py-3.5 text-left text-[10px] font-semibold uppercase tracking-widest text-slate-500">
                       {h}
                     </th>
@@ -179,9 +179,9 @@ export function UsersTable({ initialUsers }: { initialUsers: AdminUserRow[] }) {
                         <ExternalLink className="h-3 w-3 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </Link>
                     </td>
-                    <td className="px-5 py-3.5 text-slate-400">{user.displayName ?? "—"}</td>
+                    <td className="px-5 py-3.5 text-slate-400">{user.fullName ?? "—"}</td>
                     <td className="px-5 py-3.5"><RolePill role={user.role} /></td>
-                    <td className="px-5 py-3.5"><KycPill status={user.kycStatus} /></td>
+                    <td className="px-5 py-3.5"><StatusPill status={user.accountStatus} /></td>
                     <td className="px-5 py-3.5 font-mono text-xs text-slate-500">
                       {new Date(user.createdAt).toLocaleDateString("en-US", {
                         month: "short", day: "numeric", year: "numeric",
@@ -206,15 +206,15 @@ export function UsersTable({ initialUsers }: { initialUsers: AdminUserRow[] }) {
                       <p className="text-sm font-medium text-slate-200 break-all group-hover:text-amber-400 transition-colors">{user.email}</p>
                       <ExternalLink className="h-3 w-3 shrink-0 ml-1 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </Link>
-                    {user.displayName && (
-                      <p className="mt-0.5 text-xs text-slate-400">{user.displayName}</p>
+                    {user.fullName && (
+                      <p className="mt-0.5 text-xs text-slate-400">{user.fullName}</p>
                     )}
                   </div>
                   <RolePill role={user.role} />
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <KycPill status={user.kycStatus} />
+                  <StatusPill status={user.accountStatus} />
                   <span className="font-mono text-xs text-slate-600">
                     {new Date(user.createdAt).toLocaleDateString("en-US", {
                       month: "short", day: "numeric", year: "numeric",

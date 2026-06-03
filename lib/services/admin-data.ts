@@ -288,9 +288,9 @@ export async function getAdminCommissions(
 export type AdminUserRow = {
   id: string;
   email: string;
-  displayName: string | null;
+  fullName: string | null;
   role: string;
-  kycStatus: string;
+  accountStatus: string;
   createdAt: string;
 };
 
@@ -298,7 +298,7 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, display_name, role, kyc_status, created_at")
+    .select("id, email, full_name, role, status, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -310,17 +310,17 @@ export async function getAdminUsers(): Promise<AdminUserRow[]> {
     const r = row as {
       id: string;
       email: string;
-      display_name: string | null;
+      full_name: string | null;
       role: string;
-      kyc_status: string;
+      status: string;
       created_at: string;
     };
     return {
       id: r.id,
       email: r.email,
-      displayName: r.display_name,
+      fullName: r.full_name,
       role: r.role,
-      kycStatus: r.kyc_status,
+      accountStatus: r.status,
       createdAt: r.created_at,
     };
   });
@@ -489,9 +489,9 @@ export type AdminUserDetail = {
   profile: {
     id: string;
     email: string;
-    displayName: string | null;
+    fullName: string | null;
     role: string;
-    kycStatus: string;
+    accountStatus: string;
     createdAt: string;
   };
   wallet: {
@@ -573,7 +573,7 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, email, display_name, role, kyc_status, created_at")
+      .select("id, email, full_name, role, status, created_at")
       .eq("id", userId)
       .maybeSingle(),
 
@@ -623,9 +623,9 @@ export async function getAdminUserDetail(userId: string): Promise<AdminUserDetai
   const profile = {
     id: String(p.id),
     email: String(p.email),
-    displayName: p.display_name ? String(p.display_name) : null,
+    fullName: p.full_name ? String(p.full_name) : null,
     role: String(p.role),
-    kycStatus: String(p.kyc_status),
+    accountStatus: String(p.status ?? "active"),
     createdAt: String(p.created_at),
   };
 

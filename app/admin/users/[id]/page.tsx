@@ -628,7 +628,7 @@ export default function AdminUserDetailPage() {
           <h1 className="text-xl font-bold tracking-tight text-white">{profile.email}</h1>
           <p className="mt-0.5 text-xs text-slate-500">
             Joined {format(new Date(profile.createdAt), "dd MMM yyyy")}
-            {profile.displayName ? ` · ${profile.displayName}` : ""}
+            {profile.fullName ? ` · ${profile.fullName}` : ""}
           </p>
         </div>
       </div>
@@ -645,11 +645,11 @@ export default function AdminUserDetailPage() {
             {profile.role}
           </span>
           <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wider ${
-            profile.kycStatus === "approved" ? "border-teal-400/20 bg-teal-400/10 text-teal-400" :
-            profile.kycStatus === "pending"  ? "border-amber-400/20 bg-amber-400/10 text-amber-400" :
+            profile.accountStatus === "active"    ? "border-teal-400/20 bg-teal-400/10 text-teal-400" :
+            profile.accountStatus === "inactive"  ? "border-amber-400/20 bg-amber-400/10 text-amber-400" :
             "border-rose-400/20 bg-rose-400/10 text-rose-400"
           }`}>
-            KYC: {profile.kycStatus}
+            {profile.accountStatus}
           </span>
         </div>
 
