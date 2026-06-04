@@ -115,6 +115,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden; /* prevent horizontal page scroll from nav overflow */
   }
 
   body {
@@ -123,6 +124,7 @@
     font-family: var(--font-sans);
     line-height: 1.5;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   /* Keyboard focus ring — visible only when navigating with keyboard */

@@ -78,22 +78,38 @@ function requireMnemonic(): string {
 }
 
 /**
- * Master wallet — the HD root (path m/).
- * Its address is distinct from all deposit addresses (m/0/<n>).
- * This wallet holds BNB for gas and receives all consolidated USDT.
+ * Returns the true HD root (depth 0) from the mnemonic seed.
+ *
+ * HDNodeWallet.fromMnemonic() defaults to m/44'/60'/0'/0 (depth 4) and
+ * cannot derive absolute paths from there. fromSeed() gives a depth-0 node
+ * so absolute BIP-44 paths work correctly.
  */
-export function getMasterWallet(provider?: ethers.Provider): HDNodeWallet {
-  const root = HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(requireMnemonic()));
-  return (provider ? root.connect(provider) : root) as HDNodeWallet;
+function getHdRoot(): HDNodeWallet {
+  const seed = Mnemonic.fromPhrase(requireMnemonic()).computeSeed();
+  return HDNodeWallet.fromSeed(seed) as HDNodeWallet;
 }
 
 /**
- * Deposit address wallet at derivation index `index` (path m/0/<index>).
+ * Master wallet at m/44'/60'/0'/0/0.
+ *
+ * ethers v6 HDNodeWallet.fromMnemonic() defaults to m/44'/60'/0'/0/0 (depth 5).
+ * That node IS the master wallet — it receives all consolidated USDT and holds
+ * BNB for gas.
+ */
+export function getMasterWallet(provider?: ethers.Provider): HDNodeWallet {
+  const wallet = getHdRoot().derivePath("m/44'/60'/0'/0/0");
+  return (provider ? wallet.connect(provider) : wallet) as HDNodeWallet;
+}
+
+/**
+ * Deposit address wallet at derivation index `index`.
+ * Full path: m/44'/60'/0'/0/0/0/<index>
+ *
+ * Derivation: fromMnemonic() → depth-5 node → deriveChild(0) → deriveChild(index).
  * Private key derived on-demand — only needed to sign the one-time approve().
  */
 export function getDepositWallet(index: number, provider?: ethers.Provider): HDNodeWallet {
-  const root = HDNodeWallet.fromMnemonic(Mnemonic.fromPhrase(requireMnemonic()));
-  const wallet = root.deriveChild(0).deriveChild(index);
+  const wallet = getHdRoot().derivePath(`m/44'/60'/0'/0/0/0/${index}`);
   return (provider ? wallet.connect(provider) : wallet) as HDNodeWallet;
 }
 

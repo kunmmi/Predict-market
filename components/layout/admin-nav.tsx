@@ -48,10 +48,10 @@ export function AdminNav({ locale, t }: Props) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0d0f12]">
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0d0f12] overflow-x-hidden">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6">
-          {/* Logo */}
-          <div className="flex items-center gap-4 py-3">
+          {/* Logo + desktop nav — min-w-0 so flex item can shrink, overflow scrolls internally */}
+          <div className="flex min-w-0 flex-1 items-center gap-4 py-3">
             <Link href="/admin" className="flex shrink-0 items-center gap-2.5">
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)]">
                 <BarChart3 className="h-4 w-4 text-slate-900" />
@@ -62,8 +62,8 @@ export function AdminNav({ locale, t }: Props) {
               </span>
             </Link>
 
-            {/* Desktop nav */}
-            <nav className="hidden lg:flex items-center gap-0.5 overflow-x-auto">
+            {/* Desktop nav — scrolls internally if all items don't fit */}
+            <nav className="hidden lg:flex min-w-0 items-center gap-0.5 overflow-x-auto">
               {NAV_ITEMS.map(({ href, label, en, icon: Icon, exact }) => {
                 const active = isActive(href, exact);
                 return (
