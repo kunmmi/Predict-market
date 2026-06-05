@@ -10,6 +10,7 @@ import {
   getPromoterReferrals,
   getPromoterSummaryByProfileId,
 } from "@/lib/services/promoter-data";
+import { ClaimCommissionsButton } from "./claim-button";
 
 function formatWhen(iso: string, locale: string): string {
   try {
@@ -87,10 +88,12 @@ export default async function PromoterDashboardPage() {
           <CardHeader>
             <CardTitle className="text-base">{t.commissions}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1 text-sm text-slate-700">
-            <p>{t.pending} {formatDecimal(summary.pendingCommission)}</p>
-            <p>{t.approved} {formatDecimal(summary.approvedCommission)}</p>
-            <p>{t.paid} {formatDecimal(summary.paidCommission)}</p>
+          <CardContent className="space-y-3 text-sm text-slate-700">
+            <div className="space-y-1">
+              <p>{t.pending} <span className="font-semibold text-slate-900">${formatDecimal(summary.pendingCommission, 2)}</span></p>
+              <p>{t.paid} ${formatDecimal(summary.paidCommission, 2)}</p>
+            </div>
+            <ClaimCommissionsButton pendingAmount={summary.pendingCommission} />
           </CardContent>
         </Card>
         <Card>
