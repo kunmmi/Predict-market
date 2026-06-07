@@ -65,19 +65,31 @@ export async function GET(_request: Request, { params }: { params: { id: string 
   }
 
   // Compute actual P&L: pnl_amount stores the raw payout (0 for a loss).
-  // For losses we calculate the staked amount and return it as a negative value
-  // so the banner can show "You lost $X" with the correct amount.
+  // For wins: use pnl_amount directly (set by settle_market RPC).
+  // For losses: use actual wallet trade_debits minus any sell credits for this
+  // market — this is the true cost basis, immune to stale avg_yes_price values.
   const isVoidOutcome = market.resolution_outcome === "void" || market.resolution_outcome === "cancelled";
-  const pnlAmount = positions.reduce((sum, p) => {
-    const payout = Number(p.pnl_amount ?? 0);
-    if (payout > 0) return sum + payout;              // win
-    if (isVoidOutcome) return sum;                     // void / refunded → 0
-    // Loss — use staked amount as the loss figure
-    const staked =
-      Number(p.yes_units ?? 0) * Number(p.avg_yes_price ?? 0) +
-      Number(p.no_units ?? 0) * Number(p.avg_no_price ?? 0);
-    return sum - staked;
-  }, 0);
+
+  const totalPayout = positions.reduce((sum, p) => sum + Number(p.pnl_amount ?? 0), 0);
+
+  let pnlAmount: number;
+  if (isVoidOutcome) {
+    pnlAmount = 0;
+  } else if (totalPayout > 0) {
+    pnlAmount = totalPayout; // win
+  } else {
+    // Loss — derive true cost from wallet transactions (most reliable source)
+    const { data: txRows } = await supabase
+      .from("wallet_transactions")
+      .select("transaction_type, amount")
+      .eq("profile_id", profileId)
+      .eq("reference_table", "markets")
+      .eq("reference_id", params.id);
+
+    const debits  = (txRows ?? []).filter(t => t.transaction_type === "trade_debit").reduce((s, t) => s + Number(t.amount), 0);
+    const credits = (txRows ?? []).filter(t => t.transaction_type === "trade_credit").reduce((s, t) => s + Number(t.amount), 0);
+    pnlAmount = -(debits - credits); // negative = loss
+  }
 
   return NextResponse.json({
     success: true,
