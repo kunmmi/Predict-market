@@ -12,7 +12,7 @@ import { useBinancePrice } from "@/lib/hooks/use-binance-price";
 import type { MarketListItem } from "@/lib/services/market-data";
 import type { Locale } from "@/lib/i18n/translations";
 
-type Tab = "all" | "5" | "15" | "30" | "standard";
+type Tab = "all" | "3" | "5" | "10" | "15" | "30" | "standard";
 
 function useCountdown(closeAt: string) {
   const getSecsLeft = useCallback(
@@ -449,7 +449,7 @@ function getDurationTabs(markets: MarketListItem[]): Tab[] {
       .map((m) => String(m.durationMinutes) as Tab),
   );
   const hasStandard = markets.some((m) => m.durationMinutes == null);
-  const order: Tab[] = ["5", "15", "30"];
+  const order: Tab[] = ["3", "5", "10", "15", "30"];
   const tabs: Tab[] = ["all", ...order.filter((d) => durations.has(d))];
   if (hasStandard) tabs.push("standard");
   return tabs;
