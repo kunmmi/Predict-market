@@ -101,7 +101,52 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
     .map((e, i) => ({ ...e, rank: i + 1 }));
 
   const top50 = allRanked.slice(0, 50);
-  const currentUser = allRanked.find((e) => e.profileId === currentProfileId) ?? null;
+  let currentUser = allRanked.find((e) => e.profileId === currentProfileId) ?? null;
+
+  // Fallback: query the current user's positions directly in case they were
+  // missed by the bulk query (e.g. positions in open/other statuses not included above)
+  if (!currentUser) {
+    const { data: myPos } = await supabase
+      .from("positions")
+      .select("pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price, status")
+      .eq("profile_id", currentProfileId)
+      .not("status", "eq", "open");
+
+    if (myPos && myPos.length > 0) {
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", currentProfileId)
+        .maybeSingle();
+
+      let totalPnl = 0, wins = 0, losses = 0, total = 0;
+      for (const p of myPos) {
+        if (p.status === "cancelled") continue;
+        const payout  = parseFloat(String(p.pnl_amount ?? 0));
+        const yesCost = parseFloat(String(p.yes_units ?? 0)) * parseFloat(String(p.avg_yes_price ?? 0));
+        const noCost  = parseFloat(String(p.no_units  ?? 0)) * parseFloat(String(p.avg_no_price  ?? 0));
+        const netPnl  = Math.round((payout - (yesCost + noCost)) * 100) / 100;
+        totalPnl += netPnl;
+        total    += 1;
+        if (netPnl > 0) wins += 1; else losses += 1;
+      }
+
+      if (total > 0) {
+        // Find their true rank by counting how many ranked players have a better P&L
+        const rank = allRanked.filter((e) => e.totalPnl > totalPnl).length + 1;
+        currentUser = {
+          profileId: currentProfileId,
+          rank,
+          displayName: (myProfile as { display_name: string | null } | null)?.display_name ?? "You",
+          totalPnl: Math.round(totalPnl * 100) / 100,
+          wins,
+          losses,
+          totalRounds: total,
+          winRate: Math.round((wins / total) * 100),
+        };
+      }
+    }
+  }
 
   return { top50, currentUser };
 }
