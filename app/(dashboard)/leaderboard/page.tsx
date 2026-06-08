@@ -8,7 +8,12 @@ import { getLocale } from "@/lib/i18n/get-locale";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { LeaderboardEntry } from "@/app/api/leaderboard/route";
 
-async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+type LeaderboardResult = {
+  top50: LeaderboardEntry[];
+  currentUser: (LeaderboardEntry & { profileId: string }) | null;
+};
+
+async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResult> {
   const supabase = createSupabaseAdminClient();
   const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
 
@@ -17,7 +22,7 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     .select("profile_id, pnl_amount")
     .eq("status", "settled");
 
-  if (posError || !posData) return [];
+  if (posError || !posData) return { top50: [], currentUser: null };
 
   const profileIds = Array.from(
     new Set(
@@ -27,7 +32,7 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     ),
   );
 
-  if (profileIds.length === 0) return [];
+  if (profileIds.length === 0) return { top50: [], currentUser: null };
 
   const { data: profileData } = await supabase
     .from("profiles")
@@ -69,8 +74,9 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
     }
   }
 
-  return Array.from(map.entries())
-    .map(([, v]) => ({
+  const allRanked: (LeaderboardEntry & { profileId: string })[] = Array.from(map.entries())
+    .map(([profileId, v]) => ({
+      profileId,
       rank: 0,
       displayName: v.displayName,
       totalPnl: Math.round(v.totalPnl * 100) / 100,
@@ -80,8 +86,12 @@ async function getLeaderboard(): Promise<LeaderboardEntry[]> {
       winRate: v.total > 0 ? Math.round((v.wins / v.total) * 100) : 0,
     }))
     .sort((a, b) => b.totalPnl - a.totalPnl)
-    .slice(0, 50)
     .map((e, i) => ({ ...e, rank: i + 1 }));
+
+  const top50 = allRanked.slice(0, 50);
+  const currentUser = allRanked.find((e) => e.profileId === currentProfileId) ?? null;
+
+  return { top50, currentUser };
 }
 
 // Rank badge styles — no emoji, styled numbers
@@ -92,10 +102,11 @@ const RANK_BADGE: Record<number, { bg: string; color: string; border: string }> 
 };
 
 export default async function LeaderboardPage() {
-  await requireUser();
+  const { profile } = await requireUser();
   const locale = getLocale();
   const zh = locale === "zh";
-  const entries = await getLeaderboard();
+  const { top50: entries, currentUser } = await getLeaderboard(profile.id);
+  const currentUserInTop50 = currentUser != null && currentUser.rank <= 50;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -163,14 +174,18 @@ export default async function LeaderboardPage() {
                     const isTop3 = entry.rank <= 3;
                     const isPositive = entry.totalPnl >= 0;
                     const badge = RANK_BADGE[entry.rank];
+                    const isMe = currentUser?.rank === entry.rank && currentUserInTop50;
 
                     return (
                       <tr
                         key={entry.rank}
                         style={{
                           borderBottom: "1px solid var(--border-dim)",
-                          backgroundColor: isTop3 ? "rgba(232,160,32,0.03)" : "transparent",
+                          backgroundColor: isMe
+                            ? "rgba(16,207,160,0.07)"
+                            : isTop3 ? "rgba(232,160,32,0.03)" : "transparent",
                           transition: "background-color 150ms ease",
+                          outline: isMe ? "1px solid rgba(16,207,160,0.25)" : undefined,
                         }}
                         className="hover:bg-[var(--bg-elevated)]"
                       >
@@ -203,15 +218,28 @@ export default async function LeaderboardPage() {
 
                         {/* Player */}
                         <td style={{ padding: "14px 12px", verticalAlign: "middle" }}>
-                          <span
-                            style={{
-                              fontFamily: "var(--font-sans)", fontSize: "0.875rem",
-                              fontWeight: isTop3 ? 600 : 500,
-                              color: isTop3 ? "var(--text-primary)" : "var(--text-secondary)",
-                            }}
-                          >
-                            {entry.displayName}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span
+                              style={{
+                                fontFamily: "var(--font-sans)", fontSize: "0.875rem",
+                                fontWeight: isTop3 || isMe ? 600 : 500,
+                                color: isMe ? "var(--teal)" : isTop3 ? "var(--text-primary)" : "var(--text-secondary)",
+                              }}
+                            >
+                              {entry.displayName}
+                            </span>
+                            {isMe && (
+                              <span style={{
+                                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                                fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase",
+                                color: "var(--teal)", backgroundColor: "rgba(16,207,160,0.12)",
+                                border: "1px solid rgba(16,207,160,0.25)",
+                                borderRadius: 4, padding: "1px 6px",
+                              }}>
+                                {zh ? "我" : "You"}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Rounds */}
@@ -285,6 +313,82 @@ export default async function LeaderboardPage() {
           )}
         </CardContent>
       </Card>
+      {/* Your Rank — shown only when the current user is outside the top 50 */}
+      {currentUser && !currentUserInTop50 && (
+        <Card style={{ borderColor: "rgba(16,207,160,0.25)", backgroundColor: "rgba(16,207,160,0.04)" }}>
+          <CardHeader style={{ paddingBottom: 8 }}>
+            <CardTitle style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--teal)" }}>
+              <Trophy style={{ width: 16, height: 16, color: "var(--teal)" }} />
+              {zh ? "我的排名" : "Your Ranking"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent style={{ paddingLeft: 0, paddingRight: 0, paddingBottom: 8 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <tbody>
+                <tr>
+                  <td style={{ padding: "14px 12px 14px 20px", verticalAlign: "middle" }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: "0.6875rem",
+                      fontWeight: 500, color: "var(--text-dim)",
+                    }}>
+                      #{currentUser.rank}
+                    </span>
+                  </td>
+                  <td style={{ padding: "14px 12px", verticalAlign: "middle" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 600, color: "var(--teal)" }}>
+                        {currentUser.displayName}
+                      </span>
+                      <span style={{
+                        fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
+                        letterSpacing: "0.1em", textTransform: "uppercase",
+                        color: "var(--teal)", backgroundColor: "rgba(16,207,160,0.12)",
+                        border: "1px solid rgba(16,207,160,0.25)", borderRadius: 4, padding: "1px 6px",
+                      }}>
+                        {zh ? "我" : "You"}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="hidden sm:table-cell" style={{ padding: "14px 12px", textAlign: "center", verticalAlign: "middle", fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontVariantNumeric: "tabular-nums", color: "var(--text-dim)" }}>
+                    {currentUser.totalRounds}
+                  </td>
+                  <td className="hidden sm:table-cell" style={{ padding: "14px 12px", textAlign: "center", verticalAlign: "middle" }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontWeight: 600,
+                      fontVariantNumeric: "tabular-nums",
+                      color: currentUser.winRate >= 60 ? "var(--teal)" : currentUser.winRate >= 40 ? "var(--text-secondary)" : "var(--rose)",
+                    }}>
+                      {currentUser.winRate}%
+                    </span>
+                  </td>
+                  <td className="hidden md:table-cell" style={{ padding: "14px 12px", textAlign: "center", verticalAlign: "middle" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", fontVariantNumeric: "tabular-nums" }}>
+                      <span style={{ color: "var(--teal)", fontWeight: 600 }}>{currentUser.wins}</span>
+                      <span style={{ color: "var(--text-dim)", margin: "0 4px" }}>/</span>
+                      <span style={{ color: "var(--rose)", fontWeight: 600 }}>{currentUser.losses}</span>
+                    </span>
+                  </td>
+                  <td style={{ padding: "14px 20px 14px 12px", textAlign: "right", verticalAlign: "middle" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 5 }}>
+                      {currentUser.totalPnl >= 0
+                        ? <TrendingUp style={{ width: 13, height: 13, color: "var(--teal)", flexShrink: 0 }} />
+                        : <TrendingDown style={{ width: 13, height: 13, color: "var(--rose)", flexShrink: 0 }} />
+                      }
+                      <span style={{
+                        fontFamily: "var(--font-mono)", fontSize: "0.875rem", fontWeight: 700,
+                        fontVariantNumeric: "tabular-nums",
+                        color: currentUser.totalPnl >= 0 ? "var(--teal)" : "var(--rose)",
+                      }}>
+                        {currentUser.totalPnl >= 0 ? "+" : ""}${Math.abs(currentUser.totalPnl).toFixed(2)}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
