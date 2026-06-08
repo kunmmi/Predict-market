@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
 const TRANSFER_SIG   = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const USDT_DECIMALS  = 18;
-const BLOCKS_TO_SCAN = 100; // ~5 min of BSC blocks (3 s/block) — stays within public RPC limits
+const BLOCKS_TO_SCAN = 300; // ~15 min of BSC blocks (3 s/block) — buffer for delayed cron runs
 
 const BSC_RPCS = [
   "https://rpc.ankr.com/bsc",
