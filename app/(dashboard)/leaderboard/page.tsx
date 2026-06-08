@@ -54,6 +54,8 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
 
+    const name = nameMap.get(profileId) ?? "Player";
+
     // Cancelled positions are refunded — 0 P&L, don't count as win or loss
     if (row.status === "cancelled") {
       if (!map.has(profileId)) {
@@ -62,13 +64,10 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
       continue;
     }
     const payout   = parseFloat(String(row.pnl_amount ?? 0));
-    // Original cost = what the user staked (yes side + no side)
     const yesCost  = parseFloat(String(row.yes_units ?? 0)) * parseFloat(String(row.avg_yes_price ?? 0));
     const noCost   = parseFloat(String(row.no_units  ?? 0)) * parseFloat(String(row.avg_no_price  ?? 0));
     const cost     = yesCost + noCost;
-    // True net P&L = payout received minus original stake
     const netPnl   = Math.round((payout - cost) * 100) / 100;
-    const name     = nameMap.get(profileId) ?? "Player";
 
     const existing = map.get(profileId);
     if (existing) {
