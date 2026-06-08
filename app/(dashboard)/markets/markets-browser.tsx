@@ -25,7 +25,13 @@ function useCountdown(closeAt: string, onExpired?: () => void) {
 
   useEffect(() => {
     firedRef.current = false;
-    setSecsLeft(getSecsLeft());
+    const initial = getSecsLeft();
+    setSecsLeft(initial);
+    // Fire immediately if already expired on mount
+    if (initial === 0) {
+      firedRef.current = true;
+      onExpired?.();
+    }
     const id = setInterval(() => {
       const s = getSecsLeft();
       setSecsLeft(s);
@@ -53,11 +59,11 @@ function ShortDurationCard({
   t: { short_duration_badge: string; live_contract: string; trade_now: string };
 }) {
   const router = useRouter();
+  const [settling, setSettling] = useState(false);
   const binanceSymbol = `${market.assetSymbol}USDT`;
   const { price: livePrice } = useBinancePrice(binanceSymbol);
   const onExpired = useCallback(() => {
-    // Trigger settlement inline (same as the detail page does via /api/markets/active),
-    // then keep refreshing until a new round appears.
+    setSettling(true);
     const settle = async () => {
       try {
         await fetch(
@@ -68,10 +74,10 @@ function ShortDurationCard({
       }
       router.refresh();
     };
-    // First attempt after 2s, retry every 5s until the component receives a new closeAt
-    setTimeout(settle, 2000);
-    setTimeout(settle, 7000);
-    setTimeout(settle, 12000);
+    settle();
+    setTimeout(settle, 5000);
+    setTimeout(settle, 10000);
+    setTimeout(settle, 20000);
   }, [router, market.assetSymbol, market.durationMinutes]);
   const countdown = useCountdown(market.closeAt, onExpired);
 
@@ -198,13 +204,13 @@ function ShortDurationCard({
             <span
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.9375rem",
+                fontSize: settling ? "0.6875rem" : "0.9375rem",
                 fontWeight: 700,
-                color: "var(--text-secondary)",
+                color: settling ? "var(--gold)" : "var(--text-secondary)",
                 letterSpacing: "0.04em",
               }}
             >
-              {countdown}
+              {settling ? "Settling…" : countdown}
             </span>
           </div>
         </div>
