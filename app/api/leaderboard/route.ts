@@ -63,6 +63,8 @@ export async function GET() {
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
 
+    const name = nameMap.get(profileId) ?? "Player";
+
     if ((row as { status?: string }).status === "cancelled") {
       if (!map.has(profileId)) map.set(profileId, { displayName: name, totalPnl: 0, wins: 0, losses: 0, total: 0 });
       continue;
@@ -71,7 +73,6 @@ export async function GET() {
     const yesCost = parseFloat(String(row.yes_units ?? 0)) * parseFloat(String(row.avg_yes_price ?? 0));
     const noCost  = parseFloat(String(row.no_units  ?? 0)) * parseFloat(String(row.avg_no_price  ?? 0));
     const netPnl  = Math.round((payout - (yesCost + noCost)) * 100) / 100;
-    const name    = nameMap.get(profileId) ?? "Player";
 
     const existing = map.get(profileId);
     if (existing) {
