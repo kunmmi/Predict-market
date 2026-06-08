@@ -153,6 +153,21 @@ export type PricePoint = {
 // Public / user queries (uses server client — respects RLS)
 // ---------------------------------------------------------------------------
 
+// Matches the 14-digit timestamp suffix on archived/pre-created short-duration
+// round slugs (e.g. "btc-5min-20240608120000"). These are internal rounds that
+// should never appear in the public market list.
+const TIMESTAMPED_SLUG_RE = /-\d{14}$/;
+
+function isVisibleMarket(row: RawMarketRow): boolean {
+  // Hide pre-created upcoming rounds — they use timestamped slugs and are only
+  // meant to be shown once promoted to the base slug by the settlement cron.
+  if (row.duration_minutes != null && TIMESTAMPED_SLUG_RE.test(row.slug)) return false;
+  // Hide short-duration rounds whose window has already closed but haven't been
+  // settled yet — the cron will settle them shortly; showing them as 00:00 is confusing.
+  if (row.duration_minutes != null && new Date(row.close_at) <= new Date()) return false;
+  return true;
+}
+
 /**
  * Returns active markets visible to all authenticated users.
  */
@@ -188,7 +203,7 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
 
   if (error || !data) return [];
 
-  return (data as unknown as RawMarketRow[]).map((row) => {
+  return (data as unknown as RawMarketRow[]).filter(isVisibleMarket).map((row) => {
     const latest = getLatestMarketPrice(row.market_prices);
     return {
       id: row.id,
@@ -326,7 +341,7 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
 
   if (error || !data) return [];
 
-  return (data as unknown as RawMarketRow[]).map((row) => {
+  return (data as unknown as RawMarketRow[]).filter(isVisibleMarket).map((row) => {
     const latest = getLatestMarketPrice(row.market_prices);
     return {
       id: row.id,
