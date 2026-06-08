@@ -50,11 +50,28 @@ function clamp(v: number, min: number, max: number) {
  * Cancel all open house orders on a market, then place fresh spread orders.
  * Safe to call multiple times — idempotent via cancel-then-place.
  */
+async function isMarketMakerEnabled(): Promise<boolean> {
+  // Env var override takes precedence (useful for emergencies without a deploy)
+  if (process.env.MARKET_MAKER_ENABLED === "false") return false;
+
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data } = await supabase
+      .from("platform_settings")
+      .select("value")
+      .eq("key", "market_maker_enabled")
+      .maybeSingle();
+    return data?.value !== "false";
+  } catch {
+    return true; // fail open — don't break round creation if settings table is missing
+  }
+}
+
 export async function seedMarketMakerOrders(
   marketId: string,
   currentYesPrice: number,
 ): Promise<SeedOrdersResult> {
-  if (process.env.MARKET_MAKER_ENABLED === "false") {
+  if (!(await isMarketMakerEnabled())) {
     return { success: true, placed: 0, cancelled: 0 };
   }
 
