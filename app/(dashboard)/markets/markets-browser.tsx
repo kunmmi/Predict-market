@@ -56,10 +56,23 @@ function ShortDurationCard({
   const binanceSymbol = `${market.assetSymbol}USDT`;
   const { price: livePrice } = useBinancePrice(binanceSymbol);
   const onExpired = useCallback(() => {
-    // Give the settlement cron a few seconds to settle and create the next round,
-    // then refresh the page data so the new round's countdown appears.
-    setTimeout(() => router.refresh(), 5000);
-  }, [router]);
+    // Trigger settlement inline (same as the detail page does via /api/markets/active),
+    // then keep refreshing until a new round appears.
+    const settle = async () => {
+      try {
+        await fetch(
+          `/api/markets/active?asset=${market.assetSymbol}&duration=${market.durationMinutes}`,
+        );
+      } catch {
+        // non-critical
+      }
+      router.refresh();
+    };
+    // First attempt after 2s, retry every 5s until the component receives a new closeAt
+    setTimeout(settle, 2000);
+    setTimeout(settle, 7000);
+    setTimeout(settle, 12000);
+  }, [router, market.assetSymbol, market.durationMinutes]);
   const countdown = useCountdown(market.closeAt, onExpired);
 
   const openPrice = market.spotPriceAtOpen ? parseFloat(market.spotPriceAtOpen) : null;
