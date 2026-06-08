@@ -162,9 +162,6 @@ function isVisibleMarket(row: RawMarketRow): boolean {
   // Hide pre-created upcoming rounds — they use timestamped slugs and are only
   // meant to be shown once promoted to the base slug by the settlement cron.
   if (row.duration_minutes != null && TIMESTAMPED_SLUG_RE.test(row.slug)) return false;
-  // Hide short-duration rounds whose window has already closed but haven't been
-  // settled yet — the cron will settle them shortly; showing them as 00:00 is confusing.
-  if (row.duration_minutes != null && new Date(row.close_at) <= new Date()) return false;
   return true;
 }
 
