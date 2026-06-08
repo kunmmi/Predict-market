@@ -28,7 +28,7 @@ export async function GET() {
   // not be declared in the schema (silently errors on the join otherwise).
   const { data: posData, error } = await supabase
     .from("positions")
-    .select("profile_id, pnl_amount")
+    .select("profile_id, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price")
     .eq("status", "settled");
 
   if (error) {
@@ -63,21 +63,24 @@ export async function GET() {
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
 
-    const pnl = parseFloat(String(row.pnl_amount ?? 0));
-    const name = nameMap.get(profileId) ?? "Player";
+    const payout  = parseFloat(String(row.pnl_amount ?? 0));
+    const yesCost = parseFloat(String(row.yes_units ?? 0)) * parseFloat(String(row.avg_yes_price ?? 0));
+    const noCost  = parseFloat(String(row.no_units  ?? 0)) * parseFloat(String(row.avg_no_price  ?? 0));
+    const netPnl  = Math.round((payout - (yesCost + noCost)) * 100) / 100;
+    const name    = nameMap.get(profileId) ?? "Player";
 
     const existing = map.get(profileId);
     if (existing) {
-      existing.totalPnl += pnl;
-      existing.total += 1;
-      if (pnl > 0) existing.wins += 1;
-      else if (pnl < 0) existing.losses += 1;
+      existing.totalPnl += netPnl;
+      existing.total    += 1;
+      if (netPnl > 0) existing.wins   += 1;
+      else            existing.losses += 1;
     } else {
       map.set(profileId, {
         displayName: name,
-        totalPnl: pnl,
-        wins: pnl > 0 ? 1 : 0,
-        losses: pnl < 0 ? 1 : 0,
+        totalPnl: netPnl,
+        wins:   netPnl > 0 ? 1 : 0,
+        losses: netPnl <= 0 ? 1 : 0,
         total: 1,
       });
     }

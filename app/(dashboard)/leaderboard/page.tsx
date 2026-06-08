@@ -19,7 +19,7 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
 
   const { data: posData, error: posError } = await supabase
     .from("positions")
-    .select("profile_id, pnl_amount")
+    .select("profile_id, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price")
     .eq("status", "settled");
 
   if (posError || !posData) return { top50: [], currentUser: null };
@@ -54,21 +54,27 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
 
-    const pnl = parseFloat(String(row.pnl_amount ?? 0));
-    const name = nameMap.get(profileId) ?? "Player";
+    const payout   = parseFloat(String(row.pnl_amount ?? 0));
+    // Original cost = what the user staked (yes side + no side)
+    const yesCost  = parseFloat(String(row.yes_units ?? 0)) * parseFloat(String(row.avg_yes_price ?? 0));
+    const noCost   = parseFloat(String(row.no_units  ?? 0)) * parseFloat(String(row.avg_no_price  ?? 0));
+    const cost     = yesCost + noCost;
+    // True net P&L = payout received minus original stake
+    const netPnl   = Math.round((payout - cost) * 100) / 100;
+    const name     = nameMap.get(profileId) ?? "Player";
 
     const existing = map.get(profileId);
     if (existing) {
-      existing.totalPnl += pnl;
-      existing.total += 1;
-      if (pnl > 0) existing.wins += 1;
-      else if (pnl < 0) existing.losses += 1;
+      existing.totalPnl += netPnl;
+      existing.total    += 1;
+      if (netPnl > 0) existing.wins   += 1;
+      else            existing.losses += 1;
     } else {
       map.set(profileId, {
         displayName: name,
-        totalPnl: pnl,
-        wins: pnl > 0 ? 1 : 0,
-        losses: pnl < 0 ? 1 : 0,
+        totalPnl: netPnl,
+        wins:    netPnl > 0 ? 1 : 0,
+        losses:  netPnl <= 0 ? 1 : 0,
         total: 1,
       });
     }
@@ -313,6 +319,20 @@ export default async function LeaderboardPage() {
           )}
         </CardContent>
       </Card>
+      {/* Not yet on the board */}
+      {!currentUser && (
+        <div style={{
+          padding: "1rem 1.25rem",
+          borderRadius: "var(--radius-lg)",
+          border: "1px dashed var(--border-subtle)",
+          backgroundColor: "var(--bg-surface)",
+          fontFamily: "var(--font-sans)", fontSize: "0.875rem",
+          color: "var(--text-dim)", textAlign: "center",
+        }}>
+          {zh ? "你还没有完成任何交易轮次，完成后将出现在排行榜上。" : "You don't have any completed rounds yet — your rank will appear here once you do."}
+        </div>
+      )}
+
       {/* Your Rank — shown only when the current user is outside the top 50 */}
       {currentUser && !currentUserInTop50 && (
         <Card style={{ borderColor: "rgba(16,207,160,0.25)", backgroundColor: "rgba(16,207,160,0.04)" }}>
