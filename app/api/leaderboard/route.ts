@@ -28,8 +28,8 @@ export async function GET() {
   // not be declared in the schema (silently errors on the join otherwise).
   const { data: posData, error } = await supabase
     .from("positions")
-    .select("profile_id, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price")
-    .eq("status", "settled");
+    .select("profile_id, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price, status")
+    .in("status", ["settled", "cancelled"]);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -63,6 +63,10 @@ export async function GET() {
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
 
+    if ((row as { status?: string }).status === "cancelled") {
+      if (!map.has(profileId)) map.set(profileId, { displayName: name, totalPnl: 0, wins: 0, losses: 0, total: 0 });
+      continue;
+    }
     const payout  = parseFloat(String(row.pnl_amount ?? 0));
     const yesCost = parseFloat(String(row.yes_units ?? 0)) * parseFloat(String(row.avg_yes_price ?? 0));
     const noCost  = parseFloat(String(row.no_units  ?? 0)) * parseFloat(String(row.avg_no_price  ?? 0));

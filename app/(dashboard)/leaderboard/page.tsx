@@ -19,8 +19,8 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
 
   const { data: posData, error: posError } = await supabase
     .from("positions")
-    .select("profile_id, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price")
-    .eq("status", "settled");
+    .select("profile_id, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price, status")
+    .in("status", ["settled", "cancelled"]);
 
   if (posError || !posData) return { top50: [], currentUser: null };
 
@@ -54,6 +54,13 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
 
+    // Cancelled positions are refunded — 0 P&L, don't count as win or loss
+    if (row.status === "cancelled") {
+      if (!map.has(profileId)) {
+        map.set(profileId, { displayName: name, totalPnl: 0, wins: 0, losses: 0, total: 0 });
+      }
+      continue;
+    }
     const payout   = parseFloat(String(row.pnl_amount ?? 0));
     // Original cost = what the user staked (yes side + no side)
     const yesCost  = parseFloat(String(row.yes_units ?? 0)) * parseFloat(String(row.avg_yes_price ?? 0));
