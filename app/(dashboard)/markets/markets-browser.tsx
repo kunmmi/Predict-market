@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TrendingUp, Clock, ChevronRight, Search, X, ArrowRight } from "lucide-react";
 
@@ -14,19 +15,27 @@ import type { Locale } from "@/lib/i18n/translations";
 
 type Tab = "all" | "3" | "5" | "10" | "15" | "30" | "standard";
 
-function useCountdown(closeAt: string) {
+function useCountdown(closeAt: string, onExpired?: () => void) {
   const getSecsLeft = useCallback(
     () => Math.max(0, Math.floor((new Date(closeAt).getTime() - Date.now()) / 1000)),
     [closeAt],
   );
-  // Start null to avoid SSR/client mismatch — populated in useEffect
   const [secsLeft, setSecsLeft] = useState<number | null>(null);
+  const firedRef = useRef(false);
 
   useEffect(() => {
+    firedRef.current = false;
     setSecsLeft(getSecsLeft());
-    const id = setInterval(() => setSecsLeft(getSecsLeft()), 1000);
+    const id = setInterval(() => {
+      const s = getSecsLeft();
+      setSecsLeft(s);
+      if (s === 0 && !firedRef.current) {
+        firedRef.current = true;
+        onExpired?.();
+      }
+    }, 1000);
     return () => clearInterval(id);
-  }, [getSecsLeft]);
+  }, [getSecsLeft, onExpired]);
 
   if (secsLeft == null) return "--:--";
   const mm = String(Math.floor(secsLeft / 60)).padStart(2, "0");
@@ -43,9 +52,15 @@ function ShortDurationCard({
   locale: Locale;
   t: { short_duration_badge: string; live_contract: string; trade_now: string };
 }) {
+  const router = useRouter();
   const binanceSymbol = `${market.assetSymbol}USDT`;
   const { price: livePrice } = useBinancePrice(binanceSymbol);
-  const countdown = useCountdown(market.closeAt);
+  const onExpired = useCallback(() => {
+    // Give the settlement cron a few seconds to settle and create the next round,
+    // then refresh the page data so the new round's countdown appears.
+    setTimeout(() => router.refresh(), 5000);
+  }, [router]);
+  const countdown = useCountdown(market.closeAt, onExpired);
 
   const openPrice = market.spotPriceAtOpen ? parseFloat(market.spotPriceAtOpen) : null;
   const pctChange =
