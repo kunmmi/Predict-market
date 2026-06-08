@@ -54,6 +54,10 @@ export async function seedMarketMakerOrders(
   marketId: string,
   currentYesPrice: number,
 ): Promise<SeedOrdersResult> {
+  if (process.env.MARKET_MAKER_ENABLED === "false") {
+    return { success: true, placed: 0, cancelled: 0 };
+  }
+
   let profileId: string;
   try {
     profileId = getSystemProfileId();
