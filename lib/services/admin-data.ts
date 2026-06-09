@@ -343,12 +343,18 @@ export type AdminPromoterRow = {
 export async function getAdminPromoters(): Promise<AdminPromoterRow[]> {
   try {
     const supabase = createSupabaseAdminClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("promoters")
       .select(
-        "id, promo_code, commission_rate, status, total_earned, created_at, profiles ( email )",
+        "id, promo_code, commission_rate, status, total_commission_generated, created_at, profiles!promoters_profile_id_fkey ( email )",
       )
       .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[getAdminPromoters] query error:", error);
+      return [];
+    }
+    console.log("[getAdminPromoters] rows returned:", data?.length ?? 0);
 
     return (data ?? []).map((row) => {
       const r = row as {
@@ -356,9 +362,9 @@ export async function getAdminPromoters(): Promise<AdminPromoterRow[]> {
         promo_code: string;
         commission_rate: string | number;
         status: string;
-        total_earned: string | number;
+        total_commission_generated: string | number;
         created_at: string;
-        profiles: { email?: string } | { email?: string }[] | null;
+        profiles: { email?: string } | null;
       };
 
       let email = "—";
@@ -374,11 +380,12 @@ export async function getAdminPromoters(): Promise<AdminPromoterRow[]> {
         promoCode: r.promo_code,
         commissionRate: String(r.commission_rate ?? "0"),
         status: r.status,
-        totalEarned: String(r.total_earned ?? "0"),
+        totalEarned: String(r.total_commission_generated ?? "0"),
         createdAt: r.created_at,
       };
     });
-  } catch {
+  } catch (err) {
+    console.error("[getAdminPromoters] error:", err);
     return [];
   }
 }

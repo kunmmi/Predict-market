@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Wallet, ArrowUpRight, ArrowDownLeft, TrendingUp, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownLeft, ArrowDownToLine, AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
@@ -107,12 +107,12 @@ export default async function PlatformWalletPage() {
 
           <div className="rounded-xl border border-white/[0.06] bg-[#111318] p-4">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10">
-              <TrendingUp className="h-4 w-4 text-amber-400" />
+              <ArrowDownToLine className="h-4 w-4 text-amber-400" />
             </div>
             <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
               ${formatDecimal(wallet.availableBalance, 2)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Available to Sweep</p>
+            <p className="mt-1 text-xs text-slate-500">Available to Withdraw</p>
           </div>
 
           {/* Hot wallet — pays out user withdrawals */}
