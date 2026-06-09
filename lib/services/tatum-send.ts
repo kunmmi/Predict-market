@@ -56,6 +56,27 @@ function getEnv(key: string): string {
 }
 
 // ---------------------------------------------------------------------------
+// Platform wallet address guard
+//
+// This address is the ONLY legitimate platform hot wallet.
+// If the private key in env ever produces a different address (swapped key,
+// misconfiguration, compromise), we hard-stop all outgoing transactions
+// rather than silently send funds to the wrong wallet.
+// ---------------------------------------------------------------------------
+
+const EXPECTED_PLATFORM_WALLET_ADDRESS = "0xD6B7c6F449215a8b52477bF44A3FF679306BF13F";
+
+function assertPlatformWalletAddress(wallet: ethers.Wallet): void {
+  if (wallet.address.toLowerCase() !== EXPECTED_PLATFORM_WALLET_ADDRESS.toLowerCase()) {
+    throw new Error(
+      `[SECURITY] Platform wallet address mismatch. ` +
+      `Expected ${EXPECTED_PLATFORM_WALLET_ADDRESS}, got ${wallet.address}. ` +
+      `All outgoing transactions are blocked until this is resolved.`
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // BEP-20 sender (ethers.js — direct BSC broadcast)
 // ---------------------------------------------------------------------------
 
@@ -67,6 +88,7 @@ async function sendBep20(
   const contract = TOKEN_CONTRACTS.BSC[token];
   const provider = new ethers.JsonRpcProvider(RPC.BSC);
   const wallet = new ethers.Wallet(getEnv("WALLET_PRIVATE_KEY_ETH"), provider);
+  assertPlatformWalletAddress(wallet);
   const erc20 = new ethers.Contract(contract.address, ERC20_ABI, wallet);
 
   // Convert human-readable amount to token units (USDT BSC has 18 decimals)
@@ -197,6 +219,7 @@ export async function getWithdrawalWalletBalance(): Promise<{
     if (!privateKey) return null;
     const provider = new ethers.JsonRpcProvider(RPC.BSC);
     const wallet = new ethers.Wallet(privateKey, provider);
+    assertPlatformWalletAddress(wallet);
     const contract = TOKEN_CONTRACTS.BSC.USDT;
     const erc20 = new ethers.Contract(contract.address, ERC20_ABI, provider);
     const balance = await (erc20.balanceOf as (addr: string) => Promise<bigint>)(wallet.address);
