@@ -15,8 +15,8 @@ async function getTopPlayers(): Promise<LeaderboardEntry[]> {
 
   const { data: posData } = await supabase
     .from("positions")
-    .select("profile_id, pnl_amount")
-    .eq("status", "settled");
+    .select("profile_id, pnl_amount, yes_units, no_units, avg_yes_price, avg_no_price, status")
+    .in("status", ["settled", "cancelled"]);
 
   if (!posData) return [];
 
@@ -29,13 +29,13 @@ async function getTopPlayers(): Promise<LeaderboardEntry[]> {
   );
 
   const { data: profileData } = profileIds.length
-    ? await supabase.from("profiles").select("id, display_name").in("id", profileIds)
+    ? await supabase.from("profiles").select("id, display_name, full_name").in("id", profileIds)
     : { data: [] };
 
   const nameMap = new Map<string, string>();
   for (const p of profileData ?? []) {
-    const row = p as { id: string; display_name: string | null };
-    nameMap.set(row.id, row.display_name ?? "Player");
+    const row = p as { id: string; display_name: string | null; full_name: string | null };
+    nameMap.set(row.id, row.display_name ?? row.full_name ?? "Player");
   }
 
   const map = new Map<
@@ -46,20 +46,34 @@ async function getTopPlayers(): Promise<LeaderboardEntry[]> {
   for (const row of posData) {
     const profileId = row.profile_id as string;
     if (systemAdminId && profileId === systemAdminId) continue;
-    const pnl = parseFloat(String(row.pnl_amount ?? 0));
+
     const name = nameMap.get(profileId) ?? "Player";
+
+    // Cancelled positions are refunded — 0 P&L, don't count as win or loss
+    if ((row as { status?: string }).status === "cancelled") {
+      if (!map.has(profileId)) {
+        map.set(profileId, { displayName: name, totalPnl: 0, wins: 0, losses: 0, total: 0 });
+      }
+      continue;
+    }
+
+    const payout  = parseFloat(String(row.pnl_amount ?? 0));
+    const yesCost = parseFloat(String(row.yes_units ?? 0)) * parseFloat(String(row.avg_yes_price ?? 0));
+    const noCost  = parseFloat(String(row.no_units  ?? 0)) * parseFloat(String(row.avg_no_price  ?? 0));
+    const netPnl  = Math.round((payout - (yesCost + noCost)) * 100) / 100;
+
     const existing = map.get(profileId);
     if (existing) {
-      existing.totalPnl += pnl;
-      existing.total += 1;
-      if (pnl > 0) existing.wins += 1;
-      else if (pnl < 0) existing.losses += 1;
+      existing.totalPnl += netPnl;
+      existing.total    += 1;
+      if (netPnl > 0) existing.wins   += 1;
+      else            existing.losses += 1;
     } else {
       map.set(profileId, {
         displayName: name,
-        totalPnl: pnl,
-        wins: pnl > 0 ? 1 : 0,
-        losses: pnl < 0 ? 1 : 0,
+        totalPnl: netPnl,
+        wins:    netPnl > 0 ? 1 : 0,
+        losses:  netPnl <= 0 ? 1 : 0,
         total: 1,
       });
     }
