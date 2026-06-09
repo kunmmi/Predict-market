@@ -87,7 +87,7 @@ export default async function AdminHomePage() {
       mono: true,
     },
     {
-      label: "Trading Fees",
+      label: "Fees Collected",
       value: `$${formatDecimal(data.summary.totalPlatformFees, 2)}`,
       icon: DollarSign,
       href: "/admin/trades",
@@ -107,7 +107,7 @@ export default async function AdminHomePage() {
       mono: true,
     },
     {
-      label: "Platform Wallet",
+      label: "Total Earnings (All Sources)",
       value: `$${formatDecimal(data.summary.platformWalletBalance, 2)}`,
       icon: Wallet,
       href: "/admin/platform-wallet",
