@@ -14,7 +14,7 @@ const marketAssets = [
 
 const marketStatuses = ["draft", "active", "closed", "settled", "cancelled"] as const;
 
-const durationValues = [3, 5, 10, 15, 30] as const;
+const durationValues = [3, 5, 10, 15, 30, 60] as const;
 
 const marketFieldsSchema = z.object({
   title: z.string().trim().min(1).max(500),
@@ -39,7 +39,7 @@ const marketFieldsSchema = z.object({
   question_text_zh: z.string().trim().max(2000).optional().nullable(),
   rules_text_zh: z.string().trim().max(20000).optional().nullable(),
   // Short-duration fields
-  duration_minutes: z.union(durationValues.map((v) => z.literal(v)) as [z.ZodLiteral<3>, z.ZodLiteral<5>, z.ZodLiteral<10>, z.ZodLiteral<15>, z.ZodLiteral<30>]).nullable().optional(),
+  duration_minutes: z.union(durationValues.map((v) => z.literal(v)) as [z.ZodLiteral<3>, z.ZodLiteral<5>, z.ZodLiteral<10>, z.ZodLiteral<15>, z.ZodLiteral<30>, z.ZodLiteral<60>]).nullable().optional(),
   target_direction: z.enum(["above", "below"]).nullable().optional(),
 });
 
