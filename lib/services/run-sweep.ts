@@ -60,9 +60,25 @@ export async function runSweep(
     .from("wallets")
     .select("profile_id, deposit_address, deposit_address_index, sweep_approved_at, balance");
 
+  // Fetch all deposit addresses that have a PENDING deposit (not yet credited).
+  // We must skip these addresses entirely — sweeping before credit creates a
+  // race where the user gets credited but the funds are already in the master wallet.
+  const { data: pendingDeposits } = await supabase
+    .from("deposits")
+    .select("deposit_address")
+    .eq("status", "pending");
+
+  const pendingAddresses = new Set(
+    (pendingDeposits ?? [])
+      .map((d) => (d.deposit_address as string | null)?.toLowerCase())
+      .filter(Boolean) as string[]
+  );
+
   const eligible = (walletRows ?? []).filter(
     (w): w is typeof w & { deposit_address: string } =>
-      typeof w.deposit_address === "string" && w.deposit_address !== "",
+      typeof w.deposit_address === "string" &&
+      w.deposit_address !== "" &&
+      !pendingAddresses.has(w.deposit_address.toLowerCase()),
   );
 
   const results: SweepEntry[] = [];
