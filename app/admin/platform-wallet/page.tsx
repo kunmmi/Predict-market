@@ -101,7 +101,7 @@ export default async function PlatformWalletPage() {
             <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
               ${formatDecimal(wallet.balance, 2)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Platform Earnings</p>
+            <p className="mt-1 text-xs text-slate-500">Total Fees Collected</p>
             <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-teal-400/5" />
           </div>
 
