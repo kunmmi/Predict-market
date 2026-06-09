@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { WalletStatus, EntryDirection, WithdrawalStatus } from "@/types/enums";
+import type { WalletStatus, EntryDirection } from "@/types/enums";
 
 export type PlatformWalletSummary = {
   id: string;
@@ -22,25 +22,10 @@ export type PlatformWalletTransaction = {
   createdAt: string;
 };
 
-export type PlatformWithdrawal = {
-  id: string;
-  assetSymbol: string;
-  networkName: string | null;
-  amount: string;
-  cryptoAmount: string | null;
-  withdrawalAddress: string;
-  txHash: string | null;
-  status: WithdrawalStatus;
-  adminNotes: string | null;
-  requestedByAdminEmail: string;
-  createdAt: string;
-};
-
 export type PlatformWalletPageData = {
   wallet: PlatformWalletSummary | null;
   totalUserBalances: string;
   transactions: PlatformWalletTransaction[];
-  withdrawals: PlatformWithdrawal[];
 };
 
 async function ensurePlatformWallet() {
@@ -73,20 +58,11 @@ export async function getPlatformWalletData(): Promise<PlatformWalletPageData> {
   const supabase = createSupabaseAdminClient();
   const walletRow = await ensurePlatformWallet();
 
-  const [txRes, withdrawalRes, userBalRes] = await Promise.all([
+  const [txRes, userBalRes] = await Promise.all([
     supabase
       .from("platform_wallet_transactions")
       .select(
         "id, transaction_type, asset_symbol, amount, direction, balance_before, balance_after, description, created_at",
-      )
-      .eq("platform_wallet_id", walletRow.id)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("platform_withdrawals")
-      .select(
-        `id, asset_symbol, network_name, amount, crypto_amount, withdrawal_address, tx_hash, status, admin_notes, created_at,
-         requested_by_admin:profiles!platform_withdrawals_requested_by_admin_profile_id_fkey ( email )`,
       )
       .eq("platform_wallet_id", walletRow.id)
       .order("created_at", { ascending: false })
@@ -136,42 +112,5 @@ export async function getPlatformWalletData(): Promise<PlatformWalletPageData> {
     };
   });
 
-  const withdrawals: PlatformWithdrawal[] = (withdrawalRes.data ?? []).map((row) => {
-    const r = row as {
-      id: string;
-      asset_symbol: string;
-      network_name: string | null;
-      amount: string | number;
-      crypto_amount: string | number | null;
-      withdrawal_address: string;
-      tx_hash: string | null;
-      status: WithdrawalStatus;
-      admin_notes: string | null;
-      created_at: string;
-      requested_by_admin:
-        | { email?: string | null }
-        | Array<{ email?: string | null }>
-        | null;
-    };
-
-    const join = Array.isArray(r.requested_by_admin)
-      ? r.requested_by_admin[0]
-      : r.requested_by_admin;
-
-    return {
-      id: r.id,
-      assetSymbol: r.asset_symbol,
-      networkName: r.network_name,
-      amount: String(r.amount),
-      cryptoAmount: r.crypto_amount != null ? String(r.crypto_amount) : null,
-      withdrawalAddress: r.withdrawal_address,
-      txHash: r.tx_hash,
-      status: r.status,
-      adminNotes: r.admin_notes,
-      requestedByAdminEmail: join?.email ?? "Unknown",
-      createdAt: r.created_at,
-    };
-  });
-
-  return { wallet, totalUserBalances, transactions, withdrawals };
+  return { wallet, totalUserBalances, transactions };
 }

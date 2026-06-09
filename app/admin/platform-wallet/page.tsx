@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Wallet, ArrowUpRight, ArrowDownLeft, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Wallet, ArrowDownLeft, AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
@@ -29,18 +29,6 @@ function TxTypePill({ txType }: { txType: string }) {
   return <span className="text-xs text-slate-400">{labels[txType] ?? txType}</span>;
 }
 
-function WithdrawalStatusPill({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    approved: "border-teal-400/20 bg-teal-400/10 text-teal-400",
-    rejected: "border-rose-400/20 bg-rose-400/10 text-rose-400",
-    pending:  "border-amber-400/20 bg-amber-400/10 text-amber-400",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${map[status] ?? "border-slate-600 bg-slate-800 text-slate-400"}`}>
-      {status}
-    </span>
-  );
-}
 
 function SectionHeader({ title }: { title: string }) {
   return (
@@ -54,7 +42,7 @@ const LOW_BALANCE_THRESHOLD = 200; // warn when withdrawal wallet drops below $2
 
 export default async function PlatformWalletPage() {
   await requireAdmin();
-  const [{ wallet, totalUserBalances, transactions, withdrawals }, hotWallet] = await Promise.all([
+  const [{ wallet, totalUserBalances, transactions }, hotWallet] = await Promise.all([
     getPlatformWalletData(),
     getWithdrawalWalletBalance(),
   ]);
@@ -221,79 +209,6 @@ export default async function PlatformWalletPage() {
                     </p>
                     <p className="font-mono text-[10px] text-slate-600">${formatDecimal(tx.balanceAfter, 2)}</p>
                   </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Withdrawal history */}
-      <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
-        <SectionHeader title="Platform Withdrawal History" />
-
-        {withdrawals.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-600">No platform withdrawals yet.</div>
-        ) : (
-          <>
-            {/* Desktop */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/[0.06]">
-                    {["Date", "Requested By", "Asset", "Amount", "Address", "Status"].map((h) => (
-                      <th key={h} className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-slate-500 whitespace-nowrap">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {withdrawals.map((w) => (
-                    <tr key={w.id} className="transition-colors hover:bg-white/[0.02]">
-                      <td className="whitespace-nowrap px-5 py-3 font-mono text-xs text-slate-500">
-                        {format(new Date(w.createdAt), "dd MMM yyyy, HH:mm")}
-                      </td>
-                      <td className="px-5 py-3 text-xs text-slate-400">{w.requestedByAdminEmail}</td>
-                      <td className="px-5 py-3 font-mono text-xs font-semibold text-slate-200">{w.assetSymbol}</td>
-                      <td className="px-5 py-3 font-mono text-xs font-semibold text-amber-400">
-                        ${formatDecimal(w.amount, 2)}
-                      </td>
-                      <td className="px-5 py-3 max-w-[200px] truncate font-mono text-xs text-slate-600">
-                        <span title={w.withdrawalAddress}>{w.withdrawalAddress}</span>
-                      </td>
-                      <td className="px-5 py-3">
-                        <WithdrawalStatusPill status={w.status} />
-                        {w.txHash && <p className="mt-1 font-mono text-[10px] text-slate-600">TX: {w.txHash}</p>}
-                        {w.adminNotes && <p className="mt-1 text-xs text-slate-600">{w.adminNotes}</p>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile */}
-            <div className="md:hidden space-y-3 p-4">
-              {withdrawals.map((w) => (
-                <div key={w.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 space-y-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-mono font-semibold text-amber-400">${formatDecimal(w.amount, 2)}</p>
-                      <p className="mt-0.5 text-[10px] text-slate-600">{w.requestedByAdminEmail}</p>
-                    </div>
-                    <WithdrawalStatusPill status={w.status} />
-                  </div>
-                  <div className="rounded-lg bg-white/[0.03] px-3 py-2">
-                    <p className="text-[9px] font-semibold uppercase tracking-wider text-slate-600">Address</p>
-                    <p className="mt-0.5 truncate font-mono text-[10px] text-slate-500">{w.withdrawalAddress}</p>
-                  </div>
-                  {w.txHash && (
-                    <p className="font-mono text-[10px] text-slate-600">TX: {w.txHash}</p>
-                  )}
-                  <p className="font-mono text-[10px] text-slate-600">
-                    {format(new Date(w.createdAt), "dd MMM yyyy, HH:mm")}
-                  </p>
                 </div>
               ))}
             </div>
