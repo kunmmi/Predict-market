@@ -36,13 +36,13 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("id, display_name")
+    .select("id, display_name, full_name")
     .in("id", profileIds);
 
   const nameMap = new Map<string, string>();
   for (const p of profileData ?? []) {
-    const row = p as { id: string; display_name: string | null };
-    nameMap.set(row.id, row.display_name ?? "Player");
+    const row = p as { id: string; display_name: string | null; full_name: string | null };
+    nameMap.set(row.id, row.display_name ?? row.full_name ?? "Player");
   }
 
   const map = new Map<
@@ -115,7 +115,7 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
     if (myPos && myPos.length > 0) {
       const { data: myProfile } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, full_name")
         .eq("id", currentProfileId)
         .maybeSingle();
 
@@ -134,10 +134,11 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
       if (total > 0) {
         // Find their true rank by counting how many ranked players have a better P&L
         const rank = allRanked.filter((e) => e.totalPnl > totalPnl).length + 1;
+        const profileRow = myProfile as { display_name: string | null; full_name: string | null } | null;
         currentUser = {
           profileId: currentProfileId,
           rank,
-          displayName: (myProfile as { display_name: string | null } | null)?.display_name ?? "You",
+          displayName: profileRow?.display_name ?? profileRow?.full_name ?? "You",
           totalPnl: Math.round(totalPnl * 100) / 100,
           wins,
           losses,

@@ -44,13 +44,13 @@ export async function GET() {
   );
 
   const { data: profileData } = profileIds.length
-    ? await supabase.from("profiles").select("id, display_name").in("id", profileIds)
+    ? await supabase.from("profiles").select("id, display_name, full_name").in("id", profileIds)
     : { data: [] };
 
   const nameMap = new Map<string, string>();
   for (const p of profileData ?? []) {
-    const row = p as { id: string; display_name: string | null };
-    nameMap.set(row.id, row.display_name ?? "Player");
+    const row = p as { id: string; display_name: string | null; full_name: string | null };
+    nameMap.set(row.id, row.display_name ?? row.full_name ?? "Player");
   }
 
   // Aggregate by player
