@@ -87,7 +87,7 @@ export default async function AdminHomePage() {
       mono: true,
     },
     {
-      label: "Platform Fees",
+      label: "Trading Fees",
       value: `$${formatDecimal(data.summary.totalPlatformFees, 2)}`,
       icon: DollarSign,
       href: "/admin/trades",
