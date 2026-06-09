@@ -38,6 +38,7 @@ export type PlatformWithdrawal = {
 
 export type PlatformWalletPageData = {
   wallet: PlatformWalletSummary | null;
+  totalUserBalances: string;
   transactions: PlatformWalletTransaction[];
   withdrawals: PlatformWithdrawal[];
 };
@@ -72,7 +73,7 @@ export async function getPlatformWalletData(): Promise<PlatformWalletPageData> {
   const supabase = createSupabaseAdminClient();
   const walletRow = await ensurePlatformWallet();
 
-  const [txRes, withdrawalRes] = await Promise.all([
+  const [txRes, withdrawalRes, userBalRes] = await Promise.all([
     supabase
       .from("platform_wallet_transactions")
       .select(
@@ -90,7 +91,15 @@ export async function getPlatformWalletData(): Promise<PlatformWalletPageData> {
       .eq("platform_wallet_id", walletRow.id)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase.from("wallets").select("balance"),
   ]);
+
+  const totalUserBalances = String(
+    (userBalRes.data ?? []).reduce(
+      (sum, row) => sum + parseFloat(String((row as { balance: string | number }).balance ?? 0)),
+      0,
+    ).toFixed(2),
+  );
 
   const wallet: PlatformWalletSummary = {
     id: String(walletRow.id),
@@ -164,5 +173,5 @@ export async function getPlatformWalletData(): Promise<PlatformWalletPageData> {
     };
   });
 
-  return { wallet, transactions, withdrawals };
+  return { wallet, totalUserBalances, transactions, withdrawals };
 }

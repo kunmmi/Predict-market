@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Wallet, ArrowUpRight, ArrowDownLeft, ArrowDownToLine, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownLeft, AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
@@ -55,7 +55,7 @@ const LOW_BALANCE_THRESHOLD = 200; // warn when withdrawal wallet drops below $2
 
 export default async function PlatformWalletPage() {
   await requireAdmin();
-  const [{ wallet, transactions, withdrawals }, hotWallet] = await Promise.all([
+  const [{ wallet, totalUserBalances, transactions, withdrawals }, hotWallet] = await Promise.all([
     getPlatformWalletData(),
     getWithdrawalWalletBalance(),
   ]);
@@ -106,13 +106,13 @@ export default async function PlatformWalletPage() {
           </div>
 
           <div className="rounded-xl border border-white/[0.06] bg-[#111318] p-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400/10">
-              <ArrowDownToLine className="h-4 w-4 text-amber-400" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-400/10">
+              <ArrowDownLeft className="h-4 w-4 text-violet-400" />
             </div>
             <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
-              ${formatDecimal(wallet.availableBalance, 2)}
+              ${formatDecimal(totalUserBalances, 2)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Available to Withdraw</p>
+            <p className="mt-1 text-xs text-slate-500">Total User Balances</p>
           </div>
 
           {/* Hot wallet — pays out user withdrawals */}
