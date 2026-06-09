@@ -4,7 +4,6 @@ import { Wallet, ArrowUpRight, ArrowDownLeft, AlertTriangle, ShieldCheck } from 
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getPlatformWalletData } from "@/lib/services/platform-wallet-data";
-import { PlatformWalletWithdrawForm } from "./withdraw-form";
 import { SweepPanel } from "./sweep-panel";
 import { getWithdrawalWalletBalance } from "@/lib/services/tatum-send";
 
@@ -160,14 +159,6 @@ export default async function PlatformWalletPage() {
         <SectionHeader title="On-Chain USDT Sweep" />
         <div className="p-5">
           <SweepPanel />
-        </div>
-      </div>
-
-      {/* Withdraw form */}
-      <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
-        <SectionHeader title="Withdraw Funds" />
-        <div className="p-5">
-          <PlatformWalletWithdrawForm availableBalance={wallet?.availableBalance ?? "0"} />
         </div>
       </div>
 
