@@ -36,13 +36,13 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("id, display_name, full_name, email")
+    .select("id, full_name, email")
     .in("id", profileIds);
 
   const nameMap = new Map<string, string>();
   for (const p of profileData ?? []) {
-    const row = p as { id: string; display_name: string | null; full_name: string | null; email: string | null };
-    const name = row.display_name || row.full_name || (row.email ? row.email.split("@")[0] : "") || "Player";
+    const row = p as { id: string; full_name: string | null; email: string | null };
+    const name = row.full_name || (row.email ? row.email.split("@")[0] : "") || "Player";
     nameMap.set(row.id, name);
   }
 
@@ -116,7 +116,7 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
     if (myPos && myPos.length > 0) {
       const { data: myProfile } = await supabase
         .from("profiles")
-        .select("display_name, full_name, email")
+        .select("full_name, email")
         .eq("id", currentProfileId)
         .maybeSingle();
 
@@ -135,11 +135,11 @@ async function getLeaderboard(currentProfileId: string): Promise<LeaderboardResu
       if (total > 0) {
         // Find their true rank by counting how many ranked players have a better P&L
         const rank = allRanked.filter((e) => e.totalPnl > totalPnl).length + 1;
-        const profileRow = myProfile as { display_name: string | null; full_name: string | null; email: string | null } | null;
+        const profileRow = myProfile as { full_name: string | null; email: string | null } | null;
         currentUser = {
           profileId: currentProfileId,
           rank,
-          displayName: profileRow?.display_name || profileRow?.full_name || (profileRow?.email ? profileRow.email.split("@")[0] : "") || "You",
+          displayName: profileRow?.full_name || (profileRow?.email ? profileRow.email.split("@")[0] : "") || "You",
           totalPnl: Math.round(totalPnl * 100) / 100,
           wins,
           losses,

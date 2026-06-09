@@ -44,13 +44,13 @@ export async function GET() {
   );
 
   const { data: profileData } = profileIds.length
-    ? await supabase.from("profiles").select("id, display_name, full_name, email").in("id", profileIds)
+    ? await supabase.from("profiles").select("id, full_name, email").in("id", profileIds)
     : { data: [] };
 
   const nameMap = new Map<string, string>();
   for (const p of profileData ?? []) {
-    const row = p as { id: string; display_name: string | null; full_name: string | null; email: string | null };
-    const name = row.display_name || row.full_name || (row.email ? row.email.split("@")[0] : "") || "Player";
+    const row = p as { id: string; full_name: string | null; email: string | null };
+    const name = row.full_name || (row.email ? row.email.split("@")[0] : "") || "Player";
     nameMap.set(row.id, name);
   }
 
