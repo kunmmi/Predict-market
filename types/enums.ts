@@ -39,7 +39,8 @@ export type MarketAssetSymbol =
   | "USDC"
   | "XRP"
   | "ADA"
-  | "DOGE";
+  | "DOGE"
+  | "FIFA";
 
 export type MarketStatus = "draft" | "active" | "closed" | "settled" | "cancelled";
 
