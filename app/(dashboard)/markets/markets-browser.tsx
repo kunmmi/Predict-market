@@ -650,8 +650,29 @@ function WorldCupCard({
 }
 
 // ---------------------------------------------------------------------------
-// World Cup featured event section
+// World Cup section — filter + expand/collapse
 // ---------------------------------------------------------------------------
+
+type WCFilter = "all" | "winner" | "round1" | "round2" | "round3";
+
+function getWCCategory(title: string): WCFilter {
+  const t = title.toLowerCase();
+  if (t.includes("win the 2026 fifa world cup") || t.includes("world cup winner") || t.includes("win the fifa world cup")) return "winner";
+  if (t.includes("round 1")) return "round1";
+  if (t.includes("round 2")) return "round2";
+  if (t.includes("round 3")) return "round3";
+  return "all";
+}
+
+const WC_FILTER_LABELS: Record<WCFilter, string> = {
+  all:    "All",
+  winner: "🏆 Winner",
+  round1: "⚽ Round 1",
+  round2: "⚽ Round 2",
+  round3: "⚽ Round 3",
+};
+
+const PREVIEW_COUNT = 6;
 
 function WorldCupSection({
   markets,
@@ -662,7 +683,25 @@ function WorldCupSection({
   locale: Locale;
   dateLocale: string;
 }) {
+  const [filter, setFilter] = useState<WCFilter>("all");
+  const [expanded, setExpanded] = useState(false);
+
   if (markets.length === 0) return null;
+
+  // Which filter tabs actually have markets?
+  const availableFilters: WCFilter[] = ["all"];
+  const filterCounts: Partial<Record<WCFilter, number>> = { all: markets.length };
+  for (const f of ["winner", "round1", "round2", "round3"] as WCFilter[]) {
+    const count = markets.filter((m) => getWCCategory(m.title) === f).length;
+    if (count > 0) { availableFilters.push(f); filterCounts[f] = count; }
+  }
+
+  const filtered = filter === "all" ? markets : markets.filter((m) => getWCCategory(m.title) === filter);
+  const visible  = expanded ? filtered : filtered.slice(0, PREVIEW_COUNT);
+  const hasMore  = filtered.length > PREVIEW_COUNT;
+
+  // Reset expand when filter changes
+  const handleFilter = (f: WCFilter) => { setFilter(f); setExpanded(false); };
 
   return (
     <div
@@ -679,63 +718,25 @@ function WorldCupSection({
       <div
         aria-hidden
         style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "repeating-linear-gradient(90deg, transparent, transparent 32px, rgba(255,255,255,0.015) 32px, rgba(255,255,255,0.015) 34px)",
+          position: "absolute", inset: 0,
+          backgroundImage: "repeating-linear-gradient(90deg, transparent, transparent 32px, rgba(255,255,255,0.015) 32px, rgba(255,255,255,0.015) 34px)",
           pointerEvents: "none",
         }}
       />
-
       {/* Ambient glow */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          top: "-20%",
-          right: "10%",
-          width: "30%",
-          height: "60%",
-          background: "radial-gradient(ellipse, rgba(34,197,94,0.08) 0%, transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-
+      <div aria-hidden style={{ position: "absolute", top: "-20%", right: "10%", width: "30%", height: "60%", background: "radial-gradient(ellipse, rgba(34,197,94,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
       {/* Top accent line */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0,
-          height: 2,
-          background: "linear-gradient(90deg, transparent 0%, rgba(34,197,94,0.6) 30%, rgba(34,197,94,0.95) 50%, rgba(34,197,94,0.6) 70%, transparent 100%)",
-          pointerEvents: "none",
-        }}
-      />
+      <div aria-hidden style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: "linear-gradient(90deg, transparent, rgba(34,197,94,0.6) 30%, rgba(34,197,94,0.95) 50%, rgba(34,197,94,0.6) 70%, transparent)", pointerEvents: "none" }} />
 
-      {/* Header */}
-      <div
-        style={{
-          position: "relative",
-          padding: "1.25rem 1.5rem 1rem",
-          borderBottom: "1px solid rgba(34,197,94,0.1)",
-        }}
-      >
-        {/* Top row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: "0.75rem" }}>
+      {/* ── Header ── */}
+      <div style={{ position: "relative", padding: "1.25rem 1.5rem 0" }}>
+        {/* Title row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: "1.5rem", lineHeight: 1 }}>⚽</span>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: "1.125rem",
-                    fontWeight: 800,
-                    color: "#ffffff",
-                    letterSpacing: "-0.01em",
-                  }}
-                >
+                <span style={{ fontFamily: "var(--font-sans)", fontSize: "1.125rem", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.01em" }}>
                   FIFA World Cup 2026™
                 </span>
                 <span style={{ fontSize: "0.875rem", lineHeight: 1 }}>🇺🇸🇨🇦🇲🇽</span>
@@ -748,68 +749,68 @@ function WorldCupSection({
 
           <span
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontFamily: "var(--font-mono)",
-              fontSize: "0.5625rem",
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "#4ade80",
-              backgroundColor: "rgba(34,197,94,0.1)",
-              border: "1px solid rgba(34,197,94,0.2)",
-              borderRadius: 100,
-              padding: "3px 10px",
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
+              letterSpacing: "0.12em", textTransform: "uppercase", color: "#4ade80",
+              backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)",
+              borderRadius: 100, padding: "3px 10px",
             }}
           >
-            <span
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: "50%",
-              backgroundColor: "#4ade80",
-              boxShadow: "0 0 6px #4ade80",
-              animation: "pulseDot 1.5s ease-in-out infinite",
-            }}
-          />
+            <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#4ade80", boxShadow: "0 0 6px #4ade80" }} />
             Featured Event
           </span>
         </div>
 
-        {/* Bottom chip row */}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {[
-            { emoji: "🏆", label: "Tournament Winner" },
-            { emoji: "🎯", label: "Group Stage" },
-            { emoji: "📊", label: "Yes / No Markets" },
-          ].map(({ emoji, label }) => (
-            <span
-              key={label}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontFamily: "var(--font-sans)",
-                fontSize: "0.625rem",
-                color: "rgba(255,255,255,0.4)",
-                backgroundColor: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.07)",
-                borderRadius: 100,
-                padding: "2px 9px",
-              }}
-            >
-              <span style={{ fontSize: "0.6875rem" }}>{emoji}</span>
-              {label}
-            </span>
-          ))}
+        {/* Filter tabs */}
+        <div
+          style={{
+            display: "flex", gap: 4, overflowX: "auto",
+            borderBottom: "1px solid rgba(34,197,94,0.1)",
+            paddingBottom: "0",
+            marginLeft: "-0.25rem",
+          }}
+        >
+          {availableFilters.map((f) => {
+            const active = filter === f;
+            return (
+              <button
+                key={f}
+                onClick={() => handleFilter(f)}
+                style={{
+                  flexShrink: 0,
+                  padding: "7px 14px",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.625rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.06em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                  border: "none",
+                  borderBottom: active ? "2px solid #4ade80" : "2px solid transparent",
+                  borderRadius: 0,
+                  background: "transparent",
+                  color: active ? "#4ade80" : "rgba(255,255,255,0.35)",
+                  transition: "color 150ms ease, border-color 150ms ease",
+                  whiteSpace: "nowrap",
+                  marginBottom: "-1px",
+                }}
+              >
+                {WC_FILTER_LABELS[f]}
+                {filterCounts[f] !== undefined && (
+                  <span style={{ marginLeft: 5, opacity: 0.6, fontWeight: 500 }}>
+                    {filterCounts[f]}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Markets grid */}
+      {/* ── Markets grid ── */}
       <div style={{ padding: "1.25rem", position: "relative" }}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {markets.map((market) => (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map((market) => (
             <WorldCupCard
               key={market.id}
               market={market}
@@ -818,6 +819,33 @@ function WorldCupSection({
             />
           ))}
         </div>
+
+        {/* ── Expand / collapse ── */}
+        {hasMore && (
+          <div style={{ marginTop: "1.25rem", display: "flex", justifyContent: "center" }}>
+            <button
+              onClick={() => setExpanded((e) => !e)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 20px",
+                fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 600,
+                color: "#4ade80",
+                backgroundColor: "rgba(34,197,94,0.08)",
+                border: "1px solid rgba(34,197,94,0.2)",
+                borderRadius: "var(--radius-sm)",
+                cursor: "pointer",
+                transition: "background-color 150ms ease, border-color 150ms ease",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(34,197,94,0.13)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(34,197,94,0.08)"; }}
+            >
+              {expanded
+                ? <>Show less <span style={{ fontSize: "0.75rem" }}>↑</span></>
+                : <>Show all {filtered.length} markets <span style={{ fontSize: "0.75rem" }}>↓</span></>
+              }
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
