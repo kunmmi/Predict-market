@@ -7,6 +7,7 @@ import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { HomeNav } from "@/components/layout/home-nav";
 import { MarketCarousel } from "@/components/ui/market-carousel";
+import { HomeWorldCupBanner } from "@/components/home/world-cup-home-banner";
 
 export default async function Home() {
   const { user } = await getCurrentUser();
@@ -266,6 +267,9 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── World Cup featured event ──────────────────────────────────────── */}
+      <HomeWorldCupBanner isLoggedIn={!!user} />
     </main>
   );
 }
