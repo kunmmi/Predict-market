@@ -701,96 +701,69 @@ function WorldCupSection({
         }}
       />
 
+      {/* Top accent line */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0,
+          height: 2,
+          background: "linear-gradient(90deg, transparent 0%, rgba(34,197,94,0.6) 30%, rgba(34,197,94,0.95) 50%, rgba(34,197,94,0.6) 70%, transparent 100%)",
+          pointerEvents: "none",
+        }}
+      />
+
       {/* Header */}
       <div
         style={{
           position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          padding: "1rem 1.25rem",
-          borderBottom: "1px solid rgba(34,197,94,0.12)",
-          flexWrap: "wrap",
+          padding: "1.25rem 1.5rem 1rem",
+          borderBottom: "1px solid rgba(34,197,94,0.1)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* Trophy icon */}
-          <div
+        {/* Top row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: "0.75rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: "1.5rem", lineHeight: 1 }}>⚽</span>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: "1.125rem",
+                    fontWeight: 800,
+                    color: "#ffffff",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  FIFA World Cup 2026™
+                </span>
+                <span style={{ fontSize: "0.875rem", lineHeight: 1 }}>🇺🇸🇨🇦🇲🇽</span>
+              </div>
+              <p style={{ marginTop: 2, fontFamily: "var(--font-sans)", fontSize: "0.6875rem", color: "rgba(255,255,255,0.4)" }}>
+                48 nations · 104 matches · June 11 – July 19, 2026
+              </p>
+            </div>
+          </div>
+
+          <span
             style={{
-              display: "flex",
+              display: "inline-flex",
               alignItems: "center",
-              justifyContent: "center",
-              width: 36,
-              height: 36,
-              borderRadius: "var(--radius-sm)",
-              background: "linear-gradient(135deg, rgba(232,160,32,0.2) 0%, rgba(232,160,32,0.06) 100%)",
-              border: "1px solid rgba(232,160,32,0.25)",
-              flexShrink: 0,
+              gap: 4,
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5625rem",
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "#4ade80",
+              backgroundColor: "rgba(34,197,94,0.1)",
+              border: "1px solid rgba(34,197,94,0.2)",
+              borderRadius: 100,
+              padding: "3px 10px",
             }}
           >
-            <Trophy style={{ width: 18, height: 18, color: "var(--gold)" }} />
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: "0.9375rem",
-                  fontWeight: 700,
-                  color: "#ffffff",
-                }}
-              >
-                FIFA World Cup 2026™
-              </span>
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.5625rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  padding: "2px 7px",
-                  borderRadius: 100,
-                  backgroundColor: "rgba(34,197,94,0.12)",
-                  border: "1px solid rgba(34,197,94,0.25)",
-                  color: "#4ade80",
-                }}
-              >
-                {markets.length} markets
-              </span>
-            </div>
-            <p
-              style={{
-                marginTop: 1,
-                fontFamily: "var(--font-sans)",
-                fontSize: "0.6875rem",
-                color: "rgba(255,255,255,0.4)",
-              }}
-            >
-              USA · Canada · Mexico &nbsp;·&nbsp; Jun 11 – Jul 19, 2026
-            </p>
-          </div>
-        </div>
-
-        <span
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            fontFamily: "var(--font-mono)",
-            fontSize: "0.5625rem",
-            fontWeight: 700,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "#4ade80",
-            backgroundColor: "rgba(34,197,94,0.1)",
-            border: "1px solid rgba(34,197,94,0.2)",
-            borderRadius: 100,
-            padding: "3px 10px",
-          }}
-        >
-          <span
+            <span
             style={{
               width: 5,
               height: 5,
@@ -800,8 +773,37 @@ function WorldCupSection({
               animation: "pulseDot 1.5s ease-in-out infinite",
             }}
           />
-          Featured Event
-        </span>
+            Featured Event
+          </span>
+        </div>
+
+        {/* Bottom chip row */}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[
+            { emoji: "🏆", label: "Tournament Winner" },
+            { emoji: "🎯", label: "Group Stage" },
+            { emoji: "📊", label: "Yes / No Markets" },
+          ].map(({ emoji, label }) => (
+            <span
+              key={label}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontFamily: "var(--font-sans)",
+                fontSize: "0.625rem",
+                color: "rgba(255,255,255,0.4)",
+                backgroundColor: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 100,
+                padding: "2px 9px",
+              }}
+            >
+              <span style={{ fontSize: "0.6875rem" }}>{emoji}</span>
+              {label}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Markets grid */}
