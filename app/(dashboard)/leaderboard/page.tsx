@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { redirect } from "next/navigation";
 import { Trophy, TrendingUp, TrendingDown } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
@@ -161,6 +162,9 @@ const RANK_BADGE: Record<number, { bg: string; color: string; border: string }> 
 };
 
 export default async function LeaderboardPage() {
+  // Hidden until platform has more users — redirect to dashboard
+  redirect("/dashboard");
+
   const { profile } = await requireUser();
   const locale = getLocale();
   const zh = locale === "zh";

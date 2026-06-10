@@ -29,7 +29,7 @@ export function DashboardNav({ locale, t }: Props) {
     { href: "/dashboard",   label: t.dashboard,   en: "Dashboard",   icon: LayoutDashboard },
     { href: "/markets",     label: t.markets,     en: "Markets",     icon: TrendingUp },
     { href: "/portfolio",   label: t.portfolio,   en: "Portfolio",   icon: Briefcase },
-    { href: "/leaderboard", label: t.leaderboard, en: "Leaderboard", icon: Trophy },
+    // { href: "/leaderboard", label: t.leaderboard, en: "Leaderboard", icon: Trophy }, // hidden until platform has more users
     { href: "/wallet",      label: t.wallet,      en: "Wallet",      icon: Wallet },
     { href: "/promoter",    label: t.promoter,    en: "Promoter",    icon: Users },
     { href: "/profile",     label: t.profile,     en: "Profile",     icon: User },

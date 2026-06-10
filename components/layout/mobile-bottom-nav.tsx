@@ -21,8 +21,8 @@ export function MobileBottomNav({ locale, t }: Props) {
     { href: "/dashboard",   label: t.dashboard,   icon: LayoutDashboard },
     { href: "/markets",     label: t.markets,     icon: TrendingUp },
     { href: "/portfolio",   label: t.portfolio,   icon: Briefcase },
-    { href: "/leaderboard", label: t.leaderboard, icon: Trophy },
     { href: "/wallet",      label: t.wallet,      icon: Wallet },
+    // { href: "/leaderboard", label: t.leaderboard, icon: Trophy }, // hidden until platform has more users
   ];
 
   return (
@@ -43,7 +43,7 @@ export function MobileBottomNav({ locale, t }: Props) {
         paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
       }}
     >
-      <ul style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)" }}>
+      <ul style={{ display: "grid", gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
         {items.map(({ href, label, icon: Icon }) => {
           const isActive =
             href === "/dashboard"

@@ -363,32 +363,29 @@ export function DashboardOverview({
         <LiveRoundsWidget markets={data.liveRounds} locale={locale} />
       )}
 
-      {/* Balance stats + mini leaderboard */}
-      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            label={t.total_balance}
-            value={walletBalance != null ? `$${walletBalance}` : "—"}
-            sub={t.usd_equivalent}
-            icon={DollarSign}
-            accentColor="var(--gold)"
-          />
-          <StatCard
-            label={t.available}
-            value={walletAvailable != null ? `$${walletAvailable}` : "—"}
-            sub={t.ready_to_trade}
-            icon={CheckCircle2}
-            accentColor="var(--teal)"
-          />
-          <StatCard
-            label={t.open_positions}
-            value={String(data.openPositions.length)}
-            sub={data.openPositions.length === 1 ? t.active_market : t.active_markets}
-            icon={TrendingUp}
-            accentColor="var(--gold)"
-          />
-        </div>
-        <MiniLeaderboardWidget entries={topPlayers} zh={locale === "zh"} />
+      {/* Balance stats */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard
+          label={t.total_balance}
+          value={walletBalance != null ? `$${walletBalance}` : "—"}
+          sub={t.usd_equivalent}
+          icon={DollarSign}
+          accentColor="var(--gold)"
+        />
+        <StatCard
+          label={t.available}
+          value={walletAvailable != null ? `$${walletAvailable}` : "—"}
+          sub={t.ready_to_trade}
+          icon={CheckCircle2}
+          accentColor="var(--teal)"
+        />
+        <StatCard
+          label={t.open_positions}
+          value={String(data.openPositions.length)}
+          sub={data.openPositions.length === 1 ? t.active_market : t.active_markets}
+          icon={TrendingUp}
+          accentColor="var(--gold)"
+        />
       </div>
 
       {/* Quick actions */}
