@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TrendingUp, Clock, ChevronRight, Search, X, ArrowRight } from "lucide-react";
+import { TrendingUp, Clock, ChevronRight, Search, X, ArrowRight, Trophy } from "lucide-react";
 
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
@@ -475,6 +475,352 @@ function StandardCard({
   );
 }
 
+// ---------------------------------------------------------------------------
+// World Cup themed card
+// ---------------------------------------------------------------------------
+
+function WorldCupCard({
+  market,
+  locale,
+  dateLocale,
+}: {
+  market: MarketListItem;
+  locale: Locale;
+  dateLocale: string;
+}) {
+  const yes = market.yesPrice != null ? Math.min(100, Math.max(0, parseFloat(market.yesPrice) * 100)) : 50;
+  const no = 100 - yes;
+
+  return (
+    <Link href={`/markets/${market.slug}`} style={{ textDecoration: "none", display: "block" }}>
+      <div
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          backgroundColor: "#0a1f0d",
+          border: "1px solid rgba(34,197,94,0.2)",
+          borderRadius: "var(--radius-lg)",
+          padding: "1.125rem",
+          transition: "transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(34,197,94,0.06)",
+          cursor: "pointer",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+        className="group hover:border-[rgba(34,197,94,0.4)] hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(0,0,0,0.5),0_0_16px_rgba(34,197,94,0.1)]"
+      >
+        {/* Grass stripe ambient */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(255,255,255,0.018) 18px, rgba(255,255,255,0.018) 20px)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 30, height: 30, borderRadius: "50%",
+                background: "linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(34,197,94,0.08) 100%)",
+                border: "1px solid rgba(34,197,94,0.3)",
+                fontSize: "0.875rem",
+                flexShrink: 0,
+              }}
+            >
+              ⚽
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.6875rem",
+                fontWeight: 700,
+                color: "#4ade80",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              FIFA
+            </span>
+          </div>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5625rem",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              padding: "2px 8px",
+              borderRadius: 100,
+              backgroundColor: "rgba(34,197,94,0.1)",
+              border: "1px solid rgba(34,197,94,0.2)",
+              color: "#4ade80",
+            }}
+          >
+            Active
+          </span>
+        </div>
+
+        <h3
+          style={{
+            marginTop: "0.625rem",
+            fontFamily: "var(--font-sans)",
+            fontSize: "0.8125rem",
+            fontWeight: 500,
+            lineHeight: 1.45,
+            color: "rgba(255,255,255,0.9)",
+            display: "-webkit-box",
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+            flex: 1,
+            position: "relative",
+          }}
+        >
+          {locale === "zh" && market.titleZh ? market.titleZh : market.title}
+        </h3>
+
+        <div style={{ display: "flex", gap: 16, marginTop: "0.875rem", position: "relative" }}>
+          <div>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>YES</p>
+            <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "#4ade80" }}>
+              {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "—"}
+            </p>
+          </div>
+          <div>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>NO</p>
+            <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--rose)" }}>
+              {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Probability bar — green themed */}
+        <div style={{ marginTop: "0.625rem", position: "relative" }}>
+          <div style={{ height: 3, borderRadius: 2, overflow: "hidden", backgroundColor: "rgba(255,255,255,0.08)", display: "flex" }}>
+            <div style={{ width: `${yes}%`, backgroundColor: "#4ade80", transition: "width 300ms ease" }} />
+            <div style={{ width: `${no}%`, backgroundColor: "var(--rose)", transition: "width 300ms ease" }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "#4ade80" }}>{yes.toFixed(0)}% YES</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--rose)" }}>{no.toFixed(0)}% NO</span>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: "0.625rem", position: "relative" }}>
+          <Clock style={{ width: 10, height: 10, color: "rgba(255,255,255,0.3)" }} />
+          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.625rem", color: "rgba(255,255,255,0.3)" }}>
+            Closes{" "}
+            {new Date(market.closeAt).toLocaleDateString(dateLocale, {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
+        </div>
+
+        <div
+          style={{
+            marginTop: "0.625rem",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontFamily: "var(--font-sans)",
+            fontSize: "0.6875rem",
+            fontWeight: 600,
+            color: "#4ade80",
+            opacity: 0,
+            transition: "opacity 150ms ease",
+            position: "relative",
+          }}
+          className="group-hover:!opacity-100"
+        >
+          {locale === "zh" ? "立即交易" : "Trade Now"} <ChevronRight style={{ width: 12, height: 12 }} />
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// World Cup featured event section
+// ---------------------------------------------------------------------------
+
+function WorldCupSection({
+  markets,
+  locale,
+  dateLocale,
+}: {
+  markets: MarketListItem[];
+  locale: Locale;
+  dateLocale: string;
+}) {
+  if (markets.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: "var(--radius-lg)",
+        border: "1px solid rgba(34,197,94,0.2)",
+        background: "linear-gradient(180deg, rgba(10,31,13,0.9) 0%, rgba(7,20,8,0.95) 100%)",
+        boxShadow: "0 4px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03)",
+      }}
+    >
+      {/* Grass stripe pattern */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage:
+            "repeating-linear-gradient(90deg, transparent, transparent 32px, rgba(255,255,255,0.015) 32px, rgba(255,255,255,0.015) 34px)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Ambient glow */}
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: "-20%",
+          right: "10%",
+          width: "30%",
+          height: "60%",
+          background: "radial-gradient(ellipse, rgba(34,197,94,0.08) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Header */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "1rem 1.25rem",
+          borderBottom: "1px solid rgba(34,197,94,0.12)",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Trophy icon */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 36,
+              height: 36,
+              borderRadius: "var(--radius-sm)",
+              background: "linear-gradient(135deg, rgba(232,160,32,0.2) 0%, rgba(232,160,32,0.06) 100%)",
+              border: "1px solid rgba(232,160,32,0.25)",
+              flexShrink: 0,
+            }}
+          >
+            <Trophy style={{ width: 18, height: 18, color: "var(--gold)" }} />
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: "0.9375rem",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                }}
+              >
+                FIFA World Cup 2026™
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.5625rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  padding: "2px 7px",
+                  borderRadius: 100,
+                  backgroundColor: "rgba(34,197,94,0.12)",
+                  border: "1px solid rgba(34,197,94,0.25)",
+                  color: "#4ade80",
+                }}
+              >
+                {markets.length} markets
+              </span>
+            </div>
+            <p
+              style={{
+                marginTop: 1,
+                fontFamily: "var(--font-sans)",
+                fontSize: "0.6875rem",
+                color: "rgba(255,255,255,0.4)",
+              }}
+            >
+              USA · Canada · Mexico &nbsp;·&nbsp; Jun 11 – Jul 19, 2026
+            </p>
+          </div>
+        </div>
+
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "#4ade80",
+            backgroundColor: "rgba(34,197,94,0.1)",
+            border: "1px solid rgba(34,197,94,0.2)",
+            borderRadius: 100,
+            padding: "3px 10px",
+          }}
+        >
+          <span
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: "50%",
+              backgroundColor: "#4ade80",
+              boxShadow: "0 0 6px #4ade80",
+              animation: "pulseDot 1.5s ease-in-out infinite",
+            }}
+          />
+          Featured Event
+        </span>
+      </div>
+
+      {/* Markets grid */}
+      <div style={{ padding: "1.25rem", position: "relative" }}>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {markets.map((market) => (
+            <WorldCupCard
+              key={market.id}
+              market={market}
+              locale={locale}
+              dateLocale={dateLocale}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Derive available duration tabs from the market list
 function getDurationTabs(markets: MarketListItem[]): Tab[] {
   const durations = new Set(
@@ -508,7 +854,18 @@ export function MarketsBrowser({
   const [tab, setTab] = useState<Tab>("all");
   const [query, setQuery] = useState("");
   const dateLocale = locale === "zh" ? "zh-CN" : "en-US";
-  const tabs = useMemo(() => getDurationTabs(markets), [markets]);
+
+  // Split World Cup markets from regular markets
+  const worldCupMarkets = useMemo(
+    () => markets.filter((m) => m.assetSymbol === "FIFA"),
+    [markets],
+  );
+  const regularMarkets = useMemo(
+    () => markets.filter((m) => m.assetSymbol !== "FIFA"),
+    [markets],
+  );
+
+  const tabs = useMemo(() => getDurationTabs(regularMarkets), [regularMarkets]);
 
   const tabLabel = (t: Tab) => {
     if (t === "all") return locale === "zh" ? "全部" : "All";
@@ -518,7 +875,7 @@ export function MarketsBrowser({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return markets.filter((m) => {
+    return regularMarkets.filter((m) => {
       const matchesTab =
         tab === "all" ||
         (tab === "standard" && m.durationMinutes == null) ||
@@ -530,7 +887,7 @@ export function MarketsBrowser({
         (m.titleZh ?? "").toLowerCase().includes(q);
       return matchesTab && matchesSearch;
     });
-  }, [markets, tab, query]);
+  }, [regularMarkets, tab, query]);
 
   if (markets.length === 0) {
     return (
@@ -549,7 +906,27 @@ export function MarketsBrowser({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* World Cup featured event */}
+      <WorldCupSection
+        markets={worldCupMarkets}
+        locale={locale}
+        dateLocale={dateLocale}
+      />
+
+      {/* Regular markets — only show if there are any */}
+      {regularMarkets.length > 0 && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {/* Section label when World Cup is also shown */}
+        {worldCupMarkets.length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-subtle)" }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)", whiteSpace: "nowrap" }}>
+              Crypto Markets
+            </span>
+            <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-subtle)" }} />
+          </div>
+        )}
       {/* Search + tabs row */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }} className="sm:flex-row sm:items-center sm:justify-between">
         {/* Duration tabs */}
@@ -673,6 +1050,8 @@ export function MarketsBrowser({
             ),
           )}
         </div>
+      )}
+      </div>
       )}
     </div>
   );

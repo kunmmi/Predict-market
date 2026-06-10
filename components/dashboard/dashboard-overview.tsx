@@ -20,6 +20,7 @@ import type {
 import type { LeaderboardEntry } from "@/app/api/leaderboard/route";
 import { LiveRoundsWidget } from "@/components/dashboard/live-rounds-widget";
 import { MiniLeaderboardWidget } from "@/components/dashboard/mini-leaderboard-widget";
+import { WorldCupBanner } from "@/components/dashboard/world-cup-banner";
 
 function depositStatusVariant(
   status: string,
@@ -353,6 +354,9 @@ export function DashboardOverview({
           </Link>
         </div>
       </div>
+
+      {/* World Cup featured event banner */}
+      <WorldCupBanner />
 
       {/* Live rounds */}
       {data.liveRounds.length > 0 && (
