@@ -15,7 +15,7 @@ export function WorldCupBanner({ locale }: { locale: Locale }) {
           position: "relative",
           overflow: "hidden",
           borderRadius: "var(--radius-lg)",
-          padding: "2rem 2rem",
+          padding: "clamp(1rem, 4vw, 2rem)",
           background:
             "linear-gradient(135deg, #062010 0%, #0b3318 30%, #0f4520 55%, #0b3318 80%, #062010 100%)",
           border: "1px solid rgba(34,197,94,0.3)",
@@ -33,9 +33,9 @@ export function WorldCupBanner({ locale }: { locale: Locale }) {
         {/* Right ambient */}
         <div aria-hidden style={{ position: "absolute", top: "-30%", right: "-5%", width: "45%", height: "140%", background: "radial-gradient(ellipse, rgba(34,197,94,0.12) 0%, transparent 70%)", pointerEvents: "none" }} />
         {/* Large faint year */}
-        <div aria-hidden style={{ position: "absolute", right: "-0.5rem", top: "50%", transform: "translateY(-50%)", fontFamily: "var(--font-mono)", fontSize: "7rem", fontWeight: 900, lineHeight: 1, color: "rgba(34,197,94,0.05)", letterSpacing: "-0.04em", userSelect: "none", pointerEvents: "none", whiteSpace: "nowrap" }}>2026</div>
-        {/* Ball watermark */}
-        <div aria-hidden style={{ position: "absolute", right: "10rem", top: "50%", transform: "translateY(-60%)", fontSize: "6rem", lineHeight: 1, opacity: 0.07, userSelect: "none", pointerEvents: "none", filter: "blur(2px)" }}>⚽</div>
+        <div aria-hidden style={{ position: "absolute", right: "-0.5rem", top: "50%", transform: "translateY(-50%)", fontFamily: "var(--font-mono)", fontSize: "clamp(4rem, 12vw, 7rem)", fontWeight: 900, lineHeight: 1, color: "rgba(34,197,94,0.05)", letterSpacing: "-0.04em", userSelect: "none", pointerEvents: "none", whiteSpace: "nowrap" }}>2026</div>
+        {/* Ball watermark — hide on very narrow screens */}
+        <div aria-hidden style={{ position: "absolute", right: "clamp(5rem, 15vw, 10rem)", top: "50%", transform: "translateY(-60%)", fontSize: "clamp(3rem, 10vw, 6rem)", lineHeight: 1, opacity: 0.07, userSelect: "none", pointerEvents: "none", filter: "blur(2px)" }}>⚽</div>
 
         <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: "1rem" }}>
           {/* Badge + flags */}
@@ -48,9 +48,9 @@ export function WorldCupBanner({ locale }: { locale: Locale }) {
           </div>
 
           {/* Headline + CTA */}
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "1.5rem", flexWrap: "wrap" }}>
-            <div>
-              <h2 style={{ fontFamily: "var(--font-sans)", fontSize: "clamp(1.375rem, 4vw, 1.875rem)", fontWeight: 800, color: "#ffffff", lineHeight: 1.1, margin: 0, letterSpacing: "-0.01em" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "1rem", flexWrap: "wrap" }}>
+            <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+              <h2 style={{ fontFamily: "var(--font-sans)", fontSize: "clamp(1.25rem, 4vw, 1.875rem)", fontWeight: 800, color: "#ffffff", lineHeight: 1.1, margin: 0, letterSpacing: "-0.01em" }}>
                 {t.title}
               </h2>
               <p style={{ marginTop: 6, fontFamily: "var(--font-sans)", fontSize: "0.8125rem", color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
@@ -62,12 +62,12 @@ export function WorldCupBanner({ locale }: { locale: Locale }) {
               </p>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, flexShrink: 0 }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--gold)", backgroundColor: "rgba(232,160,32,0.1)", border: "1px solid rgba(232,160,32,0.2)", borderRadius: 100, padding: "3px 10px" }}>
                 39 {t.markets_open}
               </span>
               <div
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: "var(--radius-sm)", background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)", fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 700, color: "#fff", boxShadow: "0 0 24px rgba(34,197,94,0.35), inset 0 1px 0 rgba(255,255,255,0.15)", transition: "opacity 150ms ease, box-shadow 150ms ease" }}
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "10px 22px", borderRadius: "var(--radius-sm)", background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)", fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 700, color: "#fff", boxShadow: "0 0 24px rgba(34,197,94,0.35), inset 0 1px 0 rgba(255,255,255,0.15)", transition: "opacity 150ms ease, box-shadow 150ms ease", whiteSpace: "nowrap" }}
                 className="group-hover:opacity-95 group-hover:shadow-[0_0_32px_rgba(34,197,94,0.5)]"
               >
                 {t.start_predicting}

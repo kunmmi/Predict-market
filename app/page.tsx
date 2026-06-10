@@ -185,8 +185,8 @@ export default async function Home() {
                     background: "linear-gradient(160deg, #062010 0%, #0b3318 30%, #103d1e 55%, #0b3318 80%, #062010 100%)",
                     border: "1px solid rgba(34,197,94,0.3)",
                     boxShadow: "0 8px 48px rgba(0,0,0,0.6), 0 0 0 1px rgba(34,197,94,0.08), inset 0 1px 0 rgba(255,255,255,0.04)",
-                    padding: "2rem",
-                    minHeight: 380,
+                    padding: "clamp(1.25rem, 5vw, 2rem)",
+                    minHeight: 340,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
@@ -231,7 +231,7 @@ export default async function Home() {
                     aria-hidden
                     style={{
                       position: "absolute", right: "-0.25rem", bottom: "1rem",
-                      fontFamily: "var(--font-mono)", fontSize: "8rem",
+                      fontFamily: "var(--font-mono)", fontSize: "clamp(4rem, 14vw, 8rem)",
                       fontWeight: 900, lineHeight: 1,
                       color: "rgba(34,197,94,0.05)", letterSpacing: "-0.04em",
                       userSelect: "none", pointerEvents: "none",
@@ -304,7 +304,7 @@ export default async function Home() {
                   </div>
 
                   {/* Middle: stats */}
-                  <div style={{ position: "relative", display: "flex", gap: "1.5rem", marginTop: "1.75rem" }}>
+                  <div style={{ position: "relative", display: "flex", gap: "1.5rem", marginTop: "1.75rem", flexWrap: "wrap" }}>
                     {[
                       { n: "48", label: twc.stat_nations },
                       { n: "104", label: twc.stat_matches },
@@ -318,7 +318,7 @@ export default async function Home() {
                   </div>
 
                   {/* Bottom: dates + CTA */}
-                  <div style={{ position: "relative", marginTop: "2rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div style={{ position: "relative", marginTop: "1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", rowGap: 10 }}>
                     <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
                       {twc.dates}
                     </p>

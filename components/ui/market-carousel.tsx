@@ -338,8 +338,8 @@ function StandardCard({
 
       <div style={{ display: "flex", gap: 24 }}>
         {[
-          { label: "YES", price: market.yesPrice, color: "var(--teal)" },
-          { label: "NO",  price: market.noPrice,  color: "var(--rose)" },
+          { label: sideLabel("yes", locale), price: market.yesPrice, color: "var(--teal)" },
+          { label: sideLabel("no", locale),  price: market.noPrice,  color: "var(--rose)" },
         ].map(({ label, price, color }) => (
           <div key={label}>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)" }}>
