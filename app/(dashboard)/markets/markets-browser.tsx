@@ -12,6 +12,7 @@ import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
 import { useBinancePrice } from "@/lib/hooks/use-binance-price";
 import type { MarketListItem } from "@/lib/services/market-data";
 import type { Locale } from "@/lib/i18n/translations";
+import { getT } from "@/lib/i18n/translations";
 
 type Tab = "all" | "3" | "5" | "10" | "15" | "30" | "standard";
 
@@ -664,13 +665,10 @@ function getWCCategory(title: string): WCFilter {
   return "all";
 }
 
-const WC_FILTER_LABELS: Record<WCFilter, string> = {
-  all:    "All",
-  winner: "🏆 Winner",
-  round1: "⚽ Round 1",
-  round2: "⚽ Round 2",
-  round3: "⚽ Round 3",
-};
+function getWCFilterLabels(locale: Locale): Record<WCFilter, string> {
+  const t = getT(locale).world_cup;
+  return { all: t.filter_all, winner: t.filter_winner, round1: t.filter_round1, round2: t.filter_round2, round3: t.filter_round3 };
+}
 
 const PREVIEW_COUNT = 6;
 
@@ -687,6 +685,9 @@ function WorldCupSection({
   const [expanded, setExpanded] = useState(false);
 
   if (markets.length === 0) return null;
+
+  const twc = getT(locale).world_cup;
+  const filterLabels = getWCFilterLabels(locale);
 
   // Which filter tabs actually have markets?
   const availableFilters: WCFilter[] = ["all"];
@@ -737,12 +738,12 @@ function WorldCupSection({
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ fontFamily: "var(--font-sans)", fontSize: "1.125rem", fontWeight: 800, color: "#ffffff", letterSpacing: "-0.01em" }}>
-                  FIFA World Cup 2026™
+                  {twc.title}
                 </span>
                 <span style={{ fontSize: "0.875rem", lineHeight: 1 }}>🇺🇸🇨🇦🇲🇽</span>
               </div>
               <p style={{ marginTop: 2, fontFamily: "var(--font-sans)", fontSize: "0.6875rem", color: "rgba(255,255,255,0.4)" }}>
-                48 nations · 104 matches · June 11 – July 19, 2026
+                {twc.nations_sub}
               </p>
             </div>
           </div>
@@ -757,7 +758,7 @@ function WorldCupSection({
             }}
           >
             <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#4ade80", boxShadow: "0 0 6px #4ade80" }} />
-            Featured Event
+            {twc.featured_badge}
           </span>
         </div>
 
@@ -795,7 +796,7 @@ function WorldCupSection({
                   marginBottom: "-1px",
                 }}
               >
-                {WC_FILTER_LABELS[f]}
+                {filterLabels[f]}
                 {filterCounts[f] !== undefined && (
                   <span style={{ marginLeft: 5, opacity: 0.6, fontWeight: 500 }}>
                     {filterCounts[f]}
@@ -840,8 +841,8 @@ function WorldCupSection({
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(34,197,94,0.08)"; }}
             >
               {expanded
-                ? <>Show less <span style={{ fontSize: "0.75rem" }}>↑</span></>
-                : <>Show all {filtered.length} markets <span style={{ fontSize: "0.75rem" }}>↓</span></>
+                ? <>{twc.show_less} <span style={{ fontSize: "0.75rem" }}>↑</span></>
+                : <>{twc.show_all.replace("{n}", String(filtered.length))} <span style={{ fontSize: "0.75rem" }}>↓</span></>
               }
             </button>
           </div>
@@ -952,7 +953,7 @@ export function MarketsBrowser({
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-subtle)" }} />
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)", whiteSpace: "nowrap" }}>
-              Crypto Markets
+              {getT(locale).world_cup.divider}
             </span>
             <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-subtle)" }} />
           </div>

@@ -356,7 +356,7 @@ export function DashboardOverview({
       </div>
 
       {/* World Cup featured event banner */}
-      <WorldCupBanner />
+      <WorldCupBanner locale={locale} />
 
       {/* Live rounds */}
       {data.liveRounds.length > 0 && (

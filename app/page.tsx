@@ -14,6 +14,7 @@ export default async function Home() {
   const locale = getLocale();
   const t = getT(locale);
   const tl = t.landing;
+  const twc = t.world_cup;
   const tn = t.nav;
 
   const NAV_LINKS = [
@@ -259,7 +260,7 @@ export default async function Home() {
                             backgroundColor: "#4ade80", boxShadow: "0 0 8px #4ade80",
                           }}
                         />
-                        Featured Event — Now Live
+                        {twc.featured_badge}
                       </span>
                       <span style={{ fontSize: "1.5rem" }}>🏆</span>
                     </div>
@@ -297,7 +298,7 @@ export default async function Home() {
                     <div style={{ marginTop: "1rem", display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: "1rem" }}>🇺🇸🇨🇦🇲🇽</span>
                       <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "rgba(255,255,255,0.4)" }}>
-                        USA · Canada · Mexico
+                        {twc.host}
                       </span>
                     </div>
                   </div>
@@ -305,9 +306,9 @@ export default async function Home() {
                   {/* Middle: stats */}
                   <div style={{ position: "relative", display: "flex", gap: "1.5rem", marginTop: "1.75rem" }}>
                     {[
-                      { n: "48", label: "Nations" },
-                      { n: "104", label: "Matches" },
-                      { n: String(worldCupCount || 39), label: "Markets Open" },
+                      { n: "48", label: twc.stat_nations },
+                      { n: "104", label: twc.stat_matches },
+                      { n: String(worldCupCount || 39), label: twc.stat_markets },
                     ].map(({ n, label }) => (
                       <div key={label}>
                         <p style={{ fontFamily: "var(--font-mono)", fontSize: "1.5rem", fontWeight: 700, color: "#fff", lineHeight: 1 }}>{n}</p>
@@ -319,7 +320,7 @@ export default async function Home() {
                   {/* Bottom: dates + CTA */}
                   <div style={{ position: "relative", marginTop: "2rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                     <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
-                      Jun 11 – Jul 19, 2026
+                      {twc.dates}
                     </p>
 
                     <div
@@ -334,7 +335,7 @@ export default async function Home() {
                       }}
                       className="group-hover:opacity-90"
                     >
-                      Predict Now
+                      {twc.predict_now}
                       <ArrowRight style={{ width: 15, height: 15 }} />
                     </div>
                   </div>
@@ -366,7 +367,7 @@ export default async function Home() {
                     color: "var(--text-dim)", marginBottom: 4,
                   }}
                 >
-                  Also Live
+                  {tl.also_live}
                 </p>
                 <h3
                   style={{
@@ -374,7 +375,7 @@ export default async function Home() {
                     fontWeight: 700, color: "var(--text-primary)", margin: 0,
                   }}
                 >
-                  Crypto Prediction Markets
+                  {tl.crypto_markets_title}
                 </h3>
               </div>
               <Link
@@ -387,7 +388,7 @@ export default async function Home() {
                 }}
                 className="hover:opacity-70"
               >
-                View all <ArrowRight style={{ width: 13, height: 13 }} />
+                {tl.view_all} <ArrowRight style={{ width: 13, height: 13 }} />
               </Link>
             </div>
 
@@ -414,7 +415,7 @@ export default async function Home() {
               color: "var(--text-dim)", marginBottom: "0.625rem",
             }}
           >
-            How it works
+            {tl.how_it_works_label}
           </p>
           <h3
             style={{
@@ -424,7 +425,7 @@ export default async function Home() {
               margin: "0 auto 2.5rem", maxWidth: 480,
             }}
           >
-            Simple to start. Rewarding to master.
+            {tl.how_it_works_title}
           </h3>
 
           <div className="grid gap-6 sm:grid-cols-3">
@@ -432,8 +433,8 @@ export default async function Home() {
               {
                 icon: TrendingUp,
                 step: "01",
-                title: "Pick a market",
-                desc: "Browse live crypto markets or World Cup match predictions. Choose YES or NO on any outcome.",
+                title: tl.step1_title,
+                desc: tl.step1_desc,
                 color: "var(--gold)",
                 bg: "rgba(232,160,32,0.08)",
                 border: "rgba(232,160,32,0.2)",
@@ -441,8 +442,8 @@ export default async function Home() {
               {
                 icon: Zap,
                 step: "02",
-                title: "Place your prediction",
-                desc: "Fund your position instantly. Prices move in real time based on what other traders think.",
+                title: tl.step2_title,
+                desc: tl.step2_desc,
                 color: "var(--teal)",
                 bg: "rgba(16,207,160,0.08)",
                 border: "rgba(16,207,160,0.2)",
@@ -450,8 +451,8 @@ export default async function Home() {
               {
                 icon: Shield,
                 step: "03",
-                title: "Get paid instantly",
-                desc: "Markets settle automatically on-chain. Winners receive payouts straight to their wallet.",
+                title: tl.step3_title,
+                desc: tl.step3_desc,
                 color: "#4ade80",
                 bg: "rgba(34,197,94,0.08)",
                 border: "rgba(34,197,94,0.2)",
@@ -499,7 +500,7 @@ export default async function Home() {
                     color, marginBottom: 6,
                   }}
                 >
-                  Step {step}
+                  {tl.step_label} {step}
                 </p>
                 <h4
                   style={{
@@ -540,7 +541,10 @@ export default async function Home() {
               padding: "3px 12px",
             }}
           >
-            {worldCupCount > 0 ? `${worldCupCount} World Cup markets open now` : `${markets.length} markets open now`}
+            {worldCupCount > 0
+              ? tl.markets_open_wc.replace("{n}", String(worldCupCount))
+              : tl.markets_open.replace("{n}", String(markets.length))
+            }
           </span>
 
           <h2
@@ -552,12 +556,12 @@ export default async function Home() {
               color: "var(--text-primary)", margin: 0,
             }}
           >
-            Ready to make your first<br />
-            <span style={{ color: "var(--gold)" }}>prediction?</span>
+            {tl.cta_ready}<br />
+            <span style={{ color: "var(--gold)" }}>{tl.cta_prediction}</span>
           </h2>
 
           <p style={{ fontFamily: "var(--font-sans)", fontSize: "1rem", color: "var(--text-secondary)", lineHeight: 1.6, maxWidth: 400, margin: 0 }}>
-            Join thousands of traders predicting crypto prices and major sporting events.
+            {tl.cta_sub}
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, marginTop: 8 }}>
