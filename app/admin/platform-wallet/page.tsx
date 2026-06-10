@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Wallet, ArrowDownLeft, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Wallet, ArrowDownLeft, ArrowUpRight, AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
