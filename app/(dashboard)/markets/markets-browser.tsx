@@ -417,13 +417,13 @@ function StandardCard({
 
         <div style={{ display: "flex", gap: 20, marginTop: "1rem" }}>
           <div>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>YES</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>{sideLabel("yes", locale)}</p>
             <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--teal)" }}>
               {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "—"}
             </p>
           </div>
           <div>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>NO</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>{sideLabel("no", locale)}</p>
             <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--rose)" }}>
               {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "—"}
             </p>
@@ -484,10 +484,12 @@ function WorldCupCard({
   market,
   locale,
   dateLocale,
+  closes,
 }: {
   market: MarketListItem;
   locale: Locale;
   dateLocale: string;
+  closes: string;
 }) {
   const yes = market.yesPrice != null ? Math.min(100, Math.max(0, parseFloat(market.yesPrice) * 100)) : 50;
   const no = 100 - yes;
@@ -565,7 +567,7 @@ function WorldCupCard({
               color: "#4ade80",
             }}
           >
-            Active
+            {statusLabel(market.status, locale)}
           </span>
         </div>
 
@@ -590,13 +592,13 @@ function WorldCupCard({
 
         <div style={{ display: "flex", gap: 16, marginTop: "0.875rem", position: "relative" }}>
           <div>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>YES</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>{sideLabel("yes", locale)}</p>
             <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "#4ade80" }}>
               {market.yesPrice != null ? `$${formatDecimal(market.yesPrice, 2)}` : "—"}
             </p>
           </div>
           <div>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>NO</p>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase", color: "rgba(255,255,255,0.35)" }}>{sideLabel("no", locale)}</p>
             <p style={{ marginTop: 2, fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--rose)" }}>
               {market.noPrice != null ? `$${formatDecimal(market.noPrice, 2)}` : "—"}
             </p>
@@ -610,15 +612,15 @@ function WorldCupCard({
             <div style={{ width: `${no}%`, backgroundColor: "var(--rose)", transition: "width 300ms ease" }} />
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 3 }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "#4ade80" }}>{yes.toFixed(0)}% YES</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--rose)" }}>{no.toFixed(0)}% NO</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "#4ade80" }}>{yes.toFixed(0)}% {sideLabel("yes", locale)}</span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--rose)" }}>{no.toFixed(0)}% {sideLabel("no", locale)}</span>
           </div>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: "0.625rem", position: "relative" }}>
           <Clock style={{ width: 10, height: 10, color: "rgba(255,255,255,0.3)" }} />
           <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.625rem", color: "rgba(255,255,255,0.3)" }}>
-            Closes{" "}
+            {closes}{" "}
             {new Date(market.closeAt).toLocaleDateString(dateLocale, {
               year: "numeric",
               month: "short",
@@ -817,6 +819,7 @@ function WorldCupSection({
               market={market}
               locale={locale}
               dateLocale={dateLocale}
+              closes={getT(locale).markets.closes}
             />
           ))}
         </div>
