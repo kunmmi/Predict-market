@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from "lucide-react";
 
 import { requireUser } from "@/lib/auth/require-user";
-import { getMarketByIdAdmin, getMarketBySlug, getMarketPriceHistory } from "@/lib/services/market-data";
+import { getMarketByIdAdmin, getMarketBySlug, getMarketPriceHistory, getMarketOutcomes } from "@/lib/services/market-data";
 import { settleShortDurationMarketById, ensureRoundOpeningPrice } from "@/lib/services/short-duration-settlement";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/i18n/get-locale";
@@ -116,7 +116,10 @@ export default async function MarketDetailPage({ params }: Props) {
     }
   }
 
-  const priceHistory = await getMarketPriceHistory(market.id);
+  const [priceHistory, outcomes] = await Promise.all([
+    getMarketPriceHistory(market.id),
+    market.marketType === "multi" ? getMarketOutcomes(market.id) : Promise.resolve([]),
+  ]);
 
   const locale = getLocale();
   const t = getT(locale);
@@ -290,7 +293,63 @@ export default async function MarketDetailPage({ params }: Props) {
         )}
       </div>
 
-      {/* Probability bar */}
+      {/* Multi-outcome list — replaces probability bar for multi markets */}
+      {market.marketType === "multi" ? (
+        <Card>
+          <div style={{ padding: "16px 20px 20px" }}>
+            <p style={{ marginBottom: 14, fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+              {locale === "zh" ? "选项 · 当前赔率" : "OUTCOMES · CURRENT ODDS"}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {outcomes.map((o, i) => {
+                const pct = Math.round(o.price * 100);
+                const label = (locale === "zh" && o.labelZh) ? o.labelZh : o.label;
+                const isWon = o.isWinner === true;
+                const isLost = o.isWinner === false;
+                return (
+                  <div key={o.id} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px",
+                    borderRadius: "var(--radius-sm)",
+                    backgroundColor: isWon ? "rgba(13,184,145,0.06)" : "var(--bg-elevated)",
+                    border: `1px solid ${isWon ? "rgba(13,184,145,0.2)" : isLost ? "rgba(255,255,255,0.03)" : "var(--border-subtle)"}`,
+                    opacity: isLost ? 0.45 : 1,
+                  }}>
+                    <span style={{
+                      width: 22, height: 22, flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
+                      color: i === 0 ? "var(--gold)" : "var(--text-dim)",
+                      backgroundColor: i === 0 ? "rgba(232,160,32,0.1)" : "rgba(255,255,255,0.04)",
+                      borderRadius: "50%",
+                      border: `1px solid ${i === 0 ? "rgba(232,160,32,0.3)" : "rgba(255,255,255,0.07)"}`,
+                    }}>
+                      {isWon ? "✓" : i + 1}
+                    </span>
+                    <span style={{ flex: 1, fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: isWon ? 600 : 400, color: isWon ? "var(--teal)" : "var(--text-primary)" }}>
+                      {label}
+                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                      <div style={{ width: 80, height: 5, borderRadius: 3, backgroundColor: "var(--bg-surface)", overflow: "hidden" }}>
+                        <div style={{ width: `${pct}%`, height: "100%", backgroundColor: isWon ? "var(--teal)" : i === 0 ? "var(--gold)" : "rgba(255,255,255,0.2)", borderRadius: 3 }} />
+                      </div>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fontWeight: 700, color: isWon ? "var(--teal)" : i === 0 ? "var(--gold)" : "var(--text-secondary)", width: 36, textAlign: "right" }}>
+                        {pct}%
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {market.status === "active" && (
+              <p style={{ marginTop: 14, fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-dim)", textAlign: "center" }}>
+                {locale === "zh" ? "📌 交易功能即将上线" : "📌 Trading coming soon — track your prediction now"}
+              </p>
+            )}
+          </div>
+        </Card>
+      ) : (
+      /* Probability bar — binary markets only */
       <Card>
         <div style={{ padding: "16px 20px 18px" }}>
         <p style={{ marginBottom: 12, fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)" }}>
@@ -314,6 +373,7 @@ export default async function MarketDetailPage({ params }: Props) {
         )}
         </div>
       </Card>
+      )}
 
       {isShortDuration && isActive ? (
         <LiveCryptoChart
@@ -426,25 +486,27 @@ export default async function MarketDetailPage({ params }: Props) {
         />
       )}
 
-      {/* Trade form + live position */}
-      <TradeArea
-        marketId={market.id}
-        yesPrice={isUpcoming ? "0.5" : market.latestYesPrice}
-        noPrice={isUpcoming ? "0.5" : market.latestNoPrice}
-        marketStatus={market.status}
-        isShortDuration={isShortDuration}
-        assetSymbol={market.assetSymbol}
-        closeAt={market.closeAt}
-        cutoffAt={market.cutoffAt}
-        spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
-        durationMinutes={market.durationMinutes ?? undefined}
-        isUpcoming={isUpcoming}
-        locale={locale}
-        t={t.trade}
-      />
+      {/* Trade form + live position — binary markets only */}
+      {market.marketType !== "multi" && (
+        <TradeArea
+          marketId={market.id}
+          yesPrice={isUpcoming ? "0.5" : market.latestYesPrice}
+          noPrice={isUpcoming ? "0.5" : market.latestNoPrice}
+          marketStatus={market.status}
+          isShortDuration={isShortDuration}
+          assetSymbol={market.assetSymbol}
+          closeAt={market.closeAt}
+          cutoffAt={market.cutoffAt}
+          spotPriceAtOpen={isUpcoming ? null : market.spotPriceAtOpen}
+          durationMinutes={market.durationMinutes ?? undefined}
+          isUpcoming={isUpcoming}
+          locale={locale}
+          t={t.trade}
+        />
+      )}
 
-      {/* Price history chart — hidden for short-duration round markets */}
-      {!isShortDuration && <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />}
+      {/* Price history chart — hidden for short-duration and multi markets */}
+      {!isShortDuration && market.marketType !== "multi" && <PriceHistoryChart history={priceHistory} locale={locale} t={tm} />}
 
       {/* Description */}
       {(market.description || market.descriptionZh) && (

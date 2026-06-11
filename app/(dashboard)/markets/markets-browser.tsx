@@ -10,11 +10,34 @@ import { sideLabel, statusLabel } from "@/lib/i18n/labels";
 import { resolveMarketTitle } from "@/lib/short-duration-predictions";
 import { cryptoIconUrl, hasCryptoIcon } from "@/lib/helpers/crypto-icon";
 import { useBinancePrice } from "@/lib/hooks/use-binance-price";
-import type { MarketListItem } from "@/lib/services/market-data";
+import type { MarketListItem, MarketOutcomeItem } from "@/lib/services/market-data";
 import type { Locale } from "@/lib/i18n/translations";
 import { getT } from "@/lib/i18n/translations";
 
 type TopFilter = "all" | "world_cup" | "standard" | "3" | "5" | "10" | "15" | "30" | "60";
+
+// Fetch outcomes for all multi-outcome markets in one go
+function useMultiOutcomes(marketIds: string[]): Record<string, MarketOutcomeItem[]> {
+  const [outcomeMap, setOutcomeMap] = useState<Record<string, MarketOutcomeItem[]>>({});
+  const key = marketIds.join(",");
+  useEffect(() => {
+    if (marketIds.length === 0) return;
+    Promise.all(
+      marketIds.map((id) =>
+        fetch(`/api/markets/${id}/outcomes`)
+          .then((r) => r.ok ? r.json() : [])
+          .then((outcomes: MarketOutcomeItem[]) => ({ id, outcomes }))
+          .catch(() => ({ id, outcomes: [] as MarketOutcomeItem[] })),
+      ),
+    ).then((results) => {
+      const map: Record<string, MarketOutcomeItem[]> = {};
+      for (const { id, outcomes } of results) map[id] = outcomes;
+      setOutcomeMap(map);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return outcomeMap;
+}
 
 function useCountdown(closeAt: string, onExpired?: () => void) {
   const getSecsLeft = useCallback(
@@ -653,6 +676,122 @@ function WorldCupCard({
 }
 
 // ---------------------------------------------------------------------------
+// Multi-outcome card  (Golden Boot, Most Assists, etc.)
+// ---------------------------------------------------------------------------
+
+function MultiOutcomeCard({
+  market,
+  locale,
+  outcomes,
+}: {
+  market: MarketListItem;
+  locale: Locale;
+  outcomes: import("@/lib/services/market-data").MarketOutcomeItem[];
+}) {
+  const zh = locale === "zh";
+  const title = (zh && market.titleZh) ? market.titleZh : market.title;
+  // Show top 4 outcomes by price desc
+  const top4 = [...outcomes].sort((a, b) => b.price - a.price).slice(0, 4);
+  const totalPool = outcomes.reduce((s, o) => s + o.poolAmount, 0);
+
+  return (
+    <Link href={`/markets/${market.slug}`} style={{ textDecoration: "none", display: "block" }}>
+      <div
+        style={{
+          position: "relative",
+          overflow: "hidden",
+          backgroundColor: "#0a1f0d",
+          border: "1px solid rgba(34,197,94,0.2)",
+          borderRadius: "var(--radius-lg)",
+          padding: "1.125rem",
+          transition: "transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(34,197,94,0.06)",
+        }}
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLDivElement;
+          el.style.transform = "translateY(-2px)";
+          el.style.boxShadow = "0 8px 28px rgba(0,0,0,0.5), 0 0 0 1px rgba(34,197,94,0.22)";
+          el.style.borderColor = "rgba(34,197,94,0.35)";
+        }}
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLDivElement;
+          el.style.transform = "";
+          el.style.boxShadow = "0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(34,197,94,0.06)";
+          el.style.borderColor = "rgba(34,197,94,0.2)";
+        }}
+      >
+        {/* Header row */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: "0.75rem" }}>
+          <h3 style={{
+            fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 600,
+            color: "var(--text-primary)", lineHeight: 1.4,
+            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+            flex: 1,
+          }}>
+            {title}
+          </h3>
+          <span style={{
+            flexShrink: 0,
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontFamily: "var(--font-mono)", fontSize: "0.5rem", fontWeight: 700,
+            letterSpacing: "0.12em", textTransform: "uppercase", color: "#4ade80",
+            backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)",
+            borderRadius: 100, padding: "2px 8px",
+          }}>
+            <span style={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: "#4ade80", boxShadow: "0 0 5px #4ade80" }} />
+            {zh ? "多选项" : "MULTI"}
+          </span>
+        </div>
+
+        {/* Outcomes list */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {top4.map((o, i) => {
+            const pct = Math.round(o.price * 100);
+            const label = (zh && o.labelZh) ? o.labelZh : o.label;
+            return (
+              <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{
+                  width: 16, height: 16, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
+                  color: i === 0 ? "var(--gold)" : "var(--text-dim)",
+                  backgroundColor: i === 0 ? "rgba(232,160,32,0.1)" : "rgba(255,255,255,0.04)",
+                  borderRadius: "50%", border: `1px solid ${i === 0 ? "rgba(232,160,32,0.3)" : "rgba(255,255,255,0.06)"}`,
+                }}>
+                  {i + 1}
+                </span>
+                <span style={{ flex: 1, fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {label}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                  <div style={{ width: 48, height: 4, borderRadius: 2, backgroundColor: "var(--bg-elevated)", overflow: "hidden" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", backgroundColor: i === 0 ? "var(--gold)" : "rgba(34,197,94,0.5)", borderRadius: 2 }} />
+                  </div>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 700, color: i === 0 ? "var(--gold)" : "var(--text-secondary)", width: 28, textAlign: "right" }}>
+                    {pct}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "0.875rem", paddingTop: "0.625rem", borderTop: "1px solid rgba(34,197,94,0.08)" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-dim)", letterSpacing: "0.06em" }}>
+            {outcomes.length} {zh ? "个选项" : "outcomes"}
+            {totalPool > 0 && ` · $${totalPool.toFixed(0)} ${zh ? "池" : "pool"}`}
+          </span>
+          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.6875rem", fontWeight: 600, color: "#4ade80", display: "flex", alignItems: "center", gap: 3 }}>
+            {zh ? "查看全部" : "View all"} <ChevronRight style={{ width: 12, height: 12 }} />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // World Cup section — filter + expand/collapse
 // ---------------------------------------------------------------------------
 
@@ -678,28 +817,34 @@ function WorldCupSection({
   markets,
   locale,
   dateLocale,
+  outcomeMap,
 }: {
   markets: MarketListItem[];
   locale: Locale;
   dateLocale: string;
+  outcomeMap: Record<string, MarketOutcomeItem[]>;
 }) {
   const [filter, setFilter] = useState<WCFilter>("all");
   const [expanded, setExpanded] = useState(false);
 
   if (markets.length === 0) return null;
 
+  // Split multi vs binary — multi cards float to top
+  const multiMarkets  = markets.filter((m) => m.marketType === "multi");
+  const binaryMarkets = markets.filter((m) => m.marketType !== "multi");
+
   const twc = getT(locale).world_cup;
   const filterLabels = getWCFilterLabels(locale);
 
-  // Which filter tabs actually have markets?
+  // Filters only apply to binary markets
   const availableFilters: WCFilter[] = ["all"];
-  const filterCounts: Partial<Record<WCFilter, number>> = { all: markets.length };
+  const filterCounts: Partial<Record<WCFilter, number>> = { all: binaryMarkets.length };
   for (const f of ["winner", "round1", "round2", "round3"] as WCFilter[]) {
-    const count = markets.filter((m) => getWCCategory(m.title) === f).length;
+    const count = binaryMarkets.filter((m) => getWCCategory(m.title) === f).length;
     if (count > 0) { availableFilters.push(f); filterCounts[f] = count; }
   }
 
-  const filtered = filter === "all" ? markets : markets.filter((m) => getWCCategory(m.title) === filter);
+  const filtered = filter === "all" ? binaryMarkets : binaryMarkets.filter((m) => getWCCategory(m.title) === filter);
   const visible  = expanded ? filtered : filtered.slice(0, PREVIEW_COUNT);
   const hasMore  = filtered.length > PREVIEW_COUNT;
 
@@ -812,6 +957,35 @@ function WorldCupSection({
 
       {/* ── Markets grid ── */}
       <div style={{ padding: "1.25rem", position: "relative" }}>
+
+        {/* Multi-outcome tournament markets (Golden Boot, etc.) — shown above match cards */}
+        {multiMarkets.length > 0 && (
+          <div style={{ marginBottom: "1.25rem" }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(74,222,128,0.5)", marginBottom: "0.625rem" }}>
+              {locale === "zh" ? "锦标赛" : "TOURNAMENT"}
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {multiMarkets.map((market) => (
+                <MultiOutcomeCard
+                  key={market.id}
+                  market={market}
+                  locale={locale}
+                  outcomes={outcomeMap[market.id] ?? []}
+                />
+              ))}
+            </div>
+            {binaryMarkets.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "1.25rem" }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: "rgba(34,197,94,0.1)" }} />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(74,222,128,0.35)", whiteSpace: "nowrap" }}>
+                  {locale === "zh" ? "比赛预测" : "MATCH PREDICTIONS"}
+                </span>
+                <div style={{ flex: 1, height: 1, backgroundColor: "rgba(34,197,94,0.1)" }} />
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((market) => (
             <WorldCupCard
@@ -905,6 +1079,8 @@ export function MarketsBrowser({
 
   const worldCupMarkets = useMemo(() => markets.filter((m) => m.assetSymbol === "FIFA"), [markets]);
   const regularMarkets  = useMemo(() => markets.filter((m) => m.assetSymbol !== "FIFA"), [markets]);
+  const multiMarketIds  = useMemo(() => worldCupMarkets.filter((m) => m.marketType === "multi").map((m) => m.id), [worldCupMarkets]);
+  const outcomeMap      = useMultiOutcomes(multiMarketIds);
 
   const topFilters = useMemo(
     () => getTopFilters(worldCupMarkets.length, regularMarkets, locale),
@@ -1000,6 +1176,7 @@ export function MarketsBrowser({
           markets={worldCupMarkets}
           locale={locale}
           dateLocale={dateLocale}
+          outcomeMap={outcomeMap}
         />
       )}
 
