@@ -16,6 +16,7 @@ export type MarketListItem = {
   title: string;
   titleZh: string | null;
   slug: string;
+  category: string | null;
   assetSymbol: MarketAssetSymbol;
   status: MarketStatus;
   marketType: MarketType;
@@ -187,7 +188,7 @@ function isVisibleMarket(row: RawMarketRow): boolean {
 export async function getActiveMarkets(): Promise<MarketListItem[]> {
   const supabase = createSupabaseServerClient();
 
-  const baseSelect = `id, title, title_zh, slug, asset_symbol, market_type, status, close_at, settle_at, created_at,
+  const baseSelect = `id, title, title_zh, slug, category, asset_symbol, market_type, status, close_at, settle_at, created_at,
     market_prices ( yes_price, no_price, created_at )`;
   const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result`;
 
@@ -223,6 +224,7 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
       title: row.title,
       titleZh: row.title_zh ?? null,
       slug: row.slug,
+      category: row.category ?? null,
       assetSymbol: row.asset_symbol as MarketAssetSymbol,
       status: row.status as MarketStatus,
       marketType: (row.market_type ?? "binary") as MarketType,
@@ -327,7 +329,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
 export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
   const supabase = createSupabaseAdminClient();
 
-  const baseSelect = `id, title, title_zh, slug, asset_symbol, market_type, status, close_at, settle_at, created_at,
+  const baseSelect = `id, title, title_zh, slug, category, asset_symbol, market_type, status, close_at, settle_at, created_at,
     market_prices ( yes_price, no_price, created_at )`;
   const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result`;
 
@@ -363,6 +365,7 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
       title: row.title,
       titleZh: row.title_zh ?? null,
       slug: row.slug,
+      category: row.category ?? null,
       assetSymbol: row.asset_symbol as MarketAssetSymbol,
       status: row.status as MarketStatus,
       marketType: (row.market_type ?? "binary") as MarketType,

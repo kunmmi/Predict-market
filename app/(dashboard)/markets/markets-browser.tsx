@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { TrendingUp, Clock, ChevronRight, Search, X, ArrowRight, Trophy } from "lucide-react";
+import { TrendingUp, Clock, ChevronRight, Search, X, ArrowRight, Trophy, ChevronDown } from "lucide-react";
 
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { sideLabel, statusLabel } from "@/lib/i18n/labels";
@@ -37,6 +37,31 @@ function useMultiOutcomes(marketIds: string[]): Record<string, MarketOutcomeItem
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
   return outcomeMap;
+}
+
+// Lazy fetch: only fires when `enabled` flips to true, then caches
+function useGroupOutcomes(marketIds: string[], enabled: boolean): Record<string, MarketOutcomeItem[]> {
+  const [map, setMap] = useState<Record<string, MarketOutcomeItem[]>>({});
+  const fetched = useRef(false);
+  const key = marketIds.join(",");
+  useEffect(() => {
+    if (!enabled || fetched.current || marketIds.length === 0) return;
+    fetched.current = true;
+    Promise.all(
+      marketIds.map((id) =>
+        fetch(`/api/markets/${id}/outcomes`)
+          .then((r) => r.ok ? r.json() : [])
+          .then((outcomes: MarketOutcomeItem[]) => ({ id, outcomes }))
+          .catch(() => ({ id, outcomes: [] as MarketOutcomeItem[] })),
+      ),
+    ).then((results) => {
+      const m: Record<string, MarketOutcomeItem[]> = {};
+      for (const { id, outcomes } of results) m[id] = outcomes;
+      setMap(m);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, key]);
+  return map;
 }
 
 function useCountdown(closeAt: string, onExpired?: () => void) {
@@ -792,6 +817,208 @@ function MultiOutcomeCard({
 }
 
 // ---------------------------------------------------------------------------
+// Collapsible match groups (Group A–H)
+// ---------------------------------------------------------------------------
+
+const GROUP_ORDER = ["Group A","Group B","Group C","Group D","Group E","Group F","Group G","Group H"];
+
+function MatchGroupRow({
+  groupName,
+  markets,
+  locale,
+  dateLocale,
+}: {
+  groupName: string;
+  markets: MarketListItem[];
+  locale: Locale;
+  dateLocale: string;
+}) {
+  const zh = locale === "zh";
+  const [open, setOpen] = useState(false);
+  const ids = useMemo(() => markets.map((m) => m.id), [markets]);
+  const outcomeMap = useGroupOutcomes(ids, open);
+
+  return (
+    <div style={{ borderBottom: "1px solid rgba(34,197,94,0.08)" }}>
+      {/* Group header */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "10px 0", background: "none", border: "none", cursor: "pointer",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 700,
+            letterSpacing: "0.1em", textTransform: "uppercase", color: "#4ade80",
+            backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)",
+            borderRadius: 4, padding: "2px 7px",
+          }}>
+            {zh ? groupName.replace("Group", "小组") : groupName}
+          </span>
+          <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
+            {markets.length} {zh ? "场比赛" : "matches"}
+          </span>
+        </div>
+        <ChevronDown style={{
+          width: 14, height: 14, color: "rgba(74,222,128,0.5)",
+          transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          transition: "transform 200ms ease",
+          flexShrink: 0,
+        }} />
+      </button>
+
+      {/* Match rows */}
+      {open && (
+        <div style={{ paddingBottom: 8 }}>
+          {markets.map((market) => {
+            const outcomes = outcomeMap[market.id] ?? [];
+            const home = outcomes.find((o) => o.slug === "home");
+            const draw = outcomes.find((o) => o.slug === "draw");
+            const away = outcomes.find((o) => o.slug === "away");
+            const loading = open && outcomes.length === 0;
+
+            // Parse "Home vs Away — Match Result" → [Home, Away]
+            const titlePart = market.title.replace(" — Match Result", "").replace(" — 比赛结果", "");
+            const [homeTeam, awayTeam] = titlePart.split(" vs ");
+            const displayTitle = (zh && market.titleZh)
+              ? market.titleZh.replace(" — 比赛结果", "")
+              : titlePart;
+
+            const kickoff = new Date(market.closeAt); // close_at = kickoff
+
+            return (
+              <Link
+                key={market.id}
+                href={`/markets/${market.slug}`}
+                style={{ textDecoration: "none", display: "block" }}
+              >
+                <div
+                  style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "9px 12px", marginBottom: 4,
+                    borderRadius: "var(--radius-sm)",
+                    backgroundColor: "rgba(255,255,255,0.02)",
+                    border: "1px solid rgba(34,197,94,0.07)",
+                    transition: "background-color 150ms ease, border-color 150ms ease",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(34,197,94,0.05)";
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(34,197,94,0.2)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(255,255,255,0.02)";
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(34,197,94,0.07)";
+                  }}
+                >
+                  {/* Teams */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{
+                      fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 500,
+                      color: "rgba(255,255,255,0.9)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {displayTitle}
+                    </p>
+                    <p style={{ marginTop: 1, fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "rgba(255,255,255,0.3)" }}>
+                      {kickoff.toLocaleDateString(dateLocale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+
+                  {/* Odds chips */}
+                  {loading ? (
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "rgba(255,255,255,0.2)" }}>
+                      {zh ? "加载中…" : "loading…"}
+                    </span>
+                  ) : outcomes.length > 0 ? (
+                    <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                      {[
+                        { label: zh ? "主" : "H", pct: home ? Math.round(home.price * 100) : null, color: "#4ade80" },
+                        { label: zh ? "平" : "D", pct: draw ? Math.round(draw.price * 100) : null, color: "rgba(255,255,255,0.45)" },
+                        { label: zh ? "客" : "A", pct: away ? Math.round(away.price * 100) : null, color: "var(--rose)" },
+                      ].map(({ label, pct, color }) => (
+                        <div key={label} style={{
+                          display: "flex", flexDirection: "column", alignItems: "center",
+                          padding: "3px 7px", borderRadius: 4,
+                          backgroundColor: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.07)",
+                          minWidth: 36,
+                        }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" }}>
+                            {label}
+                          </span>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 700, color, lineHeight: 1.2 }}>
+                            {pct != null ? `${pct}%` : "—"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <ChevronRight style={{ width: 13, height: 13, color: "rgba(74,222,128,0.3)", flexShrink: 0 }} />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchGroupsSection({
+  markets,
+  locale,
+  dateLocale,
+}: {
+  markets: MarketListItem[];
+  locale: Locale;
+  dateLocale: string;
+}) {
+  const zh = locale === "zh";
+  const byGroup = useMemo(() => {
+    const map = new Map<string, MarketListItem[]>();
+    for (const g of GROUP_ORDER) map.set(g, []);
+    for (const m of markets) {
+      const g = m.category ?? "Other";
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(m);
+    }
+    // Sort each group by kickoff (close_at = kickoff)
+    for (const [, arr] of Array.from(map.entries())) arr.sort((a: MarketListItem, b: MarketListItem) => new Date(a.closeAt).getTime() - new Date(b.closeAt).getTime());
+    return map;
+  }, [markets]);
+
+  if (markets.length === 0) return null;
+
+  return (
+    <div>
+      <p style={{
+        fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
+        letterSpacing: "0.12em", textTransform: "uppercase",
+        color: "rgba(74,222,128,0.5)", marginBottom: "0.75rem",
+      }}>
+        {zh ? "小组赛 · 比赛结果" : "GROUP STAGE · MATCH RESULTS"}
+      </p>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {Array.from(byGroup.entries())
+          .filter(([, ms]: [string, MarketListItem[]]) => ms.length > 0)
+          .map(([group, ms]: [string, MarketListItem[]]) => (
+            <MatchGroupRow
+              key={group}
+              groupName={group}
+              markets={ms}
+              locale={locale}
+              dateLocale={dateLocale}
+            />
+          ))}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // World Cup section — filter + expand/collapse
 // ---------------------------------------------------------------------------
 
@@ -829,14 +1056,16 @@ function WorldCupSection({
 
   if (markets.length === 0) return null;
 
-  // Split multi vs binary — multi cards float to top
-  const multiMarkets  = markets.filter((m) => m.marketType === "multi");
-  const binaryMarkets = markets.filter((m) => m.marketType !== "multi");
+  // Split: tournament multi (Golden Boot etc.) vs match multi (Group A-H) vs legacy binary
+  const isMatchMarket = (m: MarketListItem) => m.marketType === "multi" && m.category?.startsWith("Group ");
+  const tournamentMarkets = markets.filter((m) => m.marketType === "multi" && !isMatchMarket(m));
+  const matchMarkets      = markets.filter(isMatchMarket);
+  const binaryMarkets     = markets.filter((m) => m.marketType !== "multi");
 
   const twc = getT(locale).world_cup;
   const filterLabels = getWCFilterLabels(locale);
 
-  // Filters only apply to binary markets
+  // Filters only apply to legacy binary markets (will be empty after cleanup)
   const availableFilters: WCFilter[] = ["all"];
   const filterCounts: Partial<Record<WCFilter, number>> = { all: binaryMarkets.length };
   for (const f of ["winner", "round1", "round2", "round3"] as WCFilter[]) {
@@ -848,7 +1077,6 @@ function WorldCupSection({
   const visible  = expanded ? filtered : filtered.slice(0, PREVIEW_COUNT);
   const hasMore  = filtered.length > PREVIEW_COUNT;
 
-  // Reset expand when filter changes
   const handleFilter = (f: WCFilter) => { setFilter(f); setExpanded(false); };
 
   return (
@@ -958,14 +1186,14 @@ function WorldCupSection({
       {/* ── Markets grid ── */}
       <div style={{ padding: "1.25rem", position: "relative" }}>
 
-        {/* Multi-outcome tournament markets (Golden Boot, etc.) — shown above match cards */}
-        {multiMarkets.length > 0 && (
-          <div style={{ marginBottom: "1.25rem" }}>
+        {/* Tournament markets (Golden Boot, Most Assists, Golden Glove) */}
+        {tournamentMarkets.length > 0 && (
+          <div style={{ marginBottom: matchMarkets.length > 0 ? "1.5rem" : 0 }}>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(74,222,128,0.5)", marginBottom: "0.625rem" }}>
               {locale === "zh" ? "锦标赛" : "TOURNAMENT"}
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {multiMarkets.map((market) => (
+              {tournamentMarkets.map((market) => (
                 <MultiOutcomeCard
                   key={market.id}
                   market={market}
@@ -974,55 +1202,64 @@ function WorldCupSection({
                 />
               ))}
             </div>
-            {binaryMarkets.length > 0 && (
+          </div>
+        )}
+
+        {/* Collapsible group-stage match markets */}
+        {matchMarkets.length > 0 && (
+          <MatchGroupsSection
+            markets={matchMarkets}
+            locale={locale}
+            dateLocale={dateLocale}
+          />
+        )}
+
+        {/* Legacy binary markets (visible while cleanup is pending) */}
+        {binaryMarkets.length > 0 && (
+          <>
+            {(tournamentMarkets.length > 0 || matchMarkets.length > 0) && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: "1.25rem" }}>
                 <div style={{ flex: 1, height: 1, backgroundColor: "rgba(34,197,94,0.1)" }} />
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(74,222,128,0.35)", whiteSpace: "nowrap" }}>
-                  {locale === "zh" ? "比赛预测" : "MATCH PREDICTIONS"}
+                  {locale === "zh" ? "旧版预测" : "LEGACY PREDICTIONS"}
                 </span>
                 <div style={{ flex: 1, height: 1, backgroundColor: "rgba(34,197,94,0.1)" }} />
               </div>
             )}
-          </div>
-        )}
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.map((market) => (
-            <WorldCupCard
-              key={market.id}
-              market={market}
-              locale={locale}
-              dateLocale={dateLocale}
-              closes={getT(locale).markets.closes}
-            />
-          ))}
-        </div>
-
-        {/* ── Expand / collapse ── */}
-        {hasMore && (
-          <div style={{ marginTop: "1.25rem", display: "flex", justifyContent: "center" }}>
-            <button
-              onClick={() => setExpanded((e) => !e)}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "8px 20px",
-                fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 600,
-                color: "#4ade80",
-                backgroundColor: "rgba(34,197,94,0.08)",
-                border: "1px solid rgba(34,197,94,0.2)",
-                borderRadius: "var(--radius-sm)",
-                cursor: "pointer",
-                transition: "background-color 150ms ease, border-color 150ms ease",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(34,197,94,0.13)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(34,197,94,0.08)"; }}
-            >
-              {expanded
-                ? <>{twc.show_less} <span style={{ fontSize: "0.75rem" }}>↑</span></>
-                : <>{twc.show_all.replace("{n}", String(filtered.length))} <span style={{ fontSize: "0.75rem" }}>↓</span></>
-              }
-            </button>
-          </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" style={{ marginTop: "1rem" }}>
+              {visible.map((market) => (
+                <WorldCupCard
+                  key={market.id}
+                  market={market}
+                  locale={locale}
+                  dateLocale={dateLocale}
+                  closes={getT(locale).markets.closes}
+                />
+              ))}
+            </div>
+            {hasMore && (
+              <div style={{ marginTop: "1.25rem", display: "flex", justifyContent: "center" }}>
+                <button
+                  onClick={() => setExpanded((e) => !e)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "8px 20px",
+                    fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 600,
+                    color: "#4ade80",
+                    backgroundColor: "rgba(34,197,94,0.08)",
+                    border: "1px solid rgba(34,197,94,0.2)",
+                    borderRadius: "var(--radius-sm)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {expanded
+                    ? <>{twc.show_less} <span style={{ fontSize: "0.75rem" }}>↑</span></>
+                    : <>{twc.show_all.replace("{n}", String(filtered.length))} <span style={{ fontSize: "0.75rem" }}>↓</span></>
+                  }
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -1079,7 +1316,8 @@ export function MarketsBrowser({
 
   const worldCupMarkets = useMemo(() => markets.filter((m) => m.assetSymbol === "FIFA"), [markets]);
   const regularMarkets  = useMemo(() => markets.filter((m) => m.assetSymbol !== "FIFA"), [markets]);
-  const multiMarketIds  = useMemo(() => worldCupMarkets.filter((m) => m.marketType === "multi").map((m) => m.id), [worldCupMarkets]);
+  // Only eagerly fetch outcomes for tournament markets (Golden Boot etc.), not the 48 match markets
+  const multiMarketIds  = useMemo(() => worldCupMarkets.filter((m) => m.marketType === "multi" && !m.category?.startsWith("Group ")).map((m) => m.id), [worldCupMarkets]);
   const outcomeMap      = useMultiOutcomes(multiMarketIds);
 
   const topFilters = useMemo(
