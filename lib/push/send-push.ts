@@ -1,10 +1,19 @@
 import webpush from "web-push";
 
-webpush.setVapidDetails(
-  `mailto:${process.env.VAPID_MAILTO ?? "admin@predictmarket.com"}`,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
+// Lazy-initialize VAPID so the module can be imported during the build
+// without blowing up when env vars are absent (Next.js page-data collection).
+let vapidInitialized = false;
+function ensureVapid() {
+  if (vapidInitialized) return;
+  const pub  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const priv = process.env.VAPID_PRIVATE_KEY;
+  const mail = process.env.VAPID_MAILTO ?? "admin@predictmarket.com";
+  if (!pub || !priv) {
+    throw new Error("VAPID env vars are not set (NEXT_PUBLIC_VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).");
+  }
+  webpush.setVapidDetails(`mailto:${mail}`, pub, priv);
+  vapidInitialized = true;
+}
 
 export interface PushPayload {
   title: string;
@@ -27,6 +36,7 @@ export async function sendPushToSubscriptions(
   subs: StoredSubscription[],
   payload: PushPayload,
 ): Promise<{ expiredIds: string[] }> {
+  ensureVapid();
   const expiredIds: string[] = [];
 
   await Promise.allSettled(

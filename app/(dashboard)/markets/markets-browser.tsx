@@ -820,7 +820,7 @@ function MultiOutcomeCard({
 // Collapsible match groups (Group A–H)
 // ---------------------------------------------------------------------------
 
-const GROUP_ORDER = ["Group A","Group B","Group C","Group D","Group E","Group F","Group G","Group H"];
+const GROUP_ORDER = ["Group A","Group B","Group C","Group D","Group E","Group F","Group G","Group H","Group I","Group J","Group K","Group L"];
 
 function MatchGroupRow({
   groupName,
