@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
-import type { MarketDetail } from "@/lib/services/market-data";
+import type { MarketDetail, MarketOutcomeItem } from "@/lib/services/market-data";
 
 const ASSET_SYMBOLS = ["BTC", "ETH", "SOL", "BNB", "USDT", "USDC", "XRP", "ADA", "DOGE"] as const;
 
@@ -33,9 +33,9 @@ function SectionCard({ title, children }: { title: string; children: React.React
   );
 }
 
-type Props = { market: MarketDetail };
+type Props = { market: MarketDetail; outcomes?: MarketOutcomeItem[] };
 
-export function AdminMarketEditForm({ market }: Props) {
+export function AdminMarketEditForm({ market, outcomes = [] }: Props) {
   const router = useRouter();
 
   const [form, setForm] = useState({
@@ -77,6 +77,13 @@ export function AdminMarketEditForm({ market }: Props) {
   const [loading, setLoading] = useState(false);
   const [settleLoading, setSettleLoading] = useState(false);
   const [settleSuccess, setSettleSuccess] = useState(false);
+
+  // Multi-outcome settlement
+  const [multiWinnerId, setMultiWinnerId] = useState<string>("");
+  const [multiNotes, setMultiNotes] = useState("");
+  const [multiSettleLoading, setMultiSettleLoading] = useState(false);
+  const [multiSettleError, setMultiSettleError] = useState<string | null>(null);
+  const [multiSettleSuccess, setMultiSettleSuccess] = useState(false);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -188,6 +195,32 @@ export function AdminMarketEditForm({ market }: Props) {
     } catch {
       setSettleError("Network error. Please try again.");
       setSettleLoading(false);
+    }
+  }
+
+  async function handleMultiSettle(e: React.FormEvent) {
+    e.preventDefault();
+    if (!multiWinnerId) { setMultiSettleError("Select a winning outcome."); return; }
+    setMultiSettleError(null);
+    setMultiSettleLoading(true);
+
+    try {
+      const res = await fetch(`/api/admin/markets/${market.id}/settle-multi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ winner_outcome_id: multiWinnerId, notes: multiNotes.trim() || null }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setMultiSettleError(json.message ?? "Settlement failed.");
+        return;
+      }
+      setMultiSettleSuccess(true);
+      router.refresh();
+    } catch {
+      setMultiSettleError("Network error. Please try again.");
+    } finally {
+      setMultiSettleLoading(false);
     }
   }
 
@@ -358,7 +391,77 @@ export function AdminMarketEditForm({ market }: Props) {
         </form>
       </SectionCard>
 
-      {/* Settlement */}
+      {/* Multi-outcome settlement — only shown for multi markets */}
+      {market.marketType === "multi" && (
+        <SectionCard title="Settle Multi-Outcome Market">
+          {isSettled ? (
+            <p className="text-sm text-slate-500">
+              This market is already <span className="font-semibold text-slate-300">{market.status}</span>.
+            </p>
+          ) : multiSettleSuccess ? (
+            <p className="rounded-lg border border-teal-400/20 bg-teal-400/10 px-4 py-3 text-sm text-teal-400">
+              Multi-market settled successfully.
+            </p>
+          ) : (
+            <form onSubmit={handleMultiSettle} className="space-y-4">
+              {multiSettleError && (
+                <div className="rounded-lg border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-400">
+                  {multiSettleError}
+                </div>
+              )}
+              <div>
+                <label className={labelClass}>Winning Outcome *</label>
+                {outcomes.length === 0 ? (
+                  <p className="text-sm text-slate-500 mt-1">No outcomes found for this market.</p>
+                ) : (
+                  <div className="mt-2 flex flex-col gap-2 max-h-72 overflow-y-auto">
+                    {outcomes.map((o) => (
+                      <label
+                        key={o.id}
+                        className={`flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-2.5 text-sm font-medium transition-all ${
+                          multiWinnerId === o.id
+                            ? "border-teal-400/40 bg-teal-400/10 text-teal-400"
+                            : "border-white/[0.08] bg-white/[0.03] text-slate-400 hover:border-white/[0.14] hover:text-slate-300"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="winner_outcome"
+                          value={o.id}
+                          checked={multiWinnerId === o.id}
+                          onChange={() => setMultiWinnerId(o.id)}
+                          className="sr-only"
+                        />
+                        <span className="flex-1">{o.label}</span>
+                        <span className="font-mono text-xs opacity-60">{Math.round(o.price * 100)}%</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className={labelClass}>Resolution Notes</label>
+                <textarea
+                  value={multiNotes}
+                  onChange={(e) => setMultiNotes(e.target.value)}
+                  rows={2}
+                  className={textareaClass}
+                  placeholder="Optional notes about the resolution…"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={multiSettleLoading || !multiWinnerId}
+                className="rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-teal-500 disabled:opacity-50"
+              >
+                {multiSettleLoading ? "Settling…" : "Declare Winner & Settle"}
+              </button>
+            </form>
+          )}
+        </SectionCard>
+      )}
+
+      {/* Settlement — binary markets only */}
       <SectionCard title="Settle Market">
         {isSettled ? (
           <p className="text-sm text-slate-500">

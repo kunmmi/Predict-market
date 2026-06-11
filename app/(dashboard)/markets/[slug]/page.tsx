@@ -7,6 +7,7 @@ import { requireUser } from "@/lib/auth/require-user";
 import { getMarketByIdAdmin, getMarketBySlug, getMarketPriceHistory, getMarketOutcomes } from "@/lib/services/market-data";
 import { settleShortDurationMarketById, ensureRoundOpeningPrice } from "@/lib/services/short-duration-settlement";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { getWalletData } from "@/lib/services/wallet-data";
 import { getLocale } from "@/lib/i18n/get-locale";
 import { getT } from "@/lib/i18n/translations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import { PriceHistoryChart } from "./price-history-chart";
 import { LiveProbabilityBar } from "./live-probability-bar";
 import { RoundClosedBanner } from "./round-closed-banner";
 import { OrderBookPanel } from "./order-book-panel";
+import { MultiTradeForm } from "./multi-trade-form";
 
 type Props = {
   params: { slug: string };
@@ -116,10 +118,12 @@ export default async function MarketDetailPage({ params }: Props) {
     }
   }
 
-  const [priceHistory, outcomes] = await Promise.all([
+  const [priceHistory, outcomes, walletData] = await Promise.all([
     getMarketPriceHistory(market.id),
     market.marketType === "multi" ? getMarketOutcomes(market.id) : Promise.resolve([]),
+    getWalletData(profile.id),
   ]);
+  const walletBalance = parseFloat(walletData.wallet?.availableBalance ?? "0") || 0;
 
   const locale = getLocale();
   const t = getT(locale);
@@ -341,10 +345,15 @@ export default async function MarketDetailPage({ params }: Props) {
                 );
               })}
             </div>
-            {market.status === "active" && (
-              <p style={{ marginTop: 14, fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "var(--text-dim)", textAlign: "center" }}>
-                {locale === "zh" ? "📌 交易功能即将上线" : "📌 Trading coming soon — track your prediction now"}
-              </p>
+            {market.status === "active" && outcomes.length > 0 && (
+              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
+                <MultiTradeForm
+                  marketId={market.id}
+                  outcomes={outcomes}
+                  locale={locale}
+                  walletBalance={walletBalance}
+                />
+              </div>
             )}
           </div>
         </Card>
