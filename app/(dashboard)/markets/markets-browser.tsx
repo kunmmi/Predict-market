@@ -950,9 +950,10 @@ export function MarketsBrowser({
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
       {/* ── Unified top filter ── */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
       <div
         style={{
-          display: "flex", gap: 4, overflowX: "auto",
+          display: "inline-flex", gap: 4, overflowX: "auto",
           backgroundColor: "var(--bg-elevated)",
           border: "1px solid var(--border-subtle)",
           borderRadius: "var(--radius-md)",
@@ -990,6 +991,7 @@ export function MarketsBrowser({
             </button>
           );
         })}
+      </div>
       </div>
 
       {/* ── World Cup section ── */}
