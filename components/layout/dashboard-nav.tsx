@@ -10,6 +10,7 @@ import {
 import { LogoutButton } from "@/components/layout/logout-button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import type { Locale, T } from "@/lib/i18n/translations";
 
 type Props = { locale: Locale; t: T["nav"] };
@@ -148,6 +149,7 @@ export function DashboardNav({ locale, t }: Props) {
 
           {/* Right controls */}
           <div className="flex items-center gap-2">
+            <NotificationBell locale={locale} />
             <ThemeToggle />
             <LanguageSwitcher locale={locale} />
             <div className="hidden md:block">
