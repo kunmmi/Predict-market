@@ -194,18 +194,30 @@ export function OpenPositionsLive({ initialPositions, locale, t }: Props) {
                         style={{
                           fontFamily: "var(--font-sans)", fontSize: "0.875rem",
                           fontWeight: 500, color: "var(--text-primary)",
-                          textDecoration: "none",
+                          textDecoration: "none", display: "block",
                         }}
                         className="hover:text-[var(--gold)]"
                       >
                         {locale === "zh" && position.marketTitleZh ? position.marketTitleZh : position.marketTitle}
                       </Link>
+                      {position.outcomeId && (
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4,
+                          fontFamily: "var(--font-sans)", fontSize: "0.6875rem",
+                          fontWeight: 600, color: "var(--gold)",
+                          backgroundColor: "rgba(232,160,32,0.08)",
+                          border: "1px solid rgba(232,160,32,0.2)",
+                          borderRadius: 100, padding: "1px 8px",
+                        }}>
+                          {locale === "zh" && position.outcomeLabelZh ? position.outcomeLabelZh : position.outcomeLabel}
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: "12px", textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--teal)" }}>
-                      {formatDecimal(position.yesUnits, 4)}
+                      {position.outcomeId ? `$${formatDecimal(position.yesUnits, 2)}` : formatDecimal(position.yesUnits, 4)}
                     </td>
                     <td style={{ padding: "12px", textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--rose)" }}>
-                      {formatDecimal(position.noUnits, 4)}
+                      {position.outcomeId ? "—" : formatDecimal(position.noUnits, 4)}
                     </td>
                     <td className="hidden sm:table-cell" style={{ padding: "12px", textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--teal)" }}>
                       {position.latestYesPrice != null ? `$${formatDecimal(position.latestYesPrice, 4)}` : "—"}
@@ -228,16 +240,22 @@ export function OpenPositionsLive({ initialPositions, locale, t }: Props) {
                       )}
                     </td>
                     <td style={{ padding: "12px", textAlign: "right", verticalAlign: "top" }}>
-                      <SellPositionControl
-                        positionId={position.id}
-                        marketStatus={position.marketStatus}
-                        yesUnits={position.yesUnits}
-                        noUnits={position.noUnits}
-                        latestYesPrice={position.latestYesPrice}
-                        latestNoPrice={position.latestNoPrice}
-                        locale={locale as "en" | "zh"}
-                        t={t}
-                      />
+                      {position.outcomeId ? (
+                        <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.6875rem", color: "var(--text-dim)" }}>
+                          {locale === "zh" ? "待结算" : "Awaiting settlement"}
+                        </span>
+                      ) : (
+                        <SellPositionControl
+                          positionId={position.id}
+                          marketStatus={position.marketStatus}
+                          yesUnits={position.yesUnits}
+                          noUnits={position.noUnits}
+                          latestYesPrice={position.latestYesPrice}
+                          latestNoPrice={position.latestNoPrice}
+                          locale={locale as "en" | "zh"}
+                          t={t}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))}

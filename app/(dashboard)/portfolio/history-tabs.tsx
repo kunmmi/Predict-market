@@ -80,9 +80,13 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
                 const playedYes = parseFloat(pos.yesUnits) > 0;
                 const playedNo  = parseFloat(pos.noUnits)  > 0;
                 const isShort = pos.durationMinutes != null;
+                const isMulti = pos.marketType === "multi";
 
                 let directionLabel = "";
-                if (isShort) {
+                if (isMulti) {
+                  // For multi markets, direction = the outcome they backed
+                  directionLabel = (zh && pos.outcomeLabelZh) ? pos.outcomeLabelZh : (pos.outcomeLabel ?? "");
+                } else if (isShort) {
                   if (playedYes && playedNo) directionLabel = "UP + DOWN";
                   else if (playedYes) directionLabel = zh ? "看涨 UP" : "UP";
                   else if (playedNo)  directionLabel = zh ? "看跌 DOWN" : "DOWN";
@@ -91,11 +95,13 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
                   if (playedNo)  directionLabel = sideLabel("no",  locale);
                 }
 
-                const roundResultLabel = pos.roundResult
-                  ? pos.roundResult.toUpperCase()
-                  : pos.resolutionOutcome
-                    ? pos.resolutionOutcome.toUpperCase()
-                    : null;
+                const roundResultLabel = isMulti
+                  ? null  // winner already shown inline via isWin styling
+                  : pos.roundResult
+                    ? pos.roundResult.toUpperCase()
+                    : pos.resolutionOutcome
+                      ? pos.resolutionOutcome.toUpperCase()
+                      : null;
 
                 const rowBg     = isVoid ? "var(--bg-elevated)" : isWin ? "var(--teal-dim)"  : "var(--rose-dim)";
                 const rowBorder = isVoid ? "var(--border-subtle)" : isWin ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)";
@@ -148,9 +154,9 @@ export function HistoryTabs({ settledPositions, recentTrades, locale, dateLocale
                               fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
                               fontWeight: 700, letterSpacing: "0.06em",
                               padding: "1px 6px", borderRadius: 4,
-                              backgroundColor: playedYes ? "rgba(13,184,145,0.15)" : "rgba(232,68,90,0.15)",
-                              border: `1px solid ${playedYes ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)"}`,
-                              color: playedYes ? "var(--teal)" : "var(--rose)",
+                              backgroundColor: isMulti ? "rgba(232,160,32,0.12)" : playedYes ? "rgba(13,184,145,0.15)" : "rgba(232,68,90,0.15)",
+                              border: `1px solid ${isMulti ? "rgba(232,160,32,0.25)" : playedYes ? "rgba(13,184,145,0.2)" : "rgba(232,68,90,0.2)"}`,
+                              color: isMulti ? "var(--gold)" : playedYes ? "var(--teal)" : "var(--rose)",
                             }}>
                               {directionLabel}
                             </span>

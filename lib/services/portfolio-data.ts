@@ -18,11 +18,15 @@ export type PortfolioPosition = {
   marketSlug: string;
   marketStatus: string;
   marketCloseAt: string;
+  marketType: string;
   durationMinutes: number | null;
   spotPriceAtOpen: string | null;
   assetSymbol: string | null;
   resolutionOutcome: string | null;
   roundResult: string | null;
+  outcomeId: string | null;
+  outcomeLabel: string | null;
+  outcomeLabelZh: string | null;
   yesUnits: string;
   noUnits: string;
   avgYesPrice: string | null;
@@ -62,6 +66,7 @@ export type PortfolioData = {
 type RawPosition = {
   id: string;
   market_id: string;
+  outcome_id: string | null;
   yes_units: string | number;
   no_units: string | number;
   avg_yes_price: string | number | null;
@@ -69,6 +74,7 @@ type RawPosition = {
   status: PositionStatus;
   pnl_amount: string | number;
   updated_at: string;
+  market_outcomes: { label: string; label_zh: string | null } | null;
   markets: {
     id: string;
     title: string;
@@ -76,6 +82,7 @@ type RawPosition = {
     slug: string;
     status: string;
     close_at: string;
+    market_type: string;
     duration_minutes: number | null;
     spot_price_at_open: string | null;
     asset_symbol: string | null;
@@ -139,15 +146,17 @@ export async function getPortfolioData(profileId: string): Promise<PortfolioData
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const extendedPositionsSelect = `id, market_id, yes_units, no_units, avg_yes_price, avg_no_price, status, pnl_amount, updated_at,
+  const extendedPositionsSelect = `id, market_id, outcome_id, yes_units, no_units, avg_yes_price, avg_no_price, status, pnl_amount, updated_at,
+    market_outcomes ( label, label_zh ),
     markets (
-      id, title, title_zh, slug, status, close_at, duration_minutes, spot_price_at_open,
+      id, title, title_zh, slug, status, close_at, market_type, duration_minutes, spot_price_at_open,
       asset_symbol, resolution_outcome, round_result,
       market_prices ( yes_price, no_price, created_at )
     )`;
-  const fallbackPositionsSelect = `id, market_id, yes_units, no_units, avg_yes_price, avg_no_price, status, pnl_amount, updated_at,
+  const fallbackPositionsSelect = `id, market_id, outcome_id, yes_units, no_units, avg_yes_price, avg_no_price, status, pnl_amount, updated_at,
+    market_outcomes ( label, label_zh ),
     markets (
-      id, title, title_zh, slug, status, close_at,
+      id, title, title_zh, slug, status, close_at, market_type,
       asset_symbol, resolution_outcome, round_result,
       market_prices ( yes_price, no_price, created_at )
     )`;
@@ -186,11 +195,15 @@ export async function getPortfolioData(profileId: string): Promise<PortfolioData
       marketSlug: row.markets?.slug ?? "",
       marketStatus: row.markets?.status ?? "unknown",
       marketCloseAt: row.markets?.close_at ?? "",
+      marketType: row.markets?.market_type ?? "binary",
       durationMinutes: row.markets?.duration_minutes ?? null,
       spotPriceAtOpen: row.markets?.spot_price_at_open != null ? String(row.markets.spot_price_at_open) : null,
       assetSymbol: row.markets?.asset_symbol ?? null,
       resolutionOutcome: row.markets?.resolution_outcome ?? null,
       roundResult: row.markets?.round_result ?? null,
+      outcomeId: row.outcome_id ?? null,
+      outcomeLabel: row.market_outcomes?.label ?? null,
+      outcomeLabelZh: row.market_outcomes?.label_zh ?? null,
       yesUnits: String(row.yes_units),
       noUnits: String(row.no_units),
       avgYesPrice: row.avg_yes_price != null ? String(row.avg_yes_price) : null,
