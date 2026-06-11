@@ -14,7 +14,7 @@ import type { MarketListItem } from "@/lib/services/market-data";
 import type { Locale } from "@/lib/i18n/translations";
 import { getT } from "@/lib/i18n/translations";
 
-type Tab = "all" | "3" | "5" | "10" | "15" | "30" | "standard";
+type TopFilter = "all" | "world_cup" | "standard" | "3" | "5" | "10" | "15" | "30" | "60";
 
 function useCountdown(closeAt: string, onExpired?: () => void) {
   const getSecsLeft = useCallback(
@@ -855,18 +855,31 @@ function WorldCupSection({
   );
 }
 
-// Derive available duration tabs from the market list
-function getDurationTabs(markets: MarketListItem[]): Tab[] {
+// Build the unified top-level filter options from what markets exist
+function getTopFilters(
+  wcCount: number,
+  regularMarkets: MarketListItem[],
+  locale: Locale,
+): { id: TopFilter; label: string; wc?: true }[] {
+  const zh = locale === "zh";
+  const filters: { id: TopFilter; label: string; wc?: true }[] = [
+    { id: "all", label: zh ? "全部" : "All" },
+  ];
+  if (wcCount > 0) {
+    filters.push({ id: "world_cup", label: zh ? "⚽ 世界杯" : "⚽ World Cup", wc: true });
+  }
+  if (regularMarkets.some((m) => m.durationMinutes == null)) {
+    filters.push({ id: "standard", label: zh ? "标准" : "Standard" });
+  }
   const durations = new Set(
-    markets
-      .filter((m) => m.durationMinutes != null)
-      .map((m) => String(m.durationMinutes) as Tab),
+    regularMarkets.filter((m) => m.durationMinutes != null).map((m) => String(m.durationMinutes)),
   );
-  const hasStandard = markets.some((m) => m.durationMinutes == null);
-  const order: Tab[] = ["3", "5", "10", "15", "30"];
-  const tabs: Tab[] = ["all", ...order.filter((d) => durations.has(d))];
-  if (hasStandard) tabs.push("standard");
-  return tabs;
+  for (const d of ["3", "5", "10", "15", "30", "60"] as TopFilter[]) {
+    if (durations.has(d)) {
+      filters.push({ id: d, label: zh ? `${d}分钟` : `${d} min` });
+    }
+  }
+  return filters;
 }
 
 export function MarketsBrowser({
@@ -885,43 +898,37 @@ export function MarketsBrowser({
     closes: string;
   };
 }) {
-  const [tab, setTab] = useState<Tab>("all");
+  const [topFilter, setTopFilter] = useState<TopFilter>("all");
   const [query, setQuery] = useState("");
   const dateLocale = locale === "zh" ? "zh-CN" : "en-US";
+  const zh = locale === "zh";
 
-  // Split World Cup markets from regular markets
-  const worldCupMarkets = useMemo(
-    () => markets.filter((m) => m.assetSymbol === "FIFA"),
-    [markets],
+  const worldCupMarkets = useMemo(() => markets.filter((m) => m.assetSymbol === "FIFA"), [markets]);
+  const regularMarkets  = useMemo(() => markets.filter((m) => m.assetSymbol !== "FIFA"), [markets]);
+
+  const topFilters = useMemo(
+    () => getTopFilters(worldCupMarkets.length, regularMarkets, locale),
+    [worldCupMarkets.length, regularMarkets, locale],
   );
-  const regularMarkets = useMemo(
-    () => markets.filter((m) => m.assetSymbol !== "FIFA"),
-    [markets],
-  );
 
-  const tabs = useMemo(() => getDurationTabs(regularMarkets), [regularMarkets]);
+  const showWC      = topFilter === "all" || topFilter === "world_cup";
+  const showRegular = topFilter !== "world_cup";
 
-  const tabLabel = (t: Tab) => {
-    if (t === "all") return locale === "zh" ? "全部" : "All";
-    if (t === "standard") return locale === "zh" ? "标准" : "Standard";
-    return `${t} min`;
-  };
-
-  const filtered = useMemo(() => {
+  const filteredRegular = useMemo(() => {
     const q = query.trim().toLowerCase();
     return regularMarkets.filter((m) => {
-      const matchesTab =
-        tab === "all" ||
-        (tab === "standard" && m.durationMinutes == null) ||
-        String(m.durationMinutes) === tab;
+      const matchesFilter =
+        topFilter === "all" ||
+        (topFilter === "standard" && m.durationMinutes == null) ||
+        String(m.durationMinutes) === topFilter;
       const matchesSearch =
         !q ||
         m.assetSymbol.toLowerCase().includes(q) ||
         m.title.toLowerCase().includes(q) ||
         (m.titleZh ?? "").toLowerCase().includes(q);
-      return matchesTab && matchesSearch;
+      return matchesFilter && matchesSearch;
     });
-  }, [regularMarkets, tab, query]);
+  }, [regularMarkets, topFilter, query]);
 
   if (markets.length === 0) {
     return (
@@ -941,18 +948,65 @@ export function MarketsBrowser({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      {/* World Cup featured event */}
-      <WorldCupSection
-        markets={worldCupMarkets}
-        locale={locale}
-        dateLocale={dateLocale}
-      />
 
-      {/* Regular markets — only show if there are any */}
-      {regularMarkets.length > 0 && (
+      {/* ── Unified top filter ── */}
+      <div
+        style={{
+          display: "flex", gap: 4, overflowX: "auto",
+          backgroundColor: "var(--bg-elevated)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: "var(--radius-md)",
+          padding: 4,
+          flexShrink: 0,
+        }}
+      >
+        {topFilters.map(({ id, label, wc }) => {
+          const active = topFilter === id;
+          const activeColor = wc ? "#4ade80" : "var(--gold)";
+          const activeBorder = wc ? "rgba(34,197,94,0.4)" : "var(--border-gold)";
+          const activeBg = wc ? "rgba(34,197,94,0.08)" : "var(--bg-surface)";
+          return (
+            <button
+              key={id}
+              onClick={() => { setTopFilter(id); setQuery(""); }}
+              style={{
+                whiteSpace: "nowrap",
+                padding: "6px 14px",
+                borderRadius: "var(--radius-sm)",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.6875rem",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                border: "none",
+                transition: "background-color 150ms ease, color 150ms ease, box-shadow 150ms ease",
+                backgroundColor: active ? activeBg : "transparent",
+                color: active ? activeColor : "var(--text-dim)",
+                boxShadow: active ? `0 1px 4px rgba(0,0,0,0.3), 0 0 0 1px ${activeBorder}` : "none",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── World Cup section ── */}
+      {showWC && (
+        <WorldCupSection
+          markets={worldCupMarkets}
+          locale={locale}
+          dateLocale={dateLocale}
+        />
+      )}
+
+      {/* ── Regular markets ── */}
+      {showRegular && regularMarkets.length > 0 && (
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        {/* Section label when World Cup is also shown */}
-        {worldCupMarkets.length > 0 && (
+
+        {/* Divider when WC also visible */}
+        {showWC && worldCupMarkets.length > 0 && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-subtle)" }} />
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-dim)", whiteSpace: "nowrap" }}>
@@ -961,130 +1015,70 @@ export function MarketsBrowser({
             <div style={{ flex: 1, height: 1, backgroundColor: "var(--border-subtle)" }} />
           </div>
         )}
-      {/* Search + tabs row */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }} className="sm:flex-row sm:items-center sm:justify-between">
-        {/* Duration tabs */}
-        {tabs.length > 1 && (
-          <div
-            style={{
-              display: "flex", gap: 4, overflowX: "auto",
-              backgroundColor: "var(--bg-elevated)",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "var(--radius-md)",
-              padding: 4,
-            }}
-          >
-            {tabs.map((tabItem) => (
-              <button
-                key={tabItem}
-                onClick={() => setTab(tabItem)}
-                style={{
-                  whiteSpace: "nowrap",
-                  padding: "6px 14px",
-                  borderRadius: "var(--radius-sm)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.6875rem",
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                  border: "none",
-                  transition: "background-color 150ms ease, color 150ms ease, box-shadow 150ms ease",
-                  backgroundColor: tab === tabItem ? "var(--bg-surface)" : "transparent",
-                  color: tab === tabItem ? "var(--gold)" : "var(--text-dim)",
-                  boxShadow: tab === tabItem ? "0 1px 4px rgba(0,0,0,0.3), 0 0 0 1px var(--border-gold)" : "none",
-                }}
-              >
-                {tabLabel(tabItem)}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* Search */}
-        <div style={{ position: "relative", width: "100%" }} className="sm:w-52">
-          <Search
-            style={{
-              position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)",
-              width: 13, height: 13, color: "var(--text-dim)", pointerEvents: "none",
-            }}
-          />
-          <input
-            type="text"
-            placeholder={locale === "zh" ? "搜索市场…" : "Search markets…"}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            style={{
-              width: "100%",
-              backgroundColor: "var(--bg-elevated)",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "var(--radius-sm)",
-              padding: "7px 30px 7px 30px",
-              fontFamily: "var(--font-sans)",
-              fontSize: "0.8125rem",
-              color: "var(--text-primary)",
-              outline: "none",
-              transition: "border-color 150ms ease",
-            }}
-            className="focus:border-[var(--gold)] placeholder:text-[var(--text-dim)]"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div style={{ position: "relative", width: "100%" }} className="sm:w-52">
+            <Search style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 13, height: 13, color: "var(--text-dim)", pointerEvents: "none" }} />
+            <input
+              type="text"
+              placeholder={zh ? "搜索市场…" : "Search markets…"}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               style={{
-                position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                color: "var(--text-dim)", background: "none", border: "none", cursor: "pointer", padding: 2,
+                width: "100%",
+                backgroundColor: "var(--bg-elevated)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius-sm)",
+                padding: "7px 30px 7px 30px",
+                fontFamily: "var(--font-sans)",
+                fontSize: "0.8125rem",
+                color: "var(--text-primary)",
+                outline: "none",
+                transition: "border-color 150ms ease",
               }}
-            >
-              <X style={{ width: 13, height: 13 }} />
-            </button>
-          )}
+              className="focus:border-[var(--gold)] placeholder:text-[var(--text-dim)]"
+            />
+            {query && (
+              <button onClick={() => setQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", color: "var(--text-dim)", background: "none", border: "none", cursor: "pointer", padding: 2 }}>
+                <X style={{ width: 13, height: 13 }} />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Results count */}
-      {(query || tab !== "all") && (
-        <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-dim)", letterSpacing: "0.04em" }}>
-          {filtered.length} {locale === "zh" ? "个市场" : filtered.length === 1 ? "market" : "markets"}
-        </p>
-      )}
-
-      {/* Grid */}
-      {filtered.length === 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4rem 1rem", textAlign: "center" }}>
-          <Search style={{ width: 32, height: 32, color: "var(--text-dim)", marginBottom: "0.75rem" }} />
-          <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-secondary)" }}>
-            {locale === "zh" ? "没有找到匹配的市场" : "No markets match your search"}
+        {/* Results count */}
+        {query && (
+          <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-dim)", letterSpacing: "0.04em" }}>
+            {filteredRegular.length} {zh ? "个市场" : filteredRegular.length === 1 ? "market" : "markets"}
           </p>
-          <button
-            onClick={() => { setQuery(""); setTab("all"); }}
-            style={{ marginTop: 8, fontFamily: "var(--font-sans)", fontSize: "0.75rem", fontWeight: 600, color: "var(--gold)", background: "none", border: "none", cursor: "pointer" }}
-          >
-            {locale === "zh" ? "清除筛选" : "Clear filters"}
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((market) =>
-            market.durationMinutes != null ? (
-              <ShortDurationCard
-                key={market.id}
-                market={market}
-                locale={locale}
-                t={t}
-              />
-            ) : (
-              <StandardCard
-                key={market.id}
-                market={market}
-                locale={locale}
-                t={t}
-                dateLocale={dateLocale}
-              />
-            ),
-          )}
-        </div>
-      )}
+        )}
+
+        {/* Grid */}
+        {filteredRegular.length === 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "4rem 1rem", textAlign: "center" }}>
+            <Search style={{ width: 32, height: 32, color: "var(--text-dim)", marginBottom: "0.75rem" }} />
+            <p style={{ fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-secondary)" }}>
+              {zh ? "没有找到匹配的市场" : "No markets match your search"}
+            </p>
+            <button
+              onClick={() => { setQuery(""); setTopFilter("all"); }}
+              style={{ marginTop: 8, fontFamily: "var(--font-sans)", fontSize: "0.75rem", fontWeight: 600, color: "var(--gold)", background: "none", border: "none", cursor: "pointer" }}
+            >
+              {zh ? "清除筛选" : "Clear filters"}
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredRegular.map((market) =>
+              market.durationMinutes != null ? (
+                <ShortDurationCard key={market.id} market={market} locale={locale} t={t} />
+              ) : (
+                <StandardCard key={market.id} market={market} locale={locale} t={t} dateLocale={dateLocale} />
+              ),
+            )}
+          </div>
+        )}
       </div>
       )}
     </div>
