@@ -45,7 +45,7 @@ async function main() {
   const toDelete: string[] = [];
   const toKeep: typeof solMarkets = [];
 
-  for (const [dur, markets] of byDuration.entries()) {
+  for (const [dur, markets] of Array.from(byDuration.entries())) {
     const [keep, ...rest] = markets; // most recent first
     toKeep.push(keep);
     console.log(`  [KEEP]  ${dur}min → "${keep.title}" (${keep.status}) created ${keep.created_at?.slice(0, 10)}`);
