@@ -24,7 +24,7 @@ import { PriceHistoryChart } from "./price-history-chart";
 import { LiveProbabilityBar } from "./live-probability-bar";
 import { RoundClosedBanner } from "./round-closed-banner";
 import { OrderBookPanel } from "./order-book-panel";
-import { MultiTradeForm } from "./multi-trade-form";
+import { LiveOutcomes } from "./live-outcomes";
 
 type Props = {
   params: { slug: string };
@@ -301,60 +301,13 @@ export default async function MarketDetailPage({ params }: Props) {
       {market.marketType === "multi" ? (
         <Card>
           <div style={{ padding: "16px 20px 20px" }}>
-            <p style={{ marginBottom: 14, fontFamily: "var(--font-mono)", fontSize: "9px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-dim)" }}>
-              {locale === "zh" ? "选项 · 当前赔率" : "OUTCOMES · CURRENT ODDS"}
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {outcomes.map((o, i) => {
-                const pct = Math.round(o.price * 100);
-                const label = (locale === "zh" && o.labelZh) ? o.labelZh : o.label;
-                const isWon = o.isWinner === true;
-                const isLost = o.isWinner === false;
-                return (
-                  <div key={o.id} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    backgroundColor: isWon ? "rgba(13,184,145,0.06)" : "var(--bg-elevated)",
-                    border: `1px solid ${isWon ? "rgba(13,184,145,0.2)" : isLost ? "rgba(255,255,255,0.03)" : "var(--border-subtle)"}`,
-                    opacity: isLost ? 0.45 : 1,
-                  }}>
-                    <span style={{
-                      width: 22, height: 22, flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
-                      color: i === 0 ? "var(--gold)" : "var(--text-dim)",
-                      backgroundColor: i === 0 ? "rgba(232,160,32,0.1)" : "rgba(255,255,255,0.04)",
-                      borderRadius: "50%",
-                      border: `1px solid ${i === 0 ? "rgba(232,160,32,0.3)" : "rgba(255,255,255,0.07)"}`,
-                    }}>
-                      {isWon ? "✓" : i + 1}
-                    </span>
-                    <span style={{ flex: 1, fontFamily: "var(--font-sans)", fontSize: "0.875rem", fontWeight: isWon ? 600 : 400, color: isWon ? "var(--teal)" : "var(--text-primary)" }}>
-                      {label}
-                    </span>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                      <div style={{ width: 80, height: 5, borderRadius: 3, backgroundColor: "var(--bg-surface)", overflow: "hidden" }}>
-                        <div style={{ width: `${pct}%`, height: "100%", backgroundColor: isWon ? "var(--teal)" : i === 0 ? "var(--gold)" : "rgba(255,255,255,0.2)", borderRadius: 3 }} />
-                      </div>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fontWeight: 700, color: isWon ? "var(--teal)" : i === 0 ? "var(--gold)" : "var(--text-secondary)", width: 36, textAlign: "right" }}>
-                        {pct}%
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {market.status === "active" && outcomes.length > 0 && (
-              <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--border-subtle)" }}>
-                <MultiTradeForm
-                  marketId={market.id}
-                  outcomes={outcomes}
-                  locale={locale}
-                  walletBalance={walletBalance}
-                />
-              </div>
-            )}
+            <LiveOutcomes
+              marketId={market.id}
+              initialOutcomes={outcomes}
+              marketStatus={market.status}
+              locale={locale}
+              walletBalance={walletBalance}
+            />
           </div>
         </Card>
       ) : (
