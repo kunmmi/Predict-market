@@ -44,6 +44,8 @@ export type MarketAssetSymbol =
 
 export type MarketStatus = "draft" | "active" | "closed" | "settled" | "cancelled";
 
+export type MarketType = "binary" | "multi";
+
 export type MarketOutcome = "yes" | "no" | "unresolved" | "cancelled";
 
 export type TradeSide = "yes" | "no";

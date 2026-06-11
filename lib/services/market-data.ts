@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { MarketStatus, MarketOutcome, MarketAssetSymbol } from "@/types/enums";
+import type { MarketStatus, MarketOutcome, MarketAssetSymbol, MarketType } from "@/types/enums";
 
 type QueryErrorLike = {
   code?: string;
@@ -18,6 +18,7 @@ export type MarketListItem = {
   slug: string;
   assetSymbol: MarketAssetSymbol;
   status: MarketStatus;
+  marketType: MarketType;
   yesPrice: string | null;
   noPrice: string | null;
   closeAt: string;
@@ -40,6 +41,7 @@ export type MarketDetail = {
   descriptionZh: string | null;
   category: string | null;
   assetSymbol: MarketAssetSymbol;
+  marketType: MarketType;
   questionText: string;
   questionTextZh: string | null;
   rulesText: string | null;
@@ -108,6 +110,7 @@ type RawMarketRow = {
   created_at: string;
   updated_at: string;
   market_prices?: Array<{ yes_price: string | number; no_price: string | number; created_at: string }> | null;
+  market_type: string;
   duration_minutes: number | null;
   target_direction: string | null;
   spot_price_at_open: string | null;
@@ -149,6 +152,19 @@ export type PricePoint = {
   noPrice: number;  // 0–1
 };
 
+// One selectable outcome in a multi-outcome market
+export type MarketOutcomeItem = {
+  id: string;
+  marketId: string;
+  label: string;
+  labelZh: string | null;
+  slug: string;
+  poolAmount: number;
+  price: number;       // implied probability 0–1
+  isWinner: boolean | null; // null = unresolved
+  sortOrder: number;
+};
+
 // ---------------------------------------------------------------------------
 // Public / user queries (uses server client — respects RLS)
 // ---------------------------------------------------------------------------
@@ -171,7 +187,7 @@ function isVisibleMarket(row: RawMarketRow): boolean {
 export async function getActiveMarkets(): Promise<MarketListItem[]> {
   const supabase = createSupabaseServerClient();
 
-  const baseSelect = `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
+  const baseSelect = `id, title, title_zh, slug, asset_symbol, market_type, status, close_at, settle_at, created_at,
     market_prices ( yes_price, no_price, created_at )`;
   const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result`;
 
@@ -209,6 +225,7 @@ export async function getActiveMarkets(): Promise<MarketListItem[]> {
       slug: row.slug,
       assetSymbol: row.asset_symbol as MarketAssetSymbol,
       status: row.status as MarketStatus,
+      marketType: (row.market_type ?? "binary") as MarketType,
       yesPrice: toPrice(latest?.yes_price),
       noPrice: toPrice(latest?.no_price),
       closeAt: row.close_at,
@@ -231,7 +248,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
   const supabase = createSupabaseServerClient();
 
   const baseSelect = `id, title, title_zh, slug, description, description_zh, category,
-    asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
+    asset_symbol, market_type, question_text, question_text_zh, rules_text, rules_text_zh,
     close_at, settle_at, status, resolution_outcome, resolution_notes,
     created_by, resolved_by, resolved_at, created_at, updated_at`;
   const extendedSelect = `${baseSelect},
@@ -277,6 +294,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
     descriptionZh: row.description_zh ?? null,
     category: row.category,
     assetSymbol: row.asset_symbol as MarketAssetSymbol,
+    marketType: (row.market_type ?? "binary") as MarketType,
     questionText: row.question_text,
     questionTextZh: row.question_text_zh ?? null,
     rulesText: row.rules_text,
@@ -309,7 +327,7 @@ export async function getMarketBySlug(slug: string): Promise<MarketDetail | null
 export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
   const supabase = createSupabaseAdminClient();
 
-  const baseSelect = `id, title, title_zh, slug, asset_symbol, status, close_at, settle_at, created_at,
+  const baseSelect = `id, title, title_zh, slug, asset_symbol, market_type, status, close_at, settle_at, created_at,
     market_prices ( yes_price, no_price, created_at )`;
   const extendedSelect = `${baseSelect}, duration_minutes, target_direction, spot_price_at_open, cutoff_at, final_spot_price, round_result`;
 
@@ -347,6 +365,7 @@ export async function getPublicActiveMarkets(): Promise<MarketListItem[]> {
       slug: row.slug,
       assetSymbol: row.asset_symbol as MarketAssetSymbol,
       status: row.status as MarketStatus,
+      marketType: (row.market_type ?? "binary") as MarketType,
       yesPrice: toPrice(latest?.yes_price),
       noPrice: toPrice(latest?.no_price),
       closeAt: row.close_at,
@@ -439,7 +458,7 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
   const supabase = createSupabaseAdminClient();
 
   const baseSelect = `id, title, title_zh, slug, description, description_zh, category,
-    asset_symbol, question_text, question_text_zh, rules_text, rules_text_zh,
+    asset_symbol, market_type, question_text, question_text_zh, rules_text, rules_text_zh,
     close_at, settle_at, status, resolution_outcome, resolution_notes,
     created_by, resolved_by, resolved_at, created_at, updated_at`;
   const extendedSelect = `${baseSelect},
@@ -485,6 +504,7 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
     descriptionZh: row.description_zh ?? null,
     category: row.category,
     assetSymbol: row.asset_symbol as MarketAssetSymbol,
+    marketType: (row.market_type ?? "binary") as MarketType,
     questionText: row.question_text,
     questionTextZh: row.question_text_zh ?? null,
     rulesText: row.rules_text,
@@ -508,4 +528,48 @@ export async function getMarketByIdAdmin(id: string): Promise<MarketDetail | nul
     finalSpotPrice: row.final_spot_price != null ? String(row.final_spot_price) : null,
     roundResult: row.round_result ?? null,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Multi-outcome helpers
+// ---------------------------------------------------------------------------
+
+function mapOutcomeRow(row: Record<string, unknown>): MarketOutcomeItem {
+  return {
+    id: row.id as string,
+    marketId: row.market_id as string,
+    label: row.label as string,
+    labelZh: (row.label_zh as string | null) ?? null,
+    slug: row.slug as string,
+    poolAmount: Number(row.pool_amount),
+    price: Number(row.price),
+    isWinner: row.is_winner as boolean | null,
+    sortOrder: Number(row.sort_order),
+  };
+}
+
+const OUTCOME_SELECT = "id, market_id, label, label_zh, slug, pool_amount, price, is_winner, sort_order";
+
+/** Returns all outcomes for a market (respects RLS). */
+export async function getMarketOutcomes(marketId: string): Promise<MarketOutcomeItem[]> {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("market_outcomes")
+    .select(OUTCOME_SELECT)
+    .eq("market_id", marketId)
+    .order("sort_order", { ascending: true });
+  if (error || !data) return [];
+  return (data as unknown as Record<string, unknown>[]).map(mapOutcomeRow);
+}
+
+/** Admin version — bypasses RLS. */
+export async function getMarketOutcomesAdmin(marketId: string): Promise<MarketOutcomeItem[]> {
+  const supabase = createSupabaseAdminClient();
+  const { data, error } = await supabase
+    .from("market_outcomes")
+    .select(OUTCOME_SELECT)
+    .eq("market_id", marketId)
+    .order("sort_order", { ascending: true });
+  if (error || !data) return [];
+  return (data as unknown as Record<string, unknown>[]).map(mapOutcomeRow);
 }
