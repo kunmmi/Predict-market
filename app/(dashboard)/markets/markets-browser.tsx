@@ -834,7 +834,18 @@ function MatchGroupRow({
   dateLocale: string;
 }) {
   const zh = locale === "zh";
-  const [open, setOpen] = useState(false);
+
+  // Auto-expand if any match in this group kicks off within the next 24 hours
+  const hasMatchSoon = useMemo(() => {
+    const now = Date.now();
+    const h24 = now + 24 * 60 * 60 * 1000;
+    return markets.some((m) => {
+      const t = new Date(m.closeAt).getTime();
+      return t >= now && t <= h24;
+    });
+  }, [markets]);
+
+  const [open, setOpen] = useState(hasMatchSoon);
   const ids = useMemo(() => markets.map((m) => m.id), [markets]);
   const outcomeMap = useGroupOutcomes(ids, open);
 
@@ -848,7 +859,7 @@ function MatchGroupRow({
           padding: "10px 0", background: "none", border: "none", cursor: "pointer",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{
             fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 700,
             letterSpacing: "0.1em", textTransform: "uppercase", color: "#4ade80",
@@ -860,6 +871,28 @@ function MatchGroupRow({
           <span style={{ fontFamily: "var(--font-sans)", fontSize: "0.75rem", color: "rgba(255,255,255,0.35)" }}>
             {markets.length} {zh ? "场比赛" : "matches"}
           </span>
+          {(() => {
+            const now = Date.now();
+            const next = markets.filter((m) => new Date(m.closeAt).getTime() > now)
+              .sort((a, b) => new Date(a.closeAt).getTime() - new Date(b.closeAt).getTime())[0];
+            if (!next) return null;
+            const kickoff = new Date(next.closeAt);
+            const isToday = kickoff.toDateString() === new Date().toDateString();
+            return (
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 600,
+                color: isToday ? "#4ade80" : "rgba(255,255,255,0.25)",
+                backgroundColor: isToday ? "rgba(34,197,94,0.08)" : "transparent",
+                border: isToday ? "1px solid rgba(34,197,94,0.2)" : "none",
+                borderRadius: 4, padding: isToday ? "1px 5px" : "0",
+              }}>
+                {isToday
+                  ? (zh ? "今日" : "TODAY") + " " + kickoff.toLocaleTimeString(dateLocale, { hour: "2-digit", minute: "2-digit" })
+                  : kickoff.toLocaleDateString(dateLocale, { month: "short", day: "numeric" })
+                }
+              </span>
+            );
+          })()}
         </div>
         <ChevronDown style={{
           width: 14, height: 14, color: "rgba(74,222,128,0.5)",
