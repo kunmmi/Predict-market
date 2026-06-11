@@ -40,3 +40,13 @@ next-env.d.ts
 cloudflared.exe
 .env.vercel-prod
 .env.vercel-pulled
+
+# Claude Code internal files
+.claude/
+.claire/
+.env.report
+*.next-dev.log
+.next-dev.log
+supabase/.temp/
+cookies-debug.txt
+signup-debug.json
