@@ -1000,6 +1000,8 @@ function MatchGroupRow({
   );
 }
 
+const MATCH_PREVIEW_COUNT = 4;
+
 function MatchGroupsSection({
   markets,
   locale,
@@ -1010,6 +1012,8 @@ function MatchGroupsSection({
   dateLocale: string;
 }) {
   const zh = locale === "zh";
+  const [allGroupsOpen, setAllGroupsOpen] = useState(false);
+
   const byGroup = useMemo(() => {
     const map = new Map<string, MarketListItem[]>();
     for (const g of GROUP_ORDER) map.set(g, []);
@@ -1018,12 +1022,26 @@ function MatchGroupsSection({
       if (!map.has(g)) map.set(g, []);
       map.get(g)!.push(m);
     }
-    // Sort each group by kickoff (close_at = kickoff)
-    for (const [, arr] of Array.from(map.entries())) arr.sort((a: MarketListItem, b: MarketListItem) => new Date(a.closeAt).getTime() - new Date(b.closeAt).getTime());
+    for (const [, arr] of Array.from(map.entries()))
+      arr.sort((a: MarketListItem, b: MarketListItem) => new Date(a.closeAt).getTime() - new Date(b.closeAt).getTime());
     return map;
   }, [markets]);
 
+  // Flat list of upcoming matches sorted by kickoff — used for the preview rows
+  const upcomingFlat = useMemo(() => {
+    const now = Date.now();
+    return [...markets]
+      .filter((m) => new Date(m.closeAt).getTime() >= now)
+      .sort((a, b) => new Date(a.closeAt).getTime() - new Date(b.closeAt).getTime());
+  }, [markets]);
+
+  const previewMarkets = upcomingFlat.slice(0, MATCH_PREVIEW_COUNT);
+  const previewIds = useMemo(() => previewMarkets.map((m) => m.id), [previewMarkets]);
+  const previewOutcomes = useGroupOutcomes(previewIds, true);
+
   if (markets.length === 0) return null;
+
+  const activeGroupCount = Array.from(byGroup.values()).filter((ms) => ms.length > 0).length;
 
   return (
     <div>
@@ -1034,19 +1052,165 @@ function MatchGroupsSection({
       }}>
         {zh ? "小组赛 · 比赛结果" : "GROUP STAGE · MATCH RESULTS"}
       </p>
-      <div style={{ display: "flex", flexDirection: "column" }}>
-        {Array.from(byGroup.entries())
-          .filter(([, ms]: [string, MarketListItem[]]) => ms.length > 0)
-          .map(([group, ms]: [string, MarketListItem[]]) => (
-            <MatchGroupRow
-              key={group}
-              groupName={group}
-              markets={ms}
-              locale={locale}
-              dateLocale={dateLocale}
-            />
-          ))}
-      </div>
+
+      {!allGroupsOpen ? (
+        /* ── Preview: first N upcoming matches ── */
+        <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {previewMarkets.map((market) => {
+              const outcomes = previewOutcomes[market.id] ?? [];
+              const home = outcomes.find((o) => o.slug === "home");
+              const draw = outcomes.find((o) => o.slug === "draw");
+              const away = outcomes.find((o) => o.slug === "away");
+              const titlePart = market.title.replace(" — Match Result", "");
+              const displayTitle = (zh && market.titleZh)
+                ? market.titleZh.replace(" — 比赛结果", "")
+                : titlePart;
+              const kickoff = new Date(market.closeAt);
+              const groupLabel = market.category ?? "";
+
+              return (
+                <Link key={market.id} href={`/markets/${market.slug}`} style={{ textDecoration: "none", display: "block" }}>
+                  <div
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "9px 12px",
+                      borderRadius: "var(--radius-sm)",
+                      backgroundColor: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(34,197,94,0.07)",
+                      transition: "background-color 150ms ease, border-color 150ms ease",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(34,197,94,0.05)";
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(34,197,94,0.2)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(255,255,255,0.02)";
+                      (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(34,197,94,0.07)";
+                    }}
+                  >
+                    {/* Group badge */}
+                    <span style={{
+                      flexShrink: 0,
+                      fontFamily: "var(--font-mono)", fontSize: "0.5rem", fontWeight: 700,
+                      letterSpacing: "0.08em", textTransform: "uppercase",
+                      color: "#4ade80", backgroundColor: "rgba(34,197,94,0.1)",
+                      border: "1px solid rgba(34,197,94,0.2)",
+                      borderRadius: 4, padding: "2px 5px",
+                    }}>
+                      {zh ? groupLabel.replace("Group", "") : groupLabel.replace("Group ", "")}
+                    </span>
+
+                    {/* Match name + time */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontFamily: "var(--font-sans)", fontSize: "0.8125rem", fontWeight: 500,
+                        color: "rgba(255,255,255,0.9)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {displayTitle}
+                      </p>
+                      <p style={{ marginTop: 1, fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "rgba(255,255,255,0.3)" }}>
+                        {kickoff.toLocaleDateString(dateLocale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+
+                    {/* Odds chips */}
+                    {outcomes.length > 0 && (
+                      <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                        {[
+                          { label: zh ? "主" : "H", pct: home ? Math.round(home.price * 100) : null, color: "#4ade80" },
+                          { label: zh ? "平" : "D", pct: draw ? Math.round(draw.price * 100) : null, color: "rgba(255,255,255,0.45)" },
+                          { label: zh ? "客" : "A", pct: away ? Math.round(away.price * 100) : null, color: "var(--rose)" },
+                        ].map(({ label, pct, color }) => (
+                          <div key={label} style={{
+                            display: "flex", flexDirection: "column", alignItems: "center",
+                            padding: "3px 7px", borderRadius: 4,
+                            backgroundColor: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.07)",
+                            minWidth: 36,
+                          }}>
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fontWeight: 700, letterSpacing: "0.08em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" }}>
+                              {label}
+                            </span>
+                            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", fontWeight: 700, color, lineHeight: 1.2 }}>
+                              {pct != null ? `${pct}%` : "—"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <ChevronRight style={{ width: 13, height: 13, color: "rgba(74,222,128,0.3)", flexShrink: 0 }} />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Show all groups button */}
+          <button
+            onClick={() => setAllGroupsOpen(true)}
+            style={{
+              marginTop: 10, width: "100%",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "9px 0",
+              fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 700,
+              letterSpacing: "0.08em", textTransform: "uppercase",
+              color: "#4ade80",
+              backgroundColor: "rgba(34,197,94,0.05)",
+              border: "1px solid rgba(34,197,94,0.15)",
+              borderRadius: "var(--radius-sm)",
+              cursor: "pointer",
+              transition: "background-color 150ms ease",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(34,197,94,0.1)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = "rgba(34,197,94,0.05)"; }}
+          >
+            <Trophy style={{ width: 12, height: 12 }} />
+            {zh
+              ? `查看全部 ${activeGroupCount} 个小组 · ${markets.length} 场比赛`
+              : `Show all ${activeGroupCount} groups · ${markets.length} matches`}
+            <ChevronDown style={{ width: 12, height: 12 }} />
+          </button>
+        </div>
+      ) : (
+        /* ── Full groups view ── */
+        <div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {Array.from(byGroup.entries())
+              .filter(([, ms]: [string, MarketListItem[]]) => ms.length > 0)
+              .map(([group, ms]: [string, MarketListItem[]]) => (
+                <MatchGroupRow
+                  key={group}
+                  groupName={group}
+                  markets={ms}
+                  locale={locale}
+                  dateLocale={dateLocale}
+                />
+              ))}
+          </div>
+          {/* Collapse back */}
+          <button
+            onClick={() => setAllGroupsOpen(false)}
+            style={{
+              marginTop: 10, width: "100%",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "9px 0",
+              fontFamily: "var(--font-mono)", fontSize: "0.625rem", fontWeight: 700,
+              letterSpacing: "0.08em", textTransform: "uppercase",
+              color: "rgba(74,222,128,0.5)",
+              backgroundColor: "transparent",
+              border: "1px solid rgba(34,197,94,0.1)",
+              borderRadius: "var(--radius-sm)",
+              cursor: "pointer",
+            }}
+          >
+            <ChevronDown style={{ width: 12, height: 12, transform: "rotate(180deg)" }} />
+            {zh ? "收起" : "Show less"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
