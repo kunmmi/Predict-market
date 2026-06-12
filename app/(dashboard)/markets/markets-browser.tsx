@@ -1250,7 +1250,6 @@ function WorldCupSection({
 }) {
   const [filter, setFilter] = useState<WCFilter>("all");
   const [expanded, setExpanded] = useState(false);
-  const [sectionOpen, setSectionOpen] = useState(true);
 
   if (markets.length === 0) return null;
 
@@ -1305,7 +1304,7 @@ function WorldCupSection({
       {/* ── Header ── */}
       <div style={{ position: "relative", padding: "1.25rem 1.5rem 0" }}>
         {/* Title row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: sectionOpen ? "1rem" : "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: "1.5rem", lineHeight: 1 }}>⚽</span>
             <div>
@@ -1321,44 +1320,22 @@ function WorldCupSection({
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 4,
-                fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
-                letterSpacing: "0.12em", textTransform: "uppercase", color: "#4ade80",
-                backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)",
-                borderRadius: 100, padding: "3px 10px",
-              }}
-            >
-              <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#4ade80", boxShadow: "0 0 6px #4ade80" }} />
-              {twc.featured_badge}
-            </span>
-            {/* Collapse toggle — desktop only */}
-            <button
-              onClick={() => setSectionOpen((v) => !v)}
-              title={sectionOpen ? (locale === "zh" ? "收起" : "Collapse") : (locale === "zh" ? "展开" : "Expand")}
-              style={{
-                display: "none",
-                alignItems: "center", justifyContent: "center",
-                width: 28, height: 28, borderRadius: 6,
-                background: "rgba(34,197,94,0.08)",
-                border: "1px solid rgba(34,197,94,0.2)",
-                cursor: "pointer", flexShrink: 0,
-              }}
-              className="lg:!flex"
-            >
-              <ChevronDown style={{
-                width: 14, height: 14, color: "#4ade80",
-                transform: sectionOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 200ms ease",
-              }} />
-            </button>
-          </div>
+          <span
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 4,
+              fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
+              letterSpacing: "0.12em", textTransform: "uppercase", color: "#4ade80",
+              backgroundColor: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)",
+              borderRadius: 100, padding: "3px 10px",
+            }}
+          >
+            <span style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#4ade80", boxShadow: "0 0 6px #4ade80" }} />
+            {twc.featured_badge}
+          </span>
         </div>
 
-        {/* Filter tabs — hidden when collapsed */}
-        {sectionOpen && <div
+        {/* Filter tabs */}
+        <div
           style={{
             display: "flex", gap: 4, overflowX: "auto",
             borderBottom: "1px solid rgba(34,197,94,0.1)",
@@ -1400,11 +1377,11 @@ function WorldCupSection({
               </button>
             );
           })}
-        </div>}
+        </div>
       </div>
 
-      {/* ── Markets grid — hidden when collapsed ── */}
-      {sectionOpen && <div style={{ padding: "1.25rem", position: "relative" }}>
+      {/* ── Markets grid ── */}
+      <div style={{ padding: "1.25rem", position: "relative" }}>
 
         {/* Tournament markets (Golden Boot, Most Assists, Golden Glove) */}
         {tournamentMarkets.length > 0 && (
@@ -1481,7 +1458,7 @@ function WorldCupSection({
             )}
           </>
         )}
-      </div>}
+      </div>
     </div>
   );
 }
