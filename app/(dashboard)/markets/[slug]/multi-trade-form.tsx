@@ -241,6 +241,15 @@ export function MultiTradeForm({ marketId, outcomes, locale, walletBalance }: Pr
             </div>
           )}
 
+          {/* Pool disclaimer */}
+          {stakeNum >= MIN_STAKE && (
+            <p style={{ marginTop: 6, fontFamily: "var(--font-sans)", fontSize: "0.6875rem", color: "var(--text-dim)", lineHeight: 1.4 }}>
+              ⚡ {zh
+                ? "实际派彩取决于结算时的奖池总额，后续投注会影响最终回报。"
+                : "Actual payout depends on the pool at settlement — later bets will shift the final return."}
+            </p>
+          )}
+
           {/* Error */}
           {error && (
             <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: 6, color: "var(--rose)" }}>
