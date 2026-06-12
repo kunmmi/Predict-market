@@ -178,7 +178,7 @@ export function LoginForm({ locale, t }: Props) {
               flex: "0 0 52%",
               flexDirection: "column",
               justifyContent: "center",
-              padding: "64px 72px",
+              padding: "clamp(28px, 5vh, 56px) 72px",
               position: "relative",
               overflow: "hidden",
               background: "linear-gradient(160deg, #0c0d0f 0%, #08090a 55%, #0c0f0b 100%)",
@@ -198,7 +198,7 @@ export function LoginForm({ locale, t }: Props) {
             }} />
 
             {/* ── World Cup section ── */}
-            <div style={{ position: "relative", marginBottom: 52 }}>
+            <div style={{ position: "relative", marginBottom: "clamp(18px, 3vh, 36px)" }}>
 
               {/* LIVE NOW badge */}
               <div className="promo-fade-1" style={{ marginBottom: 22, display: "flex", alignItems: "center", gap: 10 }}>
@@ -231,7 +231,7 @@ export function LoginForm({ locale, t }: Props) {
                 </p>
                 <h2 style={{
                   fontFamily: "var(--font-display)", fontWeight: 800,
-                  fontSize: "clamp(2.6rem, 3.8vw, 3.4rem)", lineHeight: 1.05,
+                  fontSize: "clamp(1.9rem, 2.8vw, 2.6rem)", lineHeight: 1.05,
                   color: "var(--text-primary)", margin: 0,
                 }}>
                   <span className="gold-shimmer">2026</span>
@@ -240,36 +240,26 @@ export function LoginForm({ locale, t }: Props) {
                 </h2>
               </div>
 
-              {/* Subhead */}
-              <p className="promo-fade-3" style={{
-                fontSize: "0.9375rem", color: "var(--text-secondary)", lineHeight: 1.65,
-                maxWidth: 400, marginTop: 16, marginBottom: 32,
-              }}>
-                {isZh
-                  ? "预测全部 72 场小组赛，涵盖 A 至 L 组共 48 支球队。奖池制赔率，赢家瓜分全部下注池。"
-                  : "Predict all 72 group-stage matches across 12 groups, A through L. Parimutuel pools — winners split the entire pot."}
-              </p>
-
-              {/* Feature rows */}
-              <div className="promo-fade-3" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {/* Feature rows — compact */}
+              <div className="promo-fade-3" style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 14 }}>
                 {[
-                  { emoji: "⚽", en: "72 group matches · 48 teams · 12 groups (A–L)", zh: "72 场比赛 · 48 支球队 · 12 个小组" },
-                  { emoji: "📊", en: "Parimutuel pools — no house edge on payouts",   zh: "奖池制赔率 — 平台不抽赔付差价" },
-                  { emoji: "⚡", en: "SOL & crypto short-duration live markets",       zh: "SOL 等加密货币实时短线市场" },
-                  { emoji: "🔔", en: "Push notifications for match kick-offs & wins",  zh: "比赛开始与获胜实时推送通知" },
+                  { emoji: "⚽", en: "72 matches · 48 teams · 12 groups (A–L)",   zh: "72 场比赛 · 48 支球队 · 12 个小组" },
+                  { emoji: "📊", en: "Parimutuel pools — winners split the pot",   zh: "奖池制赔率 — 赢家瓜分全部下注池" },
+                  { emoji: "⚡", en: "SOL & crypto live markets",                   zh: "SOL 等加密货币实时市场" },
+                  { emoji: "🔔", en: "Push alerts for kick-offs & results",         zh: "比赛开始与结果实时推送" },
                 ].map(({ emoji, en, zh }) => (
-                  <div key={en} className="feature-row" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div key={en} className="feature-row" style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div className="feature-icon-wrap" style={{
-                      width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+                      width: 28, height: 28, borderRadius: 7, flexShrink: 0,
                       border: "1px solid var(--border-dim)",
                       background: "rgba(255,255,255,0.03)",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "0.875rem",
+                      fontSize: "0.75rem",
                       transition: "all 0.2s",
                     }}>
                       {emoji}
                     </div>
-                    <span style={{ fontSize: "0.875rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
+                    <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.3 }}>
                       {isZh ? zh : en}
                     </span>
                   </div>
@@ -279,7 +269,7 @@ export function LoginForm({ locale, t }: Props) {
 
             {/* ── Divider ── */}
             <div className="promo-fade-4" style={{
-              display: "flex", alignItems: "center", gap: 12, marginBottom: 28,
+              display: "flex", alignItems: "center", gap: 12, marginBottom: "clamp(12px, 2vh, 20px)",
             }}>
               <div style={{ flex: 1, height: 1, background: "var(--border-dim)" }} />
               <span style={{ fontSize: "0.6875rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--text-dim)" }}>
@@ -290,7 +280,7 @@ export function LoginForm({ locale, t }: Props) {
 
             {/* ── Promoter card ── */}
             <div className="promo-fade-5" style={{
-              borderRadius: 16, padding: "24px 28px",
+              borderRadius: 16, padding: "18px 22px",
               border: "1px solid rgba(212,175,55,0.2)",
               background: "linear-gradient(135deg, rgba(212,175,55,0.06) 0%, rgba(212,175,55,0.02) 100%)",
               position: "relative", overflow: "hidden",
@@ -351,7 +341,7 @@ export function LoginForm({ locale, t }: Props) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "48px 24px",
+            padding: "clamp(24px, 4vh, 48px) 24px",
           }}>
             <Card className="w-full animate-fade-up" style={{ maxWidth: 420 }}>
               <CardHeader>
