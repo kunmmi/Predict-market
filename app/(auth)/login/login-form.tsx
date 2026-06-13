@@ -240,31 +240,6 @@ export function LoginForm({ locale, t }: Props) {
                 </h2>
               </div>
 
-              {/* Feature rows — compact */}
-              <div className="promo-fade-3" style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 14 }}>
-                {[
-                  { emoji: "⚽", en: "72 matches · 48 teams · 12 groups (A–L)",   zh: "72 场比赛 · 48 支球队 · 12 个小组" },
-                  { emoji: "📊", en: "Parimutuel pools — winners split the pot",   zh: "奖池制赔率 — 赢家瓜分全部下注池" },
-                  { emoji: "⚡", en: "SOL & crypto live markets",                   zh: "SOL 等加密货币实时市场" },
-                  { emoji: "🔔", en: "Push alerts for kick-offs & results",         zh: "比赛开始与结果实时推送" },
-                ].map(({ emoji, en, zh }) => (
-                  <div key={en} className="feature-row" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div className="feature-icon-wrap" style={{
-                      width: 28, height: 28, borderRadius: 7, flexShrink: 0,
-                      border: "1px solid var(--border-dim)",
-                      background: "rgba(255,255,255,0.03)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "0.75rem",
-                      transition: "all 0.2s",
-                    }}>
-                      {emoji}
-                    </div>
-                    <span style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.3 }}>
-                      {isZh ? zh : en}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
 
             {/* ── Divider ── */}
