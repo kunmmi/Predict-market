@@ -405,7 +405,7 @@ export function LoginForm({ locale, t }: Props) {
                   </p>
                 </form>
 
-                {/* ── Right-panel mini promo (desktop only, below form) ── */}
+                {/* ── Desktop: WC kickoff teaser ── */}
                 <div className="hidden lg:block" style={{ marginTop: 28 }}>
                   <div style={{
                     borderRadius: 10,
@@ -420,6 +420,52 @@ export function LoginForm({ locale, t }: Props) {
                         ? "今天就开始：预测2026世界杯开幕战，墨西哥 vs 南非"
                         : "Kick off today — predict Mexico vs South Africa, the 2026 opening match."}
                     </p>
+                  </div>
+                </div>
+
+                {/* ── Mobile: promoter card ── */}
+                <div className="lg:hidden" style={{ marginTop: 20 }}>
+                  <div style={{
+                    borderRadius: 14, padding: "16px 18px",
+                    border: "1px solid rgba(212,175,55,0.2)",
+                    background: "linear-gradient(135deg, rgba(212,175,55,0.06) 0%, rgba(212,175,55,0.02) 100%)",
+                    position: "relative", overflow: "hidden",
+                  }}>
+                    <div style={{
+                      position: "absolute", top: 0, right: 0, width: 60, height: 60,
+                      background: "radial-gradient(circle at top right, rgba(212,175,55,0.18), transparent 70%)",
+                      pointerEvents: "none",
+                    }} />
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                      <span style={{ fontSize: "1.5rem", lineHeight: 1, marginTop: 2 }}>💰</span>
+                      <div>
+                        <p style={{ fontWeight: 700, fontSize: "0.9375rem", color: "var(--text-primary)", marginBottom: 3 }}>
+                          {isZh ? "成为推广员，赚取佣金" : "Earn as a Promoter"}
+                        </p>
+                        <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                          {isZh
+                            ? "推荐好友即可从他们每笔下注中持续赚取佣金，随时可提现。"
+                            : "Share your promo code — earn a commission from every bet your referrals place."}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{
+                      display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+                      gap: 1, borderRadius: 8, overflow: "hidden",
+                      border: "1px solid rgba(212,175,55,0.15)",
+                      background: "rgba(212,175,55,0.08)",
+                    }}>
+                      {[
+                        { val: isZh ? "专属邀请码" : "Unique code",      sub: isZh ? "即时获取" : "Instant" },
+                        { val: isZh ? "实时佣金"   : "Live commissions", sub: isZh ? "逐笔记录" : "Per bet"  },
+                        { val: isZh ? "随时提现"   : "Claim anytime",    sub: isZh ? "无门槛"   : "No min."  },
+                      ].map(({ val, sub }) => (
+                        <div key={val} style={{ padding: "8px 6px", background: "rgba(0,0,0,0.25)", textAlign: "center" }}>
+                          <p style={{ fontSize: "0.6875rem", fontWeight: 700, color: "var(--gold)", marginBottom: 1 }}>{val}</p>
+                          <p style={{ fontSize: "0.625rem", color: "var(--text-dim)" }}>{sub}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </CardContent>
