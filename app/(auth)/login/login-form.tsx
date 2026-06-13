@@ -148,29 +148,71 @@ export function LoginForm({ locale, t }: Props) {
 
         {/* ── Mobile promoter banner ── */}
         <div className="lg:hidden" style={{
-          background: "linear-gradient(90deg, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.03) 100%)",
-          borderBottom: "1px solid rgba(212,175,55,0.18)",
-          padding: "10px 16px",
-          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+          position: "relative",
+          overflow: "hidden",
+          background: "linear-gradient(100deg, #0e0c07 0%, #131008 50%, #0a0e0a 100%)",
+          borderBottom: "1px solid rgba(212,175,55,0.25)",
+          padding: "12px 16px",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>💰</span>
-            <div style={{ minWidth: 0 }}>
-              <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--gold)", marginBottom: 1 }}>
-                {isZh ? "成为推广员，赚取佣金" : "Earn as a Promoter"}
-              </p>
-              <p style={{ fontSize: "0.6875rem", color: "var(--text-dim)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {isZh ? "推荐好友 · 逐笔佣金 · 随时提现" : "Refer friends · earn per bet · claim anytime"}
-              </p>
+          {/* Glowing orb behind */}
+          <div style={{
+            position: "absolute", top: -30, right: 60, width: 120, height: 120,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(212,175,55,0.18) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }} />
+          {/* Top row: label + CTA */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{
+                display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+                background: "var(--gold)", boxShadow: "0 0 6px rgba(212,175,55,0.8)",
+              }} />
+              <span style={{
+                fontSize: "0.625rem", fontWeight: 800, letterSpacing: "0.18em",
+                textTransform: "uppercase", color: "var(--gold)",
+              }}>
+                {isZh ? "推广员计划" : "Promoter Program"}
+              </span>
+            </div>
+            <Link href="/promoter/register" style={{
+              fontSize: "0.6875rem", fontWeight: 800,
+              color: "#070809",
+              background: "linear-gradient(135deg, #f0d060, #d4af37)",
+              borderRadius: 20, padding: "5px 14px",
+              textDecoration: "none", whiteSpace: "nowrap",
+              boxShadow: "0 2px 8px rgba(212,175,55,0.35)",
+              letterSpacing: "0.02em",
+            }}>
+              {isZh ? "立即加入 →" : "Join free →"}
+            </Link>
+          </div>
+          {/* Bottom row: headline + stats */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <p style={{
+              fontSize: "0.8125rem", fontWeight: 700,
+              color: "var(--text-primary)", lineHeight: 1.3, flex: 1,
+            }}>
+              {isZh
+                ? "好友每次下注，你都赚钱"
+                : "Get paid every time a friend bets"}
+            </p>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              {[
+                { val: isZh ? "专属码" : "Promo code", sub: isZh ? "即时获取" : "Instant" },
+                { val: isZh ? "逐笔佣金" : "Per-bet cut", sub: isZh ? "实时到账" : "Live" },
+              ].map(({ val, sub }) => (
+                <div key={val} style={{
+                  padding: "4px 8px", borderRadius: 6, textAlign: "center",
+                  background: "rgba(212,175,55,0.08)",
+                  border: "1px solid rgba(212,175,55,0.15)",
+                }}>
+                  <p style={{ fontSize: "0.625rem", fontWeight: 700, color: "var(--gold)", whiteSpace: "nowrap" }}>{val}</p>
+                  <p style={{ fontSize: "0.5625rem", color: "var(--text-dim)", whiteSpace: "nowrap" }}>{sub}</p>
+                </div>
+              ))}
             </div>
           </div>
-          <Link href="/promoter/register" style={{
-            flexShrink: 0, fontSize: "0.6875rem", fontWeight: 700,
-            color: "var(--bg-base)", background: "var(--gold)",
-            borderRadius: 6, padding: "5px 10px", textDecoration: "none", whiteSpace: "nowrap",
-          }}>
-            {isZh ? "立即加入" : "Join now"}
-          </Link>
         </div>
 
         {/* ── Body ── */}
