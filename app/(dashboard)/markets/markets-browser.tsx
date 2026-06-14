@@ -1387,8 +1387,8 @@ function WorldCupSection({
         </div>
       </div>
 
-      {/* ── Markets grid — capped on mobile so it doesn't dominate the page ── */}
-      <div className="max-h-[340px] overflow-y-auto sm:max-h-none sm:overflow-visible" style={{ padding: "1.25rem", position: "relative" }}>
+      {/* ── Markets grid — always capped so WC never dominates the page ── */}
+      <div className="max-h-[340px] overflow-y-auto lg:max-h-[460px]" style={{ padding: "1.25rem", position: "relative", scrollbarWidth: "thin" }}>
 
         {/* Tournament markets — show all on desktop, first 1 on mobile */}
         {tournamentMarkets.length > 0 && (
@@ -1398,7 +1398,7 @@ function WorldCupSection({
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {tournamentMarkets.map((market, i) => (
-                <div key={market.id} className={i > 0 ? "hidden sm:block" : ""}>
+                <div key={market.id} className={i > 0 ? "hidden lg:block" : ""}>
                   <MultiOutcomeCard
                     market={market}
                     locale={locale}
@@ -1408,7 +1408,7 @@ function WorldCupSection({
               ))}
             </div>
             {tournamentMarkets.length > 1 && (
-              <p className="sm:hidden" style={{ marginTop: 6, fontSize: "0.6875rem", color: "rgba(74,222,128,0.45)", textAlign: "center" }}>
+              <p className="lg:hidden" style={{ marginTop: 6, fontSize: "0.6875rem", color: "rgba(74,222,128,0.45)", textAlign: "center" }}>
                 {locale === "zh" ? `+${tournamentMarkets.length - 1} 个锦标赛市场` : `+${tournamentMarkets.length - 1} more tournament markets`}
               </p>
             )}
