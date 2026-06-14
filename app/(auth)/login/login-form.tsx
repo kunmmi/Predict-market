@@ -194,13 +194,13 @@ export function LoginForm({ locale, t }: Props) {
               color: "var(--text-primary)", lineHeight: 1.3, flex: 1,
             }}>
               {isZh
-                ? "好友每次下注，你都赚钱"
-                : "Get paid every time a friend bets"}
+                ? "好友每次下注，你赚 30% 佣金"
+                : "Earn 30% of every bet your friends place"}
             </p>
             <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
               {[
-                { val: isZh ? "专属码" : "Promo code", sub: isZh ? "即时获取" : "Instant" },
-                { val: isZh ? "逐笔佣金" : "Per-bet cut", sub: isZh ? "实时到账" : "Live" },
+                { val: "30%", sub: isZh ? "佣金" : "commission" },
+                { val: isZh ? "随时提现" : "Claim anytime", sub: isZh ? "无门槛" : "No min." },
               ].map(({ val, sub }) => (
                 <div key={val} style={{
                   padding: "4px 8px", borderRadius: 6, textAlign: "center",
@@ -326,8 +326,8 @@ export function LoginForm({ locale, t }: Props) {
                   </p>
                   <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", lineHeight: 1.55 }}>
                     {isZh
-                      ? "获取专属邀请码，推荐好友即可从他们每一笔下注中持续赚取佣金，随时可提现。"
-                      : "Get your unique promo code. Earn a commission cut from every bet your referrals place — tracked in real time, claimable any time."}
+                      ? "获取专属邀请码，推荐好友即可赚取每笔下注 30% 佣金，实时到账，随时可提现。"
+                      : "Get your promo code. Earn 30% of every bet your referrals place — tracked in real time, claimable any time."}
                   </p>
                 </div>
               </div>
@@ -340,9 +340,9 @@ export function LoginForm({ locale, t }: Props) {
                 background: "rgba(212,175,55,0.08)",
               }}>
                 {[
-                  { val: isZh ? "专属邀请码" : "Unique code",        sub: isZh ? "即时获取" : "Instant access" },
-                  { val: isZh ? "实时佣金"   : "Live commissions",   sub: isZh ? "逐笔记录" : "Per-bet tracked" },
-                  { val: isZh ? "随时提现"   : "Claim anytime",      sub: isZh ? "无最低门槛" : "No minimum"   },
+                  { val: isZh ? "专属邀请码" : "Unique code",   sub: isZh ? "即时获取" : "Instant access"  },
+                  { val: "30%",                                        sub: isZh ? "每笔佣金" : "Per-bet commission" },
+                  { val: isZh ? "随时提现"   : "Claim anytime", sub: isZh ? "无最低门槛" : "No minimum"    },
                 ].map(({ val, sub }) => (
                   <div key={val} style={{
                     padding: "10px 12px",
