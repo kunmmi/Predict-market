@@ -1561,15 +1561,15 @@ export function MarketsBrowser({
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
       {/* ── Unified top filter ── */}
-      <div style={{ display: "flex", justifyContent: "center" }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
       <div
         style={{
-          display: "inline-flex", gap: 4, overflowX: "auto",
+          display: "inline-flex", gap: 4,
           backgroundColor: "var(--bg-elevated)",
           border: "1px solid var(--border-subtle)",
           borderRadius: "var(--radius-md)",
           padding: 4,
-          flexShrink: 0,
+          minWidth: "max-content",
         }}
       >
         {topFilters.map(({ id, label, wc }) => {
