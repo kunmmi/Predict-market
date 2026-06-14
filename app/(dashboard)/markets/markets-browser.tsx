@@ -1376,7 +1376,7 @@ function WorldCupSection({
                 }}
               >
                 {filterLabels[f]}
-                {filterCounts[f] !== undefined && (
+                {filterCounts[f] !== undefined && filterCounts[f]! > 0 && f !== "all" && (
                   <span style={{ marginLeft: 5, opacity: 0.6, fontWeight: 500 }}>
                     {filterCounts[f]}
                   </span>
