@@ -1175,9 +1175,16 @@ function MatchGroupsSection({
           </button>
         </div>
       ) : (
-        /* ── Full groups view ── */
+        /* ── Full groups view (scrollable container) ── */
         <div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{
+            maxHeight: 480, overflowY: "auto",
+            overscrollBehavior: "contain",
+            WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid rgba(34,197,94,0.08)",
+            scrollbarWidth: "thin" as React.CSSProperties["scrollbarWidth"],
+          }}>
             {Array.from(byGroup.entries())
               .filter(([, ms]: [string, MarketListItem[]]) => ms.length > 0)
               .map(([group, ms]: [string, MarketListItem[]]) => (
@@ -1235,7 +1242,7 @@ function getWCFilterLabels(locale: Locale): Record<WCFilter, string> {
   return { all: t.filter_all, winner: t.filter_winner, round1: t.filter_round1, round2: t.filter_round2, round3: t.filter_round3 };
 }
 
-const PREVIEW_COUNT = 6;
+const PREVIEW_COUNT = 3;
 
 function WorldCupSection({
   markets,
