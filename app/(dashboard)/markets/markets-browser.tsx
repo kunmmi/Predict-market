@@ -1000,7 +1000,7 @@ function MatchGroupRow({
   );
 }
 
-const MATCH_PREVIEW_COUNT = 4;
+const MATCH_PREVIEW_COUNT = 2;
 
 function MatchGroupsSection({
   markets,
@@ -1387,25 +1387,31 @@ function WorldCupSection({
         </div>
       </div>
 
-      {/* ── Markets grid ── */}
-      <div style={{ padding: "1.25rem", position: "relative" }}>
+      {/* ── Markets grid — capped on mobile so it doesn't dominate the page ── */}
+      <div className="max-h-[340px] overflow-y-auto sm:max-h-none sm:overflow-visible" style={{ padding: "1.25rem", position: "relative" }}>
 
-        {/* Tournament markets (Golden Boot, Most Assists, Golden Glove) */}
+        {/* Tournament markets — show all on desktop, first 1 on mobile */}
         {tournamentMarkets.length > 0 && (
-          <div style={{ marginBottom: matchMarkets.length > 0 ? "1.5rem" : 0 }}>
+          <div style={{ marginBottom: matchMarkets.length > 0 ? "1.25rem" : 0 }}>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(74,222,128,0.5)", marginBottom: "0.625rem" }}>
               {locale === "zh" ? "锦标赛" : "TOURNAMENT"}
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {tournamentMarkets.map((market) => (
-                <MultiOutcomeCard
-                  key={market.id}
-                  market={market}
-                  locale={locale}
-                  outcomes={outcomeMap[market.id] ?? []}
-                />
+              {tournamentMarkets.map((market, i) => (
+                <div key={market.id} className={i > 0 ? "hidden sm:block" : ""}>
+                  <MultiOutcomeCard
+                    market={market}
+                    locale={locale}
+                    outcomes={outcomeMap[market.id] ?? []}
+                  />
+                </div>
               ))}
             </div>
+            {tournamentMarkets.length > 1 && (
+              <p className="sm:hidden" style={{ marginTop: 6, fontSize: "0.6875rem", color: "rgba(74,222,128,0.45)", textAlign: "center" }}>
+                {locale === "zh" ? `+${tournamentMarkets.length - 1} 个锦标赛市场` : `+${tournamentMarkets.length - 1} more tournament markets`}
+              </p>
+            )}
           </div>
         )}
 
