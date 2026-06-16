@@ -7,7 +7,7 @@ import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const FEE_RATE = 0.05; // 5% platform fee on stake
+const FEE_RATE = 0.02; // 2% platform fee on stake
 
 const schema = z.object({
   market_id:  z.string().uuid(),
