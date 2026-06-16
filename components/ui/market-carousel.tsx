@@ -389,6 +389,9 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
 
+  // Clamp current index if markets list shrinks (e.g. after router.refresh())
+  const safeIndex = markets.length > 0 ? Math.min(current, markets.length - 1) : 0;
+
   const goTo = useCallback(
     (index: number) => {
       if (animating || index === current) return;
@@ -460,7 +463,8 @@ export function MarketCarousel({ markets, isLoggedIn, locale, tCarousel: tc }: P
     );
   }
 
-  const market = markets[current];
+  const market = markets[safeIndex];
+  if (!market) return null;
   const tradeHref = isLoggedIn ? `/markets/${market.slug}` : `/signup`;
   const isShortDuration = market.durationMinutes != null;
 
