@@ -1178,12 +1178,8 @@ function MatchGroupsSection({
         /* ── Full groups view (scrollable container) ── */
         <div>
           <div style={{
-            maxHeight: 480, overflowY: "auto",
-            overscrollBehavior: "contain",
-            WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
             borderRadius: "var(--radius-sm)",
             border: "1px solid rgba(34,197,94,0.08)",
-            scrollbarWidth: "thin" as React.CSSProperties["scrollbarWidth"],
           }}>
             {Array.from(byGroup.entries())
               .filter(([, ms]: [string, MarketListItem[]]) => ms.length > 0)
@@ -1257,6 +1253,7 @@ function WorldCupSection({
 }) {
   const [filter, setFilter] = useState<WCFilter>("all");
   const [expanded, setExpanded] = useState(false);
+  const [tournamentExpanded, setTournamentExpanded] = useState(false);
 
   if (markets.length === 0) return null;
 
@@ -1388,9 +1385,9 @@ function WorldCupSection({
       </div>
 
       {/* ── Markets grid — always capped so WC never dominates the page ── */}
-      <div className="max-h-[340px] overflow-y-auto lg:max-h-[460px]" style={{ padding: "1.25rem", position: "relative", scrollbarWidth: "thin" }}>
+      <div className="max-h-[480px] overflow-y-auto lg:max-h-[560px]" style={{ padding: "1.25rem", position: "relative", scrollbarWidth: "thin" }}>
 
-        {/* Tournament markets — show all on desktop, first 1 on mobile */}
+        {/* Tournament markets — expandable on mobile, show all on desktop */}
         {tournamentMarkets.length > 0 && (
           <div style={{ marginBottom: matchMarkets.length > 0 ? "1.25rem" : 0 }}>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(74,222,128,0.5)", marginBottom: "0.625rem" }}>
@@ -1398,7 +1395,7 @@ function WorldCupSection({
             </p>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {tournamentMarkets.map((market, i) => (
-                <div key={market.id} className={i > 0 ? "hidden lg:block" : ""}>
+                <div key={market.id} className={i > 0 && !tournamentExpanded ? "hidden lg:block" : i > 0 ? "block lg:block" : ""}>
                   <MultiOutcomeCard
                     market={market}
                     locale={locale}
@@ -1408,9 +1405,27 @@ function WorldCupSection({
               ))}
             </div>
             {tournamentMarkets.length > 1 && (
-              <p className="lg:hidden" style={{ marginTop: 6, fontSize: "0.6875rem", color: "rgba(74,222,128,0.45)", textAlign: "center" }}>
-                {locale === "zh" ? `+${tournamentMarkets.length - 1} 个锦标赛市场` : `+${tournamentMarkets.length - 1} more tournament markets`}
-              </p>
+              <button
+                className="lg:hidden"
+                onClick={() => setTournamentExpanded((v) => !v)}
+                style={{
+                  marginTop: 8, width: "100%",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "8px 0",
+                  fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fontWeight: 700,
+                  letterSpacing: "0.08em", textTransform: "uppercase",
+                  color: "#4ade80",
+                  backgroundColor: "rgba(34,197,94,0.05)",
+                  border: "1px solid rgba(34,197,94,0.15)",
+                  borderRadius: "var(--radius-sm)",
+                  cursor: "pointer",
+                }}
+              >
+                {tournamentExpanded
+                  ? <>{locale === "zh" ? "收起" : "Show less"} <ChevronDown style={{ width: 11, height: 11, transform: "rotate(180deg)" }} /></>
+                  : <>{locale === "zh" ? `+${tournamentMarkets.length - 1} 个锦标赛市场` : `+${tournamentMarkets.length - 1} more tournament markets`} <ChevronDown style={{ width: 11, height: 11 }} /></>
+                }
+              </button>
             )}
           </div>
         )}
