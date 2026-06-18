@@ -53,6 +53,37 @@ export async function POST(
 
   try {
     const supabase = createSupabaseAdminClient();
+
+    // Security: fetch deposit before approving
+    const { data: depositCheck } = await supabase
+      .from("deposits")
+      .select("profile_id, tx_hash")
+      .eq("id", params.id)
+      .maybeSingle();
+
+    if (!depositCheck) {
+      return NextResponse.json({ success: false, message: "Deposit not found." }, { status: 404 });
+    }
+
+    // Block self-approval — admin cannot approve their own deposit
+    if (depositCheck.profile_id === adminProfileId) {
+      return NextResponse.json(
+        { success: false, message: "You cannot approve your own deposit." },
+        { status: 403 },
+      );
+    }
+
+    // Block fake/zeroed tx hashes — must be a real 66-char hex string, not all zeros
+    const txHash: string = depositCheck.tx_hash ?? "";
+    const isZeroHash = /^0x0+$/i.test(txHash);
+    const isValidHash = /^0x[0-9a-f]{64}$/i.test(txHash);
+    if (!txHash || !isValidHash || isZeroHash) {
+      return NextResponse.json(
+        { success: false, message: "Deposit has an invalid or unverified transaction hash. Verify the on-chain transaction before approving." },
+        { status: 400 },
+      );
+    }
+
     const { error } = await supabase.rpc("approve_deposit", {
       p_deposit_id: params.id,
       p_admin_profile_id: adminProfileId,

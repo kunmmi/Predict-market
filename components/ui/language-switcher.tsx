@@ -7,8 +7,9 @@ export function LanguageSwitcher({ locale }: { locale: Locale }) {
   const router = useRouter();
 
   function setLang(lang: Locale) {
+    if (locale === lang) return;
     document.cookie = `lang=${lang}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
-    router.refresh();
+    window.location.reload();
   }
 
   return (

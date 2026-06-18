@@ -50,20 +50,12 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/profile") ||
     pathname.startsWith("/admin");
 
-  // Single auth call — no retries, no sleep, no fallback getSession().
-  // Retrying inside middleware was causing MIDDLEWARE_INVOCATION_TIMEOUT on
-  // Vercel's edge runtime (hard cap ~1.5 s). For non-protected routes we
-  // still call getUser() so Supabase SSR can refresh the auth cookie, but
-  // we never block the request on an error.
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
 
   if (isProtected && !user) {
-    // If Supabase itself errored but the browser has a session cookie, let
-    // the request through rather than bouncing the user — the page-level
-    // requireUser() will handle it properly.
     if (error && hasSupabaseAuthCookie(request)) {
       console.error("Middleware auth lookup failed; preserving request with session cookie.", error.message);
       return supabaseResponse;

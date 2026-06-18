@@ -39,6 +39,25 @@ export async function POST(
 
   try {
     const supabase = createSupabaseAdminClient();
+
+    // Block self-approval — admin cannot approve their own withdrawal
+    const { data: withdrawalCheck } = await supabase
+      .from("withdrawals")
+      .select("profile_id")
+      .eq("id", params.id)
+      .maybeSingle();
+
+    if (!withdrawalCheck) {
+      return NextResponse.json({ success: false, message: "Withdrawal not found." }, { status: 404 });
+    }
+
+    if (withdrawalCheck.profile_id === adminProfileId) {
+      return NextResponse.json(
+        { success: false, message: "You cannot approve your own withdrawal." },
+        { status: 403 },
+      );
+    }
+
     const { error } = await supabase.rpc("approve_withdrawal", {
       p_withdrawal_id: params.id,
       p_admin_profile_id: adminProfileId,
