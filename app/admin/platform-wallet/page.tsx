@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { Wallet, ArrowDownLeft, ArrowUpRight, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Wallet, ArrowDownLeft, ArrowUpRight, AlertTriangle, ShieldCheck, TrendingUp, Info } from "lucide-react";
 
 import { requireAdmin } from "@/lib/auth/require-admin";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
@@ -21,7 +21,8 @@ function StatusPill({ status }: { status: string }) {
 
 function TxTypePill({ txType }: { txType: string }) {
   const labels: Record<string, string> = {
-    fee_credit:        "Platform fee",
+    fee_credit:        "Fee / Stake",
+    payout_debit:      "Winner payout",
     withdrawal_debit:  "Withdrawal",
     adjustment_credit: "Adjustment",
     adjustment_debit:  "Adjustment",
@@ -60,6 +61,36 @@ export default async function PlatformWalletPage() {
         </p>
       </div>
 
+      {/* Net Profit Banner */}
+      {wallet && (() => {
+        const platformEarnings = parseFloat(wallet.balance);
+        const owed             = parseFloat(totalUserBalances);
+        return (
+          <div className="rounded-xl border border-gold/30 bg-gradient-to-r from-amber-500/10 to-transparent p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-amber-400" />
+                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Your Withdrawable Profit</p>
+                </div>
+                <p className="mt-2 font-mono text-4xl font-bold tracking-tight text-white">
+                  ${formatDecimal(platformEarnings, 2)}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Accumulated from trading fees + loser stakes on settled markets
+                </p>
+              </div>
+              <div className="shrink-0 rounded-lg border border-white/[0.06] bg-[#111318] p-3 text-xs text-slate-500 space-y-1 min-w-[200px]">
+                <p className="font-semibold text-slate-300 mb-2">How to read this page</p>
+                <p><span className="text-amber-400 font-semibold">Profit</span> = fees + loser stakes. Safe to withdraw.</p>
+                <p><span className="text-violet-400 font-semibold">Player balances</span> = what you owe users. Must stay in master wallet.</p>
+                <p><span className="text-teal-400 font-semibold">Sweep</span> = consolidates player deposits on-chain. Not profit.</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Withdrawal wallet low-balance warning */}
       {hotWalletIsLow && (
         <div className="flex items-start gap-3 rounded-xl border border-rose-400/20 bg-rose-400/5 p-4">
@@ -88,7 +119,7 @@ export default async function PlatformWalletPage() {
             <p className="mt-3 font-mono text-2xl font-semibold tracking-tight text-white">
               ${formatDecimal(wallet.balance, 2)}
             </p>
-            <p className="mt-1 text-xs text-slate-500">Total Fees Collected</p>
+            <p className="mt-1 text-xs text-slate-500">Platform Earnings (Fees + Loser Stakes)</p>
             <div className="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-teal-400/5" />
           </div>
 
@@ -145,6 +176,14 @@ export default async function PlatformWalletPage() {
       {/* On-chain sweep */}
       <div className="rounded-xl border border-white/[0.06] bg-[#111318] overflow-hidden">
         <SectionHeader title="On-Chain USDT Sweep" />
+        <div className="flex items-start gap-2 border-b border-white/[0.06] bg-blue-400/5 px-5 py-3">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-400" />
+          <p className="text-xs text-slate-500">
+            This consolidates USDT from player deposit addresses into your master wallet.{" "}
+            <span className="text-slate-400">It is not your profit</span> — it includes all player funds (balances they can still withdraw).
+            Your profit is shown above.
+          </p>
+        </div>
         <div className="p-5">
           <SweepPanel />
         </div>
