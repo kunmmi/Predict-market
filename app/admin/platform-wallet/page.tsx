@@ -57,7 +57,7 @@ export default async function PlatformWalletPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-white">Platform Wallet</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Shared treasury — platform fee inflows and admin withdrawals.
+          Platform earnings ledger — fees and loser stakes accumulated from settled markets.
         </p>
       </div>
 
@@ -82,7 +82,7 @@ export default async function PlatformWalletPage() {
               </div>
               <div className="shrink-0 rounded-lg border border-white/[0.06] bg-[#111318] p-3 text-xs text-slate-500 space-y-1 min-w-[200px]">
                 <p className="font-semibold text-slate-300 mb-2">How to read this page</p>
-                <p><span className="text-amber-400 font-semibold">Profit</span> = fees + loser stakes. Safe to withdraw.</p>
+                <p><span className="text-amber-400 font-semibold">Profit</span> = fees + loser stakes. Withdraw via master wallet.</p>
                 <p><span className="text-violet-400 font-semibold">Player balances</span> = what you owe users. Must stay in master wallet.</p>
                 <p><span className="text-teal-400 font-semibold">Sweep</span> = consolidates player deposits on-chain. Not profit.</p>
               </div>
