@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -18,8 +19,25 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Deploy to production
-        run: vercel --prod --yes --token=${{ secrets.CLIENT_VERCEL_TOKEN }}
+      - name: Link Vercel project
+        run: |
+          mkdir -p .vercel
+          echo '{"projectId":"${{ secrets.CLIENT_VERCEL_PROJECT_ID }}","orgId":"${{ secrets.CLIENT_VERCEL_ORG_ID }}"}' > .vercel/project.json
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.CLIENT_VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.CLIENT_VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.CLIENT_VERCEL_PROJECT_ID }}
+
+      - name: Build project
+        run: vercel build --prod --token=${{ secrets.CLIENT_VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.CLIENT_VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.CLIENT_VERCEL_PROJECT_ID }}
+
+      - name: Deploy prebuilt artifact
+        run: vercel deploy --prebuilt --prod --debug --token=${{ secrets.CLIENT_VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.CLIENT_VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.CLIENT_VERCEL_PROJECT_ID }}
