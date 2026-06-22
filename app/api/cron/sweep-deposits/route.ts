@@ -132,12 +132,11 @@ async function fetchIncomingTransfers(addresses: string[]): Promise<Transfer[]> 
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
+  // Fail closed: reject if CRON_SECRET is unset or the bearer token doesn't match.
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = request.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  const auth = request.headers.get("authorization") ?? "";
+  if (!secret || auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = createSupabaseAdminClient();
