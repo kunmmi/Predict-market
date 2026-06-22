@@ -66,25 +66,31 @@ export default async function PlatformWalletPage() {
       </div>
 
       {/* Net Profit Banner */}
-      {hotWalletBalance !== null && (() => {
-        const onChain          = hotWalletBalance;
-        const owed             = parseFloat(totalUserBalances);
-        const withdrawable     = Math.max(0, onChain - owed);
+      {(() => {
+        const owed = parseFloat(totalUserBalances);
+        const hasOnChain = hotWalletBalance !== null;
+        const withdrawable = hasOnChain ? Math.max(0, hotWalletBalance - owed) : null;
+        const ledgerBalance = wallet ? parseFloat(wallet.balance) : null;
+        const displayAmount = withdrawable ?? ledgerBalance ?? 0;
         return (
           <div className="rounded-xl border border-gold/30 bg-gradient-to-r from-amber-500/10 to-transparent p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-amber-400" />
-                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">{isZh ? "当前可提现利润" : "Current Withdrawable Profit"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+                    {isZh ? "当前可提现利润" : "Current Withdrawable Profit"}
+                  </p>
                 </div>
                 <p className="mt-2 font-mono text-4xl font-bold tracking-tight text-white">
-                  ${formatDecimal(withdrawable, 2)}
+                  ${formatDecimal(displayAmount, 2)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {isZh
-                    ? `链上余额 $${onChain.toFixed(2)} − 玩家欠款 $${owed.toFixed(2)}`
-                    : `On-chain $${onChain.toFixed(2)} − player liabilities $${owed.toFixed(2)}`}
+                  {hasOnChain
+                    ? (isZh
+                        ? `链上余额 $${hotWalletBalance!.toFixed(2)} − 玩家欠款 $${owed.toFixed(2)}`
+                        : `On-chain $${hotWalletBalance!.toFixed(2)} − player liabilities $${owed.toFixed(2)}`)
+                    : (isZh ? "来自账本的平台收益（链上余额不可用）" : "Platform ledger earnings — on-chain balance unavailable")}
                 </p>
               </div>
               <div className="shrink-0 rounded-lg border border-white/[0.06] bg-[#111318] p-3 text-xs text-slate-500 space-y-1 min-w-[200px]">
