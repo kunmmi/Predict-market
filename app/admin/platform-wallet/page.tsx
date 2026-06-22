@@ -66,27 +66,30 @@ export default async function PlatformWalletPage() {
       </div>
 
       {/* Net Profit Banner */}
-      {wallet && (() => {
-        const platformEarnings = parseFloat(wallet.balance);
+      {hotWalletBalance !== null && (() => {
+        const onChain          = hotWalletBalance;
         const owed             = parseFloat(totalUserBalances);
+        const withdrawable     = Math.max(0, onChain - owed);
         return (
           <div className="rounded-xl border border-gold/30 bg-gradient-to-r from-amber-500/10 to-transparent p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-amber-400" />
-                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">{isZh ? "可提现利润" : "Your Withdrawable Profit"}</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">{isZh ? "当前可提现利润" : "Current Withdrawable Profit"}</p>
                 </div>
                 <p className="mt-2 font-mono text-4xl font-bold tracking-tight text-white">
-                  ${formatDecimal(platformEarnings, 2)}
+                  ${formatDecimal(withdrawable, 2)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  {isZh ? "来自已结算市场的手续费 + 输家投注" : "Accumulated from trading fees + loser stakes on settled markets"}
+                  {isZh
+                    ? `链上余额 $${onChain.toFixed(2)} − 玩家欠款 $${owed.toFixed(2)}`
+                    : `On-chain $${onChain.toFixed(2)} − player liabilities $${owed.toFixed(2)}`}
                 </p>
               </div>
               <div className="shrink-0 rounded-lg border border-white/[0.06] bg-[#111318] p-3 text-xs text-slate-500 space-y-1 min-w-[200px]">
                 <p className="font-semibold text-slate-300 mb-2">{isZh ? "如何阅读此页面" : "How to read this page"}</p>
-                <p><span className="text-amber-400 font-semibold">{isZh ? "利润" : "Profit"}</span> {isZh ? "= 手续费 + 输家投注。通过主钱包提现。" : "= fees + loser stakes. Withdraw via master wallet."}</p>
+                <p><span className="text-amber-400 font-semibold">{isZh ? "可提现" : "Withdrawable"}</span> {isZh ? "= 链上余额 − 玩家欠款。这是您的真实利润。" : "= on-chain balance − player liabilities. Your real profit."}</p>
                 <p><span className="text-violet-400 font-semibold">{isZh ? "玩家余额" : "Player balances"}</span> {isZh ? "= 您欠用户的资金。须留存于主钱包。" : "= what you owe users. Must stay in master wallet."}</p>
                 <p><span className="text-teal-400 font-semibold">{isZh ? "归集" : "Sweep"}</span> {isZh ? "= 链上归集玩家充值。非利润。" : "= consolidates player deposits on-chain. Not profit."}</p>
               </div>
