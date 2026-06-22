@@ -74,7 +74,7 @@ export function SignupForm({ locale, t }: Props) {
       body: JSON.stringify({ ...values, mode: "email" }),
     });
     const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null;
-    if (!res.ok || !json?.success) { setErrorMessage(json?.message ?? "Signup failed."); return; }
+    if (!res.ok || !json?.success) { setErrorMessage(json?.message ?? t.signup_failed); return; }
     router.refresh();
     router.push("/dashboard");
   }
@@ -87,7 +87,7 @@ export function SignupForm({ locale, t }: Props) {
       body: JSON.stringify({ ...values, mode: "username" }),
     });
     const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null;
-    if (!res.ok || !json?.success) { setErrorMessage(json?.message ?? "Signup failed."); return; }
+    if (!res.ok || !json?.success) { setErrorMessage(json?.message ?? t.signup_failed); return; }
     router.refresh();
     router.push("/dashboard");
   }

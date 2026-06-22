@@ -38,7 +38,7 @@ export function LoginForm({ locale, t }: Props) {
       body: JSON.stringify({ identifier: values.identifier, password: values.password }),
     });
     const json = (await res.json().catch(() => null)) as { success?: boolean; message?: string } | null;
-    if (!res.ok || !json?.success) { setErrorMessage(json?.message ?? "Login failed."); return; }
+    if (!res.ok || !json?.success) { setErrorMessage(json?.message ?? t.login_failed); return; }
     const next = getSafeNextPath(searchParams.get("next"));
     router.refresh();
     router.push(next);
