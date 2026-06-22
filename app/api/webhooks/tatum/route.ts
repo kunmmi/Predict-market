@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { resolveAssetSymbol } from "@/lib/config/deposit-addresses";
+import { verifyUsdtDeposit } from "@/lib/blockchain/verify-deposit";
 
 // ---------------------------------------------------------------------------
 // Tatum webhook payload shape
@@ -30,29 +31,27 @@ type TatumWebhookPayload = {
 function verifySignature(rawBody: string, headerSignature: string): boolean {
   const secret = process.env.TATUM_WEBHOOK_SECRET;
 
-  // If Tatum didn't send a signature header, HMAC is not enabled on this plan.
-  // Accept the request — the endpoint is still protected by the unique tatum_tx_id
-  // constraint and deposit-matching logic.
+  // Fail CLOSED. This endpoint credits real money, so we require a configured
+  // secret AND a valid signature on every request. A missing secret or a missing
+  // header is a rejection — never an implicit "trust it".
+  if (!secret) {
+    console.error("[tatum-webhook] TATUM_WEBHOOK_SECRET not set — rejecting");
+    return false;
+  }
   if (!headerSignature) {
-    return true;
+    console.warn("[tatum-webhook] Missing x-payload-hash header — rejecting");
+    return false;
   }
 
-  // If we have a secret and a signature, verify it properly.
-  if (secret) {
-    const computed = crypto.createHmac("sha512", secret).update(rawBody).digest("hex");
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(computed, "hex"),
-        Buffer.from(headerSignature, "hex"),
-      );
-    } catch {
-      return false;
-    }
+  const computed = crypto.createHmac("sha512", secret).update(rawBody).digest("hex");
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(computed, "hex"),
+      Buffer.from(headerSignature, "hex"),
+    );
+  } catch {
+    return false;
   }
-
-  // Signature present but no secret configured — reject to be safe
-  console.warn("[tatum-webhook] Received x-payload-hash but TATUM_WEBHOOK_SECRET is not set");
-  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -152,7 +151,21 @@ async function processWebhook(payload: TatumWebhookPayload): Promise<void> {
     return;
   }
 
-  const amountReceived = parseFloat(String(payload.amount));
+  // SECURITY: never trust payload.amount. The deposit system is USDT BEP-20 only,
+  // so verify the transaction on the BSC chain and use the real on-chain amount.
+  // A non-BSC chain, a non-existent tx, or no matching transfer => no credit.
+  if ((payload.chain ?? "").toUpperCase() !== "BSC") {
+    await updateLog(supabase, logId, "skipped", `Unsupported chain for crediting: ${payload.chain}`);
+    return;
+  }
+
+  const verified = await verifyUsdtDeposit(payload.txId, payload.address);
+  if (!verified.ok) {
+    await updateLog(supabase, logId, "skipped", `On-chain verification failed: ${verified.reason}`);
+    console.warn(`[tatum-webhook] On-chain verification failed for ${payload.txId}: ${verified.reason}`);
+    return;
+  }
+  const amountReceived = verified.amount;
 
   // Step 4a: Try unique deposit address match — fastest path, no form required.
   // If this user's personal address received funds, credit them directly.

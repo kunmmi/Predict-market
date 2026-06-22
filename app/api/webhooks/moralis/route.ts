@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createProvider, initializeDepositAddress } from "@/lib/blockchain/bsc-sweep";
+import { verifyUsdtDeposit } from "@/lib/blockchain/verify-deposit";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +38,17 @@ type MoralisWebhookPayload = {
   erc20Transfers?: Erc20Transfer[];
 };
 
-/** Verify Moralis HMAC signature (if MORALIS_WEBHOOK_SECRET is set). */
+/**
+ * Verify Moralis HMAC signature. Fails CLOSED: if the secret is not configured
+ * or the signature header is missing/invalid, the request is rejected. We never
+ * accept an unsigned webhook, because this endpoint credits real money.
+ */
 function verifySignature(rawBody: string, headerSignature: string | null): boolean {
   const secret = process.env.MORALIS_WEBHOOK_SECRET;
-  if (!secret) return true; // signature verification disabled
+  if (!secret) {
+    console.error("[moralis-webhook] MORALIS_WEBHOOK_SECRET not set — rejecting");
+    return false;
+  }
   if (!headerSignature) return false;
 
   const expected = crypto
@@ -102,10 +110,7 @@ export async function POST(request: Request) {
     if (t.tokenSymbol !== "USDT") continue;
 
     const toAddress = t.to.toLowerCase();
-    const amount = parseFloat(t.valueWithDecimals);
     const txHash = t.transactionHash;
-
-    if (!amount || amount <= 0) continue;
 
     // Find the wallet that owns this address
     const { data: wallets } = await supabase
@@ -133,6 +138,17 @@ export async function POST(request: Request) {
       results.push(`${txHash}: already credited`);
       continue;
     }
+
+    // SECURITY: never trust the amount from the webhook body. Verify the
+    // transaction on-chain and credit the real USDT amount that actually
+    // landed at this deposit address.
+    const verified = await verifyUsdtDeposit(txHash, toAddress);
+    if (!verified.ok) {
+      console.warn(`[moralis-webhook] On-chain verification failed for ${txHash}: ${verified.reason}`);
+      results.push(`${txHash}: rejected (${verified.reason})`);
+      continue;
+    }
+    const amount = verified.amount;
 
     // Insert pending deposit
     const { data: dep, error: insertErr } = await supabase
@@ -162,7 +178,7 @@ export async function POST(request: Request) {
       p_deposit_id: dep.id,
       p_admin_profile_id: adminId,
       p_amount_received: amount,
-      p_admin_notes: `Auto-credited via Moralis Stream. txHash: ${txHash}`,
+      p_admin_notes: `Auto-credited via Moralis Stream (on-chain verified). txHash: ${txHash}`,
     });
 
     if (rpcErr) {
