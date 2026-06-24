@@ -58,6 +58,12 @@ jobs:
           mkdir -p .vercel
           echo '{"projectId":"${{ secrets.CLIENT_VERCEL_PROJECT_ID }}","orgId":"${{ secrets.CLIENT_VERCEL_ORG_ID }}"}' > .vercel/project.json
 
+      - name: Pull Vercel project settings
+        run: vercel pull --yes --environment=production --token=${{ secrets.CLIENT_VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.CLIENT_VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.CLIENT_VERCEL_PROJECT_ID }}
+
       - name: Deploy to Client Vercel (source deploy)
         run: vercel deploy --prod --no-wait --token=${{ secrets.CLIENT_VERCEL_TOKEN }}
         env:
