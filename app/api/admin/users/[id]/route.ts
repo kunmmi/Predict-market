@@ -68,20 +68,45 @@ export async function DELETE(_request: Request, { params }: Params) {
     );
   }
 
-  // Fetch email for the log before deleting
+  // Fetch profile before deleting (for the audit log)
   const { data: profile } = await supabase
     .from("profiles")
     .select("email")
     .eq("id", params.id)
     .maybeSingle();
 
-  // Delete from Supabase Auth — cascades to profiles and related tables via FK
-  const { error } = await supabase.auth.admin.deleteUser(params.id);
-  if (error) {
-    return NextResponse.json(
-      { success: false, message: error.message ?? "Failed to delete user." },
-      { status: 500 },
-    );
+  if (!profile) {
+    return NextResponse.json({ success: false, message: "User not found." }, { status: 404 });
+  }
+
+  // Try to delete from Supabase Auth first (cascades to profiles via FK).
+  // If the auth user doesn't exist (e.g. manually-created test accounts), fall
+  // through and delete the profile row directly instead.
+  const { error: authError } = await supabase.auth.admin.deleteUser(params.id);
+  if (authError) {
+    const notFound =
+      authError.message?.toLowerCase().includes("not found") ||
+      authError.message?.toLowerCase().includes("user not found");
+
+    if (!notFound) {
+      return NextResponse.json(
+        { success: false, message: authError.message ?? "Failed to delete user." },
+        { status: 500 },
+      );
+    }
+
+    // Auth user doesn't exist — delete the profile row directly
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", params.id);
+
+    if (profileError) {
+      return NextResponse.json(
+        { success: false, message: profileError.message ?? "Failed to delete user profile." },
+        { status: 500 },
+      );
+    }
   }
 
   await supabase.from("admin_logs").insert({
@@ -89,7 +114,7 @@ export async function DELETE(_request: Request, { params }: Params) {
     action_type: "user_deleted",
     target_table: "profiles",
     target_id: params.id,
-    notes: `Deleted user ${profile?.email ?? params.id} by ${adminProfile.email}`,
+    notes: `Deleted user ${profile.email} by ${adminProfile.email}`,
   });
 
   return NextResponse.json({ success: true });
