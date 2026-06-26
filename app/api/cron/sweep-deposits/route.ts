@@ -92,6 +92,64 @@ type Transfer = {
 // ---------------------------------------------------------------------------
 
 async function fetchIncomingTransfers(addresses: string[]): Promise<Transfer[]> {
+  // Primary: Moralis EVM API. Public BSC RPCs reject ranged eth_getLogs from
+  // datacenter IPs (Vercel), so the on-chain log scan below fails in production.
+  // Moralis is keyed and reliable from any server, so prefer it when available.
+  if (process.env.MORALIS_API_KEY) {
+    try {
+      return await fetchIncomingTransfersMoralis(addresses);
+    } catch (err) {
+      console.warn(`[sweep] Moralis API fetch failed, falling back to RPC: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+  return fetchIncomingTransfersRpc(addresses);
+}
+
+/**
+ * Fetch recent incoming USDT transfers per address via the Moralis EVM API.
+ * One request per address; filters to USDT (BEP-20) transfers received by us.
+ */
+async function fetchIncomingTransfersMoralis(addresses: string[]): Promise<Transfer[]> {
+  const apiKey = process.env.MORALIS_API_KEY!;
+  const out: Transfer[] = [];
+
+  for (const addr of addresses) {
+    const url = `https://deep-index.moralis.io/api/v2.2/${addr}/erc20/transfers?chain=bsc&limit=30`;
+    const res = await fetch(url, {
+      headers: { "X-API-Key": apiKey, accept: "application/json" },
+      cache: "no-store" as RequestCache,
+    });
+    if (!res.ok) {
+      console.warn(`[sweep] Moralis API HTTP ${res.status} for ${addr}`);
+      continue;
+    }
+    const json = (await res.json()) as {
+      result?: Array<{
+        transaction_hash: string;
+        address: string;          // token contract
+        to_address: string;
+        value?: string;
+        value_decimal?: string;
+      }>;
+    };
+    for (const t of json.result ?? []) {
+      if ((t.address ?? "").toLowerCase() !== USDT_CONTRACT.toLowerCase()) continue;
+      if ((t.to_address ?? "").toLowerCase() !== addr.toLowerCase()) continue;
+      const amount =
+        t.value_decimal != null
+          ? parseFloat(t.value_decimal)
+          : Number(BigInt(t.value ?? "0")) / Math.pow(10, USDT_DECIMALS);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      out.push({ txHash: t.transaction_hash, toAddress: addr.toLowerCase(), amount });
+    }
+  }
+
+  console.log(`[sweep] Moralis API → ${out.length} incoming USDT transfers across ${addresses.length} addresses`);
+  return out;
+}
+
+/** Fallback: scan recent blocks for USDT transfers via public BSC RPC getLogs. */
+async function fetchIncomingTransfersRpc(addresses: string[]): Promise<Transfer[]> {
   const { rpc, blockNumber } = await getBestRpc();
   const fromBlock = Math.max(0, blockNumber - BLOCKS_TO_SCAN);
 
