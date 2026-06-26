@@ -21,6 +21,7 @@ const USDT_CONTRACT = "0x55d398326f99059ff775485246999027b3197955";
 const TRANSFER_SIG   = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const USDT_DECIMALS  = 18;
 const BLOCKS_TO_SCAN = 300; // ~15 min of BSC blocks (3 s/block) — buffer for delayed cron runs
+const MAX_DEPOSIT_AGE_MS = 24 * 60 * 60 * 1000; // only auto-credit deposits seen in the last 24h
 
 // NOTE: rpc.ankr.com now requires an API key and the plain bsc-dataseed nodes
 // reject eth_getLogs over a block range ("archive request"). drpc / llamarpc /
@@ -130,11 +131,23 @@ async function fetchIncomingTransfersMoralis(addresses: string[]): Promise<Trans
         to_address: string;
         value?: string;
         value_decimal?: string;
+        block_timestamp?: string;
       }>;
     };
     for (const t of json.result ?? []) {
       if ((t.address ?? "").toLowerCase() !== USDT_CONTRACT.toLowerCase()) continue;
       if ((t.to_address ?? "").toLowerCase() !== addr.toLowerCase()) continue;
+
+      // SAFETY: only auto-credit recent transfers. The sweep runs every 5 min,
+      // so anything legitimate is caught well within this window. Refusing old
+      // transfers means the sweep can never re-credit a months-old deposit if a
+      // deposit record is ever lost/regenerated (which previously caused a
+      // double-credit). Older missed deposits must be recovered manually.
+      if (t.block_timestamp) {
+        const ageMs = Date.now() - new Date(t.block_timestamp).getTime();
+        if (Number.isFinite(ageMs) && ageMs > MAX_DEPOSIT_AGE_MS) continue;
+      }
+
       const amount =
         t.value_decimal != null
           ? parseFloat(t.value_decimal)
