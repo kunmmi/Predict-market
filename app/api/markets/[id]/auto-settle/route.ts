@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { requireAdminForApi } from "@/lib/auth/require-admin-api";
+import { requireUserForApi } from "@/lib/auth/require-user-for-api";
 import { settleShortDurationMarketById } from "@/lib/services/short-duration-settlement";
 
 type Params = { params: { id: string } };
 
 export async function POST(_req: Request, { params }: Params) {
   try {
-    await requireAdminForApi();
+    await requireUserForApi();
   } catch {
     return NextResponse.json({ success: false, message: "Unauthorized." }, { status: 401 });
   }
