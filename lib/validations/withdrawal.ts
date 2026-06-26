@@ -15,8 +15,7 @@ export const withdrawalCreateSchema = z.object({
   withdrawal_address: z
     .string()
     .trim()
-    .min(10, "Please enter a valid wallet address.")
-    .max(500),
+    .regex(/^0x[0-9a-fA-F]{40}$/, "Please enter a valid BEP-20 wallet address (0x followed by 40 hex characters)."),
   notes: z.string().trim().max(500).optional().nullable(),
 });
 

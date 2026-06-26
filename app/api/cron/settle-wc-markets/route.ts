@@ -154,7 +154,8 @@ export async function GET(request: Request) {
     }
 
     // 6. Settle via RPC
-    const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID ?? "95e54b07-875b-4482-9787-28d3795571c0";
+    const systemAdminId = process.env.SYSTEM_ADMIN_PROFILE_ID;
+    if (!systemAdminId) return NextResponse.json({ error: "SYSTEM_ADMIN_PROFILE_ID not set" }, { status: 500 });
     const { error: rpcErr } = await supabase.rpc("settle_multi_market", {
       p_market_id:         market.id,
       p_winner_outcome_id: winner.id,
