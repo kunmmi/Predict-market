@@ -23,7 +23,7 @@ export function DepositPoller() {
     } catch {
       // best-effort — background sweep is the safety net
     }
-  }, 30_000);
+  }, 15_000);
 
   return null;
 }
