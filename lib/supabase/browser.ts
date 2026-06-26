@@ -2,8 +2,6 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
-import { config } from "@/lib/config";
-
 /**
  * Authenticated browser Supabase client.
  *
@@ -12,11 +10,20 @@ import { config } from "@/lib/config";
  * means `auth.uid()` is populated, so RLS-gated SELECTs work AND Realtime
  * subscriptions are authenticated — each subscriber only receives the rows their
  * RLS policies allow. Use this for client-side reads and Realtime.
+ *
+ * NOTE: the env vars MUST be referenced as static `process.env.NEXT_PUBLIC_*`
+ * literals so Next.js inlines them into the client bundle. Reading them through
+ * a helper that does `process.env[dynamicKey]` returns undefined in the browser.
  */
 let cached: ReturnType<typeof createBrowserClient> | null = null;
 
 export function getSupabaseBrowserClient() {
   if (cached) return cached;
-  cached = createBrowserClient(config.supabase.url(), config.supabase.anonKey());
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error("Supabase public env vars are not configured.");
+  }
+  cached = createBrowserClient(url, anonKey);
   return cached;
 }
