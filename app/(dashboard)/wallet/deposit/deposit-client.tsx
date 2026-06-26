@@ -293,13 +293,31 @@ export function DepositPageClient({ t, locale }: { t: T["deposit"]; locale: Loca
     }
   }
 
+  // On-demand deposit detection. While the user is on this page waiting for a
+  // deposit, scan their own address every 15s so it credits within seconds of
+  // confirming on-chain — instead of waiting for the 5-minute background sweep.
+  async function checkForDeposits() {
+    try {
+      const res = await fetch("/api/wallet/check-deposits", { method: "POST" });
+      if (!res.ok) return;
+      const json = (await res.json()) as { credited?: number };
+      if (json.credited && json.credited > 0) {
+        await fetchData(false); // surfaces the success banner + refreshes balance
+      }
+    } catch {
+      // best-effort — the background sweep is the safety net
+    }
+  }
+
   React.useEffect(() => {
     void fetchData(true);
+    void checkForDeposits(); // immediate first check on load
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Visibility-aware poll: only runs when the tab is in front
+  // Visibility-aware polls: only run when the tab is in front.
   useVisibilityPoll(() => fetchData(false), POLL_INTERVAL_MS);
+  useVisibilityPoll(() => checkForDeposits(), 15_000);
 
   return (
     <div className="space-y-8">
