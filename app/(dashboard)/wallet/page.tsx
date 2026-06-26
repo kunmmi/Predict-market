@@ -14,6 +14,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/helpers/cn";
 import type { WalletTxType, EntryDirection } from "@/types/enums";
+import { DepositPoller } from "@/components/wallet/deposit-poller";
 
 function DirectionAmount({
   direction,
@@ -75,6 +76,7 @@ export default async function WalletPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+      <DepositPoller />
       {/* Header */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
         <div>

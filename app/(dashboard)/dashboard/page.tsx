@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { DashboardOverview } from "@/components/dashboard/dashboard-overview";
+import { DepositPoller } from "@/components/wallet/deposit-poller";
 import { requireUser } from "@/lib/auth/require-user";
 import { formatDecimal } from "@/lib/helpers/format-decimal";
 import { getDashboardData } from "@/lib/services/dashboard-data";
@@ -105,19 +106,22 @@ export default async function DashboardPage() {
   const t = getT(locale);
 
   return (
-    <DashboardOverview
-      email={profile.email}
-      fullName={profile.full_name}
-      role={profile.role}
-      profileStatus={profile.status}
-      walletBalance={wallet ? formatDecimal(wallet.balance) : null}
-      walletAvailable={wallet ? formatDecimal(wallet.available_balance) : null}
-      walletStatus={wallet?.status ?? null}
-      data={data}
-      topPlayers={topPlayers}
-      showAdminLink={profile.role === "admin"}
-      locale={locale}
-      t={t.dashboard}
-    />
+    <>
+      <DepositPoller />
+      <DashboardOverview
+        email={profile.email}
+        fullName={profile.full_name}
+        role={profile.role}
+        profileStatus={profile.status}
+        walletBalance={wallet ? formatDecimal(wallet.balance) : null}
+        walletAvailable={wallet ? formatDecimal(wallet.available_balance) : null}
+        walletStatus={wallet?.status ?? null}
+        data={data}
+        topPlayers={topPlayers}
+        showAdminLink={profile.role === "admin"}
+        locale={locale}
+        t={t.dashboard}
+      />
+    </>
   );
 }
