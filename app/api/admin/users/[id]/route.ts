@@ -26,6 +26,76 @@ export async function GET(_request: Request, { params }: Params) {
 }
 
 /**
+ * DELETE /api/admin/users/[id]
+ * Permanently deletes a user from Supabase Auth and all related data.
+ *
+ * Blocked if:
+ *   - Attempting to delete yourself
+ *   - The user has a positive wallet balance (withdraw first)
+ */
+export async function DELETE(_request: Request, { params }: Params) {
+  let adminProfile: { id: string; email: string };
+  try {
+    const { profile } = await requireAdminForApi();
+    adminProfile = profile;
+  } catch {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
+  }
+
+  if (params.id === adminProfile.id) {
+    return NextResponse.json(
+      { success: false, message: "You cannot delete your own account." },
+      { status: 400 },
+    );
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  // Block deletion if user has a positive wallet balance
+  const { data: wallet } = await supabase
+    .from("wallets")
+    .select("balance")
+    .eq("profile_id", params.id)
+    .maybeSingle();
+
+  if (wallet && parseFloat(String(wallet.balance ?? "0")) > 0) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: `User has a balance of $${parseFloat(String(wallet.balance)).toFixed(2)}. Withdraw or zero out the balance before deleting.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  // Fetch email for the log before deleting
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("id", params.id)
+    .maybeSingle();
+
+  // Delete from Supabase Auth — cascades to profiles and related tables via FK
+  const { error } = await supabase.auth.admin.deleteUser(params.id);
+  if (error) {
+    return NextResponse.json(
+      { success: false, message: error.message ?? "Failed to delete user." },
+      { status: 500 },
+    );
+  }
+
+  await supabase.from("admin_logs").insert({
+    admin_profile_id: adminProfile.id,
+    action_type: "user_deleted",
+    target_table: "profiles",
+    target_id: params.id,
+    notes: `Deleted user ${profile?.email ?? params.id} by ${adminProfile.email}`,
+  });
+
+  return NextResponse.json({ success: true });
+}
+
+/**
  * PATCH /api/admin/users/[id]
  * Updates a user's role. Body: { role: "admin" | "user" }
  *

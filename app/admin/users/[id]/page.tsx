@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, ShieldCheck, ShieldOff, Copy, Check,
-  Wallet, ArrowDownLeft, ArrowUpRight, BarChart2, TrendingUp, BookOpen,
+  Wallet, ArrowDownLeft, ArrowUpRight, BarChart2, TrendingUp, BookOpen, Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -491,6 +491,67 @@ function Empty({ text }: { text: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// Delete user
+// ---------------------------------------------------------------------------
+
+function DeleteUserButton({ userId, onDeleted }: { userId: string; onDeleted: () => void }) {
+  const [phase, setPhase] = React.useState<"idle" | "confirm" | "loading">("idle");
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function doDelete() {
+    setPhase("loading");
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
+      const json = await res.json() as { success: boolean; message?: string };
+      if (!json.success) {
+        setError(json.message ?? "Failed to delete user.");
+        setPhase("idle");
+        return;
+      }
+      onDeleted();
+    } catch {
+      setError("Network error.");
+      setPhase("idle");
+    }
+  }
+
+  if (phase === "confirm") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-rose-400">Delete this user?</span>
+        <button
+          onClick={() => void doDelete()}
+          className="inline-flex items-center gap-1 rounded-lg border border-rose-400/30 bg-rose-400/10 px-2.5 py-1.5 text-xs font-bold text-rose-400 hover:bg-rose-400/20 transition-colors"
+        >
+          Yes, delete
+        </button>
+        <button
+          onClick={() => { setPhase("idle"); setError(null); }}
+          className="inline-flex items-center rounded-lg border border-white/[0.08] px-2.5 py-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        disabled={phase === "loading"}
+        onClick={() => setPhase("confirm")}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-rose-400 transition-all hover:bg-rose-400/20 disabled:opacity-50"
+      >
+        <Trash2 className="h-3 w-3" />
+        Delete user
+      </button>
+      {error && <p className="mt-1 text-xs text-rose-400">{error}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Role toggle
 // ---------------------------------------------------------------------------
 
@@ -653,13 +714,17 @@ export default function AdminUserDetailPage() {
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 ml-auto">
+        <div className="flex items-center gap-2 ml-auto flex-wrap justify-end">
           <RoleToggleButton
             userId={profile.id}
             role={profile.role}
             onUpdated={(newRole) =>
               setDetail((d) => d ? { ...d, profile: { ...d.profile, role: newRole } } : d)
             }
+          />
+          <DeleteUserButton
+            userId={profile.id}
+            onDeleted={() => router.push("/admin/users")}
           />
         </div>
       </div>

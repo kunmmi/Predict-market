@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Search, ShieldCheck, ShieldOff, ExternalLink } from "lucide-react";
+import { Search, ShieldCheck, ShieldOff, ExternalLink, Trash2 } from "lucide-react";
 
 import type { AdminUserRow } from "@/lib/services/admin-data";
 
@@ -100,6 +100,69 @@ function RoleToggle({
 }
 
 // ---------------------------------------------------------------------------
+// Delete button
+// ---------------------------------------------------------------------------
+
+function DeleteButton({ user, onDeleted }: { user: AdminUserRow; onDeleted: (id: string) => void }) {
+  const [phase, setPhase] = React.useState<"idle" | "confirm" | "loading">("idle");
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function doDelete() {
+    setPhase("loading");
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      const json = await res.json() as { success: boolean; message?: string };
+      if (!json.success) {
+        setError(json.message ?? "Failed.");
+        setPhase("idle");
+        return;
+      }
+      onDeleted(user.id);
+    } catch {
+      setError("Network error.");
+      setPhase("idle");
+    }
+  }
+
+  if (phase === "confirm") {
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => void doDelete()}
+            className="inline-flex items-center rounded-lg border border-rose-400/30 bg-rose-400/10 px-2 py-1 text-[10px] font-bold text-rose-400 hover:bg-rose-400/20 transition-colors"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={() => { setPhase("idle"); setError(null); }}
+            className="inline-flex items-center rounded-lg border border-white/[0.08] px-2 py-1 text-[10px] text-slate-400 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+        {error && <p className="text-[10px] text-rose-400">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        disabled={phase === "loading"}
+        onClick={() => setPhase("confirm")}
+        className="inline-flex items-center gap-1 rounded-lg border border-rose-400/20 bg-rose-400/[0.06] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-rose-400 hover:bg-rose-400/20 transition-all disabled:opacity-50"
+      >
+        <Trash2 className="h-2.5 w-2.5" />
+        Delete
+      </button>
+      {error && <p className="text-[10px] text-rose-400">{error}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main table
 // ---------------------------------------------------------------------------
 
@@ -122,6 +185,10 @@ export function UsersTable({ initialUsers }: { initialUsers: AdminUserRow[] }) {
 
   function handleRoleUpdated(id: string, newRole: string) {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
+  }
+
+  function handleDeleted(id: string) {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
   }
 
   return (
@@ -188,7 +255,10 @@ export function UsersTable({ initialUsers }: { initialUsers: AdminUserRow[] }) {
                       })}
                     </td>
                     <td className="px-5 py-3.5">
-                      <RoleToggle user={user} onUpdated={handleRoleUpdated} />
+                      <div className="flex flex-col gap-1.5">
+                        <RoleToggle user={user} onUpdated={handleRoleUpdated} />
+                        <DeleteButton user={user} onDeleted={handleDeleted} />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -222,7 +292,10 @@ export function UsersTable({ initialUsers }: { initialUsers: AdminUserRow[] }) {
                   </span>
                 </div>
 
-                <RoleToggle user={user} onUpdated={handleRoleUpdated} />
+                <div className="flex items-start gap-2 flex-wrap">
+                  <RoleToggle user={user} onUpdated={handleRoleUpdated} />
+                  <DeleteButton user={user} onDeleted={handleDeleted} />
+                </div>
               </div>
             ))}
           </div>
