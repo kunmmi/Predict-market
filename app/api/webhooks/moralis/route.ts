@@ -11,6 +11,7 @@
 
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
+import { keccak256, toUtf8Bytes } from "ethers";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createProvider, initializeDepositAddress } from "@/lib/blockchain/bsc-sweep";
 import { verifyUsdtDeposit } from "@/lib/blockchain/verify-deposit";
@@ -39,9 +40,15 @@ type MoralisWebhookPayload = {
 };
 
 /**
- * Verify Moralis HMAC signature. Fails CLOSED: if the secret is not configured
- * or the signature header is missing/invalid, the request is rejected. We never
- * accept an unsigned webhook, because this endpoint credits real money.
+ * Verify the Moralis Streams webhook signature. Fails CLOSED: if the secret is
+ * not configured or the signature header is missing/invalid, the request is
+ * rejected. We never accept an unsigned webhook, because this endpoint credits
+ * real money.
+ *
+ * Moralis signs every webhook (including the test webhook sent at stream
+ * creation) as keccak256(rawBody + secret), delivered in the `x-signature`
+ * header as a 0x-prefixed hex string. (It is NOT HMAC — using HMAC here rejects
+ * every real Moralis webhook.)
  */
 function verifySignature(rawBody: string, headerSignature: string | null): boolean {
   const secret = process.env.MORALIS_WEBHOOK_SECRET;
@@ -51,17 +58,14 @@ function verifySignature(rawBody: string, headerSignature: string | null): boole
   }
   if (!headerSignature) return false;
 
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody)
-    .digest("hex");
+  const expected = keccak256(toUtf8Bytes(rawBody + secret));
 
-  // Constant-time comparison
+  // Constant-time comparison of the raw bytes (both are 0x-hex strings).
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expected, "hex"),
-      Buffer.from(headerSignature, "hex"),
-    );
+    const a = Buffer.from(expected.replace(/^0x/, ""), "hex");
+    const b = Buffer.from(headerSignature.replace(/^0x/, ""), "hex");
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
   } catch {
     return false;
   }
