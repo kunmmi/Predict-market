@@ -37,8 +37,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`} data-theme="dark">
+    <html
+      lang="en"
+      translate="no"
+      className={`notranslate ${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}
+      data-theme="dark"
+    >
       <head>
+        {/*
+          Disable browser auto-translation (Chrome/Edge "Translate this page").
+          The app already ships native EN/ZH via the in-app language switcher, and
+          browser translation rewrites DOM text nodes out from under React, which
+          throws "a client-side exception" and white-screens the app.
+        */}
+        <meta name="google" content="notranslate" />
         {/* No-flash theme script — runs before React hydrates */}
         <script
           dangerouslySetInnerHTML={{
