@@ -22,8 +22,13 @@ const TRANSFER_SIG   = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a
 const USDT_DECIMALS  = 18;
 const BLOCKS_TO_SCAN = 300; // ~15 min of BSC blocks (3 s/block) — buffer for delayed cron runs
 
+// NOTE: rpc.ankr.com now requires an API key and the plain bsc-dataseed nodes
+// reject eth_getLogs over a block range ("archive request"). drpc / llamarpc /
+// publicnode allow the getLogs scan this sweep depends on — keep them first.
 const BSC_RPCS = [
-  "https://rpc.ankr.com/bsc",
+  "https://bsc.drpc.org",
+  "https://binance.llamarpc.com",
+  "https://bsc-rpc.publicnode.com",
   "https://bsc-dataseed.binance.org",
   "https://bsc-dataseed1.ninicoin.io",
   "https://bsc-dataseed2.defibit.io",
