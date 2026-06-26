@@ -53,7 +53,7 @@ export function SupportChat({ conversationProfileId, isAdmin, locale, headerName
       await fetch("/api/support/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isAdmin ? { profileId: conversationProfileId } : {}),
+        body: JSON.stringify({ profileId: conversationProfileId }),
       });
     } catch { /* non-critical */ }
   }
@@ -133,7 +133,7 @@ export function SupportChat({ conversationProfileId, isAdmin, locale, headerName
       const res = await fetch("/api/support/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isAdmin ? { body, profileId: conversationProfileId } : { body }),
+        body: JSON.stringify({ body, profileId: conversationProfileId }),
       });
       const json = (await res.json()) as { success?: boolean; message?: SupportMessage };
       if (json.success && json.message) {

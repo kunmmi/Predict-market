@@ -42,30 +42,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: "Invalid message." }, { status: 400 });
   }
 
-  const isAdmin = me.role === "admin";
   const admin = createSupabaseAdminClient();
 
-  // Whose conversation does this message belong to?
-  let conversationProfileId: string;
-  if (isAdmin) {
-    if (!parsed.data.profileId) {
-      return NextResponse.json({ success: false, message: "profileId required for admin replies." }, { status: 400 });
-    }
-    conversationProfileId = parsed.data.profileId;
-  } else {
-    conversationProfileId = me.id;
+  // The conversation defaults to the sender's own thread. Role is decided by
+  // ownership, NOT the viewer's global role — so an admin posting on their own
+  // /support page is a "user" in their own thread, and only when posting to
+  // SOMEONE ELSE's thread are they acting as an "admin" (which requires the
+  // admin role).
+  const conversationProfileId = parsed.data.profileId ?? me.id;
+  const senderIsOwner = conversationProfileId === me.id;
+  if (!senderIsOwner && me.role !== "admin") {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
   }
+  const senderRole: "user" | "admin" = senderIsOwner ? "user" : "admin";
 
   const { data, error } = await admin
     .from("support_messages")
     .insert({
       profile_id: conversationProfileId,
-      sender_role: isAdmin ? "admin" : "user",
+      sender_role: senderRole,
       sender_profile_id: me.id,
       body: parsed.data.body,
       // The sender has implicitly "read" their own side.
-      read_by_admin: isAdmin,
-      read_by_user: !isAdmin,
+      read_by_admin: senderRole === "admin",
+      read_by_user: senderRole === "user",
     })
     .select("id, profile_id, sender_role, sender_profile_id, body, created_at")
     .single();
@@ -85,11 +85,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
   }
 
-  const isAdmin = me.role === "admin";
   const url = new URL(request.url);
-  const target = isAdmin ? url.searchParams.get("profileId") : me.id;
-  if (!target) {
-    return NextResponse.json({ success: false, message: "profileId required." }, { status: 400 });
+  const target = url.searchParams.get("profileId") ?? me.id;
+  // Own thread is always allowed; another user's thread requires admin.
+  if (target !== me.id && me.role !== "admin") {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
   }
 
   const admin = createSupabaseAdminClient();
