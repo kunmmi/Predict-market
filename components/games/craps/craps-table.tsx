@@ -240,40 +240,52 @@ export function CrapsTable({ initialBalance }: Props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: 20,
-          padding: "28px 20px",
-          borderRadius: 12,
-          background: "linear-gradient(135deg, #0d2b12 0%, #0a1f0e 50%, #081a0c 100%)",
-          border: "2px solid #1a4d22",
+          gap: 28,
+          padding: "36px 20px 44px",
+          borderRadius: 14,
+          background: "radial-gradient(ellipse at 50% 30%, #0f3318 0%, #0a2410 55%, #061508 100%)",
+          border: "2px solid #1e5428",
+          boxShadow: "inset 0 2px 20px rgba(0,0,0,0.6), 0 4px 24px rgba(0,0,0,0.5)",
           position: "relative",
           overflow: "hidden",
-          minHeight: 140,
+          minHeight: 160,
         }}
       >
-        {/* Felt texture overlay */}
+        {/* Felt diamond weave */}
+        <div style={{
+          position: "absolute", inset: 0, opacity: 0.07,
+          backgroundImage: "repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%), repeating-linear-gradient(-45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)",
+          backgroundSize: "12px 12px",
+          pointerEvents: "none",
+        }} />
+        {/* Inner glow rim */}
         <div style={{
           position: "absolute", inset: 0,
-          backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 8px)",
+          boxShadow: "inset 0 0 40px rgba(0,0,0,0.5)",
+          borderRadius: 12,
           pointerEvents: "none",
         }} />
 
         {lastRoll ? (
           <>
-            <Die value={lastRoll.die1} rolling={rolling} size={80} />
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "rgba(255,255,255,0.3)", zIndex: 1 }}>+</div>
-            <Die value={lastRoll.die2} rolling={rolling} size={80} />
+            <Die value={lastRoll.die1} rolling={rolling} delay={0} />
+            <Die value={lastRoll.die2} rolling={rolling} delay={60} />
             {!rolling && (
               <div style={{
-                position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
-                fontSize: "2rem", fontWeight: 800, color: "rgba(255,255,255,0.15)",
-                fontFamily: "var(--font-display)", letterSpacing: "-0.02em",
+                position: "absolute", right: 18, bottom: 12,
+                fontSize: "2.5rem", fontWeight: 800,
+                color: "rgba(255,255,255,0.08)",
+                fontFamily: "var(--font-display)",
+                letterSpacing: "-0.03em",
+                lineHeight: 1,
+                userSelect: "none",
               }}>
                 {lastRoll.total}
               </div>
             )}
           </>
         ) : (
-          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.875rem", zIndex: 1, textAlign: "center" }}>
+          <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.875rem", zIndex: 1, textAlign: "center" }}>
             {demoMode ? "Hit Demo Roll to see the dice" : "Place your bets and roll"}
           </div>
         )}
