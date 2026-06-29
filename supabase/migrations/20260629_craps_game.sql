@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.craps_rounds (
 
 ALTER TABLE public.craps_rounds ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "craps_rounds_own_select" ON public.craps_rounds;
 CREATE POLICY "craps_rounds_own_select"
   ON public.craps_rounds FOR SELECT
   USING (
