@@ -81,6 +81,7 @@ export function CrapsTable({ initialBalance }: Props) {
   const [lastRoll, setLastRoll] = useState<RollResult | null>(null);
   const [balance, setBalance] = useState(parseFloat(initialBalance) || 0);
   const [error, setError] = useState<string | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
 
   const totalBet = Object.values(bets).reduce((s, v) => s + (v ?? 0), 0);
 
@@ -150,8 +151,56 @@ export function CrapsTable({ initialBalance }: Props) {
     // 'continue' → keep everything the same
   }, [bets, phase, point, rolling, totalBet, balance]);
 
+  const demoRoll = useCallback(async () => {
+    if (rolling) return;
+    setError(null);
+    setRolling(true);
+    await new Promise((r) => setTimeout(r, 700));
+
+    const die1 = Math.ceil(Math.random() * 6);
+    const die2 = Math.ceil(Math.random() * 6);
+    const total = die1 + die2;
+
+    let outcome: Outcome;
+    let newPoint: number | null = null;
+
+    if (phase === "come_out") {
+      if (total === 7 || total === 11) outcome = "win";
+      else if (total === 2 || total === 3) outcome = "loss";
+      else if (total === 12) outcome = "push";
+      else { outcome = "point_set"; newPoint = total; }
+    } else {
+      if (total === point) outcome = "point_hit";
+      else if (total === 7) outcome = "seven_out";
+      else outcome = "continue";
+    }
+
+    setRolling(false);
+    setLastRoll({ die1, die2, total, outcome, point_number: newPoint, net_payout: 0, gross_payout: 0, fee: 0, new_balance: null });
+
+    if (outcome === "point_set") { setPhase("point"); setPoint(newPoint); }
+    else if (["point_hit", "seven_out", "win", "loss", "push"].includes(outcome)) { setPhase("come_out"); setPoint(null); }
+  }, [rolling, phase, point]);
+
   return (
     <div style={{ maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+
+      {/* Demo mode toggle */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+        <button
+          onClick={() => { setDemoMode((v) => !v); setLastRoll(null); setPhase("come_out"); setPoint(null); setBets({}); setError(null); }}
+          style={{
+            fontSize: "0.75rem", fontWeight: 500,
+            padding: "4px 12px", borderRadius: 20,
+            border: demoMode ? "1px solid var(--gold)" : "1px solid var(--border-dim)",
+            backgroundColor: demoMode ? "var(--gold-dim)" : "transparent",
+            color: demoMode ? "var(--gold)" : "var(--text-dim)",
+            cursor: "pointer", transition: "all 150ms ease",
+          }}
+        >
+          {demoMode ? "Demo mode ON — no real money" : "Try demo (no money)"}
+        </button>
+      </div>
 
       {/* Balance + Phase bar */}
       <div
@@ -224,8 +273,8 @@ export function CrapsTable({ initialBalance }: Props) {
             )}
           </>
         ) : (
-          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.875rem", zIndex: 1 }}>
-            Place your bets and roll
+          <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.875rem", zIndex: 1, textAlign: "center" }}>
+            {demoMode ? "Hit Demo Roll to see the dice" : "Place your bets and roll"}
           </div>
         )}
       </div>
@@ -338,41 +387,53 @@ export function CrapsTable({ initialBalance }: Props) {
 
       {/* Action buttons */}
       <div style={{ display: "flex", gap: 10 }}>
-        <button
-          onClick={clearBets}
-          disabled={rolling || totalBet === 0}
-          style={{
-            flex: 1, padding: "12px 0", borderRadius: 10,
-            border: "1px solid var(--border-dim)",
-            backgroundColor: "var(--bg-elevated)",
-            color: "var(--text-secondary)",
-            fontSize: "0.875rem", fontWeight: 500,
-            cursor: totalBet === 0 || rolling ? "not-allowed" : "pointer",
-            opacity: totalBet === 0 || rolling ? 0.4 : 1,
-            transition: "opacity 150ms",
-          }}
-        >
-          Clear
-        </button>
+        {!demoMode && (
+          <button
+            onClick={clearBets}
+            disabled={rolling || totalBet === 0}
+            style={{
+              flex: 1, padding: "12px 0", borderRadius: 10,
+              border: "1px solid var(--border-dim)",
+              backgroundColor: "var(--bg-elevated)",
+              color: "var(--text-secondary)",
+              fontSize: "0.875rem", fontWeight: 500,
+              cursor: totalBet === 0 || rolling ? "not-allowed" : "pointer",
+              opacity: totalBet === 0 || rolling ? 0.4 : 1,
+              transition: "opacity 150ms",
+            }}
+          >
+            Clear
+          </button>
+        )}
 
         <button
-          onClick={roll}
-          disabled={rolling || totalBet === 0}
+          onClick={demoMode ? demoRoll : roll}
+          disabled={rolling || (!demoMode && totalBet === 0)}
           style={{
             flex: 3, padding: "12px 0", borderRadius: 10,
-            background: totalBet > 0 && !rolling
-              ? "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)"
+            background: (demoMode || totalBet > 0) && !rolling
+              ? demoMode
+                ? "linear-gradient(135deg, #2a4a2a 0%, #1a3a1a 100%)"
+                : "linear-gradient(135deg, var(--gold-btn-light) 0%, var(--gold-btn) 100%)"
               : "var(--bg-elevated)",
-            border: "1px solid transparent",
-            color: totalBet > 0 && !rolling ? "#070809" : "var(--text-dim)",
+            border: demoMode ? "1px solid #3a6a3a" : "1px solid transparent",
+            color: (demoMode || totalBet > 0) && !rolling
+              ? demoMode ? "#7ecf7e" : "#070809"
+              : "var(--text-dim)",
             fontSize: "0.9375rem", fontWeight: 700,
-            cursor: totalBet === 0 || rolling ? "not-allowed" : "pointer",
+            cursor: rolling || (!demoMode && totalBet === 0) ? "not-allowed" : "pointer",
             transition: "background 150ms, color 150ms",
             fontFamily: "var(--font-display)",
             letterSpacing: "0.04em",
           }}
         >
-          {rolling ? "Rolling…" : totalBet > 0 ? `Roll — $${totalBet.toFixed(2)}` : "Place a bet first"}
+          {rolling
+            ? "Rolling…"
+            : demoMode
+            ? "Demo Roll (free)"
+            : totalBet > 0
+            ? `Roll — $${totalBet.toFixed(2)}`
+            : "Place a bet first"}
         </button>
       </div>
 
