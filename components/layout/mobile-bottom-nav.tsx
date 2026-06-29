@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { TrendingUp, Briefcase, Wallet, Trophy, LayoutDashboard } from "lucide-react";
+import { TrendingUp, Briefcase, Wallet, Trophy, LayoutDashboard, Dice6 } from "lucide-react";
 
 import type { Locale, T } from "@/lib/i18n/translations";
 
@@ -22,6 +22,7 @@ export function MobileBottomNav({ locale, t }: Props) {
     { href: "/markets",     label: t.markets,     icon: TrendingUp },
     { href: "/portfolio",   label: t.portfolio,   icon: Briefcase },
     { href: "/wallet",      label: t.wallet,      icon: Wallet },
+    { href: "/games/craps", label: t.games,       icon: Dice6 },
     // { href: "/leaderboard", label: t.leaderboard, icon: Trophy }, // hidden until platform has more users
   ];
 

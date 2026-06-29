@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
   BarChart3, LayoutDashboard, TrendingUp, Briefcase,
-  Wallet, Users, User, Menu, X, Trophy, MessageCircle,
+  Wallet, Users, User, Menu, X, Trophy, MessageCircle, Dice6,
 } from "lucide-react";
 import { LogoutButton } from "@/components/layout/logout-button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -32,6 +32,7 @@ export function DashboardNav({ locale, t }: Props) {
     { href: "/portfolio",   label: t.portfolio,   en: "Portfolio",   icon: Briefcase },
     // { href: "/leaderboard", label: t.leaderboard, en: "Leaderboard", icon: Trophy }, // hidden until platform has more users
     { href: "/wallet",      label: t.wallet,      en: "Wallet",      icon: Wallet },
+    { href: "/games/craps", label: t.games,       en: "Games",       icon: Dice6 },
     { href: "/promoter",    label: t.promoter,    en: "Promoter",    icon: Users },
     { href: "/profile",     label: t.profile,     en: "Profile",     icon: User },
     { href: "/support",     label: "Support",     en: "Support",     icon: MessageCircle },

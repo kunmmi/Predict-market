@@ -53,6 +53,8 @@ const TX_COLOR: Partial<Record<WalletTxType, { bg: string; border: string; color
   commission_credit: { bg: "var(--gold-dim)",    border: "var(--border-gold)",           color: "var(--gold)"           },
   adjustment_credit: { bg: "var(--bg-elevated)", border: "var(--border-subtle)",         color: "var(--text-secondary)" },
   adjustment_debit:  { bg: "var(--bg-elevated)", border: "var(--border-subtle)",         color: "var(--text-secondary)" },
+  game_debit:        { bg: "var(--bg-elevated)", border: "var(--border-subtle)",         color: "var(--text-secondary)" },
+  game_credit:       { bg: "var(--teal-dim)",    border: "rgba(13,184,145,0.2)",         color: "var(--teal)"           },
 };
 
 export default async function WalletPage() {
@@ -72,6 +74,8 @@ export default async function WalletPage() {
     commission_credit: t.tx_commission_credit,
     adjustment_credit: t.tx_adjustment_credit,
     adjustment_debit:  t.tx_adjustment_debit,
+    game_debit:        "Game Bet",
+    game_credit:       "Game Payout",
   };
 
   return (

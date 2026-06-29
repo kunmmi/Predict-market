@@ -18,7 +18,9 @@ export type WalletTxType =
   | "settlement_debit"
   | "commission_credit"
   | "adjustment_credit"
-  | "adjustment_debit";
+  | "adjustment_debit"
+  | "game_debit"
+  | "game_credit";
 
 export type EntryDirection = "credit" | "debit";
 
