@@ -20,6 +20,14 @@ const GAMES = [
     houseEdge: "~2%",
     tag: "High Risk",
   },
+  {
+    href: "/games/roulette",
+    name: "Roulette",
+    description: "European single-zero wheel. Outside bets, dozens, or straight up on any number for 35:1.",
+    emoji: "🎰",
+    houseEdge: "~2.7%",
+    tag: "Classic",
+  },
 ];
 
 export default async function GamesPage() {
