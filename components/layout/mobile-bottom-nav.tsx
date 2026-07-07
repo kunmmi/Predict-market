@@ -23,8 +23,7 @@ export function MobileBottomNav({ locale, t }: Props) {
     { href: "/markets",     label: t.markets,     icon: TrendingUp },
     { href: "/portfolio",   label: t.portfolio,   icon: Briefcase },
     { href: "/wallet",      label: t.wallet,      icon: Wallet },
-    { href: "/games/craps", label: t.games,       icon: GamesNavIcon },
-    { href: "/games/crash", label: t.crash ?? "Crash", icon: Rocket },
+    { href: "/games",       label: t.games,       icon: GamesNavIcon },
     // { href: "/leaderboard", label: t.leaderboard, icon: Trophy }, // hidden until platform has more users
   ];
 

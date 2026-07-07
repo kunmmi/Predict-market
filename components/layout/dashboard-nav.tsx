@@ -33,8 +33,7 @@ export function DashboardNav({ locale, t }: Props) {
     { href: "/portfolio",   label: t.portfolio,   en: "Portfolio",   icon: Briefcase },
     // { href: "/leaderboard", label: t.leaderboard, en: "Leaderboard", icon: Trophy }, // hidden until platform has more users
     { href: "/wallet",      label: t.wallet,      en: "Wallet",      icon: Wallet },
-    { href: "/games/craps", label: t.games,       en: "Craps",       icon: GamesNavIcon },
-    { href: "/games/crash", label: t.crash ?? "Crash", en: "Crash",  icon: Rocket },
+    { href: "/games",        label: t.games,       en: "Games",       icon: GamesNavIcon },
     { href: "/promoter",    label: t.promoter,    en: "Promoter",    icon: Users },
     { href: "/profile",     label: t.profile,     en: "Profile",     icon: User },
     { href: "/support",     label: "Support",     en: "Support",     icon: MessageCircle },
