@@ -500,7 +500,8 @@ export function CrashGame({ initialBalance }: Props) {
             onClick={play}
             disabled={isFlying}
             style={{
-              padding: "13px 0", borderRadius: 10, border: "none", cursor: isFlying ? "not-allowed" : "pointer",
+              padding: "13px 0", borderRadius: 10, cursor: isFlying ? "not-allowed" : "pointer",
+              border: isFlying ? "1px solid var(--border-dim)" : demoMode ? "1px solid #3a6a3a" : "none",
               background: isFlying
                 ? "var(--bg-elevated)"
                 : demoMode
@@ -509,7 +510,6 @@ export function CrashGame({ initialBalance }: Props) {
               color: isFlying ? "var(--text-dim)" : demoMode ? "#7ecf7e" : "#070809",
               fontSize: "1rem", fontWeight: 700, fontFamily: "var(--font-display)", letterSpacing: "0.04em",
               transition: "background 150ms",
-              border: isFlying ? "1px solid var(--border-dim)" : demoMode ? "1px solid #3a6a3a" : "none",
             }}>
             {isFlying ? "🚀 Flying…" : demoMode ? "Demo Launch (free)" : `🚀 Launch — $${parseFloat(betAmount || "0").toFixed(2)}`}
           </button>
