@@ -73,7 +73,7 @@ function OutcomeBanner({ outcome, netPayout, totalBet, total, demoMode }: {
 
   const c = config[outcome];
   return (
-    <div style={{
+    <div data-testid="outcome-banner" style={{
       textAlign: "center",
       padding: "14px 20px",
       borderRadius: 10,

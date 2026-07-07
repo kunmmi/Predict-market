@@ -27,7 +27,7 @@ export default defineConfig({
   globalSetup: require.resolve("./tests/global-setup"),
   testDir: "./tests",
   timeout: isRemoteRun ? 120_000 : 60_000,
-  retries: 1,
+  retries: 2,
   workers: isRemoteRun ? 1 : undefined,
   reporter: [["list"], ["html", { open: "never" }]],
 

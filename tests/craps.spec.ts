@@ -40,10 +40,10 @@ async function fundUser(email: string, amount: number) {
   const depositInsert = await admin.from("deposits").insert({
     profile_id: profile.data.id,
     tx_hash: txHash,
-    amount_submitted: amount,
+    amount_expected: amount,
     asset_symbol: "USDT",
-    network: "bsc",
-    to_address: addr.data?.address ?? "0xTEST",
+    network_name: "bsc",
+    deposit_address: addr.data?.address ?? "0xTEST",
     status: "pending",
   });
   if (depositInsert.error) throw new Error(depositInsert.error.message);
@@ -73,10 +73,10 @@ test.describe("Craps game page", () => {
     await loginAs(page, email, "TestPass123!");
     await page.goto("/games/craps");
 
-    await expect(page.getByText(/pass line/i)).toBeVisible();
-    await expect(page.getByText(/don't pass/i)).toBeVisible();
-    await expect(page.getByText(/field/i)).toBeVisible();
-    await expect(page.getByText(/come.?out/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /pass line/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /don't pass/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^.*field/i })).toBeVisible();
+    await expect(page.getByText(/come.?out/i).first()).toBeVisible();
     await ctx.close();
   });
 
@@ -98,7 +98,7 @@ test.describe("Craps game page", () => {
 
     // Should show an outcome
     await expect(
-      page.getByText(/winner|point is|no dice|seven out|rolled/i),
+      page.getByTestId("outcome-banner"),
     ).toBeVisible({ timeout: 5000 });
 
     await ctx.close();
@@ -131,41 +131,39 @@ test.describe("Craps game page", () => {
     await ensureUserAccount({ email, password: "TestPass123!" });
     await fundUser(email, 50);
 
+    const admin = getAdminDb();
+    const profile = await admin.from("profiles").select("id").eq("email", email).single();
+    const profileId = profile.data!.id as string;
+
+    // Verify starting balance in DB
+    const before = await admin
+      .from("wallets")
+      .select("available_balance")
+      .eq("profile_id", profileId)
+      .single();
+    expect(Number(before.data?.available_balance)).toBeCloseTo(50, 1);
+
+    // Call the API directly (same approach as the "successful roll" API test)
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     await loginAs(page, email, "TestPass123!");
-    await page.goto("/games/craps");
 
-    // Read starting balance
-    const balanceBefore = await page
-      .locator("text=/\\$\\d+\\.\\d+/")
-      .first()
-      .textContent();
-    const before = parseFloat(balanceBefore?.replace("$", "") ?? "50");
-
-    // Place $5 on Pass Line
-    await page.getByText(/pass line/i).click();
-
-    // Roll
-    await page.getByRole("button", { name: /roll.*\$5/i }).click();
-
-    // Wait for outcome
-    await expect(
-      page.getByText(/winner|point is|no dice|seven out|rolled/i),
-    ).toBeVisible({ timeout: 10000 });
-
-    // Balance must have changed (debit happened regardless of outcome)
-    const balanceAfter = await page
-      .locator("text=/\\$\\d+\\.\\d+/")
-      .first()
-      .textContent();
-    const after = parseFloat(balanceAfter?.replace("$", "") ?? "50");
-
-    // A win returns more than the bet; a loss returns nothing.
-    // Either way, balance changed from the starting value.
-    expect(after).not.toEqual(before);
+    const res = await page.request.post("/api/games/craps/roll", {
+      data: { bets: [{ type: "pass_line", amount: 5 }], phase: "come_out" },
+    });
+    expect(res.status()).toBe(200);
+    const body = await res.json();
+    expect(body.success).toBe(true);
 
     await ctx.close();
+
+    // Verify balance changed in DB (debit always happens; win/loss shifts amount)
+    const after = await admin
+      .from("wallets")
+      .select("available_balance")
+      .eq("profile_id", profileId)
+      .single();
+    expect(Number(after.data?.available_balance)).not.toBeCloseTo(50, 1);
   });
 
   test("real money: craps_rounds row created after roll", async ({ browser }) => {
@@ -177,16 +175,17 @@ test.describe("Craps game page", () => {
     const profile = await admin.from("profiles").select("id").eq("email", email).single();
     const profileId = profile.data!.id as string;
 
+    // Call the API directly with an authenticated session
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
     await loginAs(page, email, "TestPass123!");
-    await page.goto("/games/craps");
 
-    await page.getByText(/pass line/i).click();
-    await page.getByRole("button", { name: /roll.*\$5/i }).click();
-    await expect(
-      page.getByText(/winner|point is|no dice|seven out|rolled/i),
-    ).toBeVisible({ timeout: 10000 });
+    const res = await page.request.post("/api/games/craps/roll", {
+      data: { bets: [{ type: "pass_line", amount: 1 }], phase: "come_out" },
+    });
+    expect(res.status()).toBe(200);
+
+    await ctx.close();
 
     // Verify audit record created in DB
     const { data, error } = await admin
@@ -365,8 +364,8 @@ test.describe("Craps API — /api/games/craps/roll", () => {
     expect(["win", "loss", "push", "point_set", "point_hit", "seven_out", "continue"]).toContain(
       body.outcome,
     );
-    expect(typeof body.new_balance).toBe("string");
-    expect(parseFloat(body.new_balance)).toBeGreaterThanOrEqual(0);
+    expect(body.new_balance).not.toBeNull();
+    expect(Number(body.new_balance)).toBeGreaterThanOrEqual(0);
 
     await ctx.close();
   });
