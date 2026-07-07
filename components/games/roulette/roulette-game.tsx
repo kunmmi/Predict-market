@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValue, animate as fmAnimate } from "framer-motion";
 
 // European wheel number order (clockwise from 0)
 const WHEEL_ORDER = [
@@ -54,11 +54,46 @@ function RouletteWheel({ spinning, winningNumber }: { spinning: boolean; winning
   const cx = 130;
   const cy = 130;
 
-  // Compute rotation so winning number lands at top (12 o'clock = -90deg)
-  const winIdx = winningNumber !== null ? WHEEL_ORDER.indexOf(winningNumber) : 0;
-  const targetAngle = -(winIdx * anglePerSegment) - 90 + anglePerSegment / 2;
-  // Add extra full rotations for spin feel (4 full rotations)
-  const spinAngle = spinning ? 0 : targetAngle + 4 * 360;
+  const rotateMotion = useMotionValue(0);
+  const spinAnimRef = useRef<ReturnType<typeof fmAnimate> | null>(null);
+  const prevWinRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (spinning) {
+      // Phase 1: free spin — 12 full rotations over 12s (constant speed)
+      spinAnimRef.current = fmAnimate(rotateMotion, rotateMotion.get() + 360 * 12, {
+        duration: 12,
+        ease: "linear",
+      });
+    } else if (winningNumber !== null && winningNumber !== prevWinRef.current) {
+      prevWinRef.current = winningNumber;
+      // Phase 2: stop free spin, ease out to winning slot
+      if (spinAnimRef.current) {
+        spinAnimRef.current.stop();
+        spinAnimRef.current = null;
+      }
+      const current = rotateMotion.get();
+      const winIdx = WHEEL_ORDER.indexOf(winningNumber);
+      const rawTarget = -(winIdx * anglePerSegment) - 90 + anglePerSegment / 2;
+      const normalizedCurrent = ((current % 360) + 360) % 360;
+      const normalizedTarget = ((rawTarget % 360) + 360) % 360;
+      let delta = normalizedTarget - normalizedCurrent;
+      if (delta <= 0) delta += 360;
+      // 2 extra full rotations before landing so it feels like it's slowing down
+      const finalAngle = current + delta + 720;
+      fmAnimate(rotateMotion, finalAngle, {
+        duration: 3.5,
+        ease: [0.05, 0.75, 0.15, 1], // strong ease-out: fast then very gentle landing
+      });
+    } else if (!spinning && winningNumber === null) {
+      // Reset (new spin starting)
+      if (spinAnimRef.current) {
+        spinAnimRef.current.stop();
+        spinAnimRef.current = null;
+      }
+      prevWinRef.current = null;
+    }
+  }, [spinning, winningNumber]);
 
   return (
     <div style={{ position: "relative", width: 260, height: 260, margin: "0 auto" }}>
@@ -66,13 +101,7 @@ function RouletteWheel({ spinning, winningNumber }: { spinning: boolean; winning
         width={260}
         height={260}
         viewBox="0 0 260 260"
-        animate={{ rotate: spinning ? [0, 720] : spinAngle }}
-        transition={
-          spinning
-            ? { duration: 1.5, ease: "linear", repeat: Infinity }
-            : { duration: 0, ease: "linear" }
-        }
-        style={{ display: "block" }}
+        style={{ display: "block", rotate: rotateMotion }}
       >
         {/* Outer ring */}
         <circle cx={cx} cy={cy} r={r + 14} fill="#1a1005" stroke="var(--gold)" strokeWidth={2} />

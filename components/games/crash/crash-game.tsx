@@ -90,19 +90,21 @@ function Rocket({ crashed }: { crashed: boolean }) {
 // Graph curve component
 // ---------------------------------------------------------------------------
 function CrashGraph({ progress, mult, crashed }: { progress: number; mult: number; crashed: boolean }) {
-  const W = 500, H = 280;
-  const pad = { l: 44, r: 20, t: 20, b: 36 };
+  const W = 500, H = 320;
+  const pad = { l: 44, r: 20, t: 72, b: 36 };
   const gW = W - pad.l - pad.r;
   const gH = H - pad.t - pad.b;
 
-  // Build SVG path: exponential curve up to current progress
+  // Build SVG path: exponential curve up to current progress.
+  // Cap Y fraction at 0.88 so the rocket never reaches the very top of the graph area.
   const steps = 60;
   const pts: [number, number][] = [];
   for (let i = 0; i <= steps; i++) {
     const t = (i / steps) * progress;
     const m = Math.exp(SPEED * t * 8000);
+    const yFraction = Math.min(0.88, Math.log(m) / Math.log(Math.max(mult, 1.5)));
     const x = pad.l + (i / steps) * gW;
-    const y = pad.t + gH - Math.min(1, Math.log(m) / Math.log(Math.max(mult, 1.5))) * gH;
+    const y = pad.t + gH - yFraction * gH;
     pts.push([x, y]);
   }
 
@@ -115,7 +117,8 @@ function CrashGraph({ progress, mult, crashed }: { progress: number; mult: numbe
     : "";
 
   const rocketX = pts.length > 0 ? pts[pts.length - 1][0] : pad.l;
-  const rocketY = pts.length > 0 ? pts[pts.length - 1][1] : pad.t + gH;
+  // Clamp so the rocket body never clips outside the top of the SVG
+  const rocketY = pts.length > 0 ? Math.max(pad.t + 10, pts[pts.length - 1][1]) : pad.t + gH;
 
   const lineColor = crashed ? "#ef4444" : "#22c55e";
 
