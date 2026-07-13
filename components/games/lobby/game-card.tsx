@@ -42,6 +42,11 @@ export function GameLobby({ games }: { games: Game[] }) {
         .game-emoji-rocket  { animation: rocket-float 2s ease-in-out infinite; display: inline-block; }
         .game-emoji-wheel   { animation: wheel-spin 4s linear infinite; display: inline-block; }
         .game-emoji-coin    { animation: coin-flip 1.8s ease-in-out infinite; display: inline-block; }
+        @keyframes gem-pulse {
+          0%, 100% { transform: scale(1) rotate(-8deg); filter: brightness(1); }
+          50%       { transform: scale(1.15) rotate(8deg); filter: brightness(1.4); }
+        }
+        .game-emoji-gem { animation: gem-pulse 2s ease-in-out infinite; display: inline-block; }
       `}</style>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>

@@ -31,6 +31,15 @@ const GAMES = [
     tag: "Classic",
     animationClass: "game-emoji-wheel",
   },
+  {
+    href: "/games/mines",
+    name: "Mines",
+    description: "Reveal gems in a 5×5 grid and avoid hidden mines. Cash out any time — more mines means bigger multipliers.",
+    emoji: "💎",
+    houseEdge: "~2%",
+    tag: "Popular",
+    animationClass: "game-emoji-gem",
+  },
 ];
 
 export default async function GamesPage() {
