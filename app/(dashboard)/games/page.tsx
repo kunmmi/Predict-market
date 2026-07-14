@@ -40,6 +40,24 @@ const GAMES = [
     tag: "Popular",
     animationClass: "game-emoji-gem",
   },
+  {
+    href: "/games/dice",
+    name: "Dice",
+    description: "Roll 0–99 and bet over or under your target. Drag the slider to set your own odds and multiplier.",
+    emoji: "🎯",
+    houseEdge: "~1%",
+    tag: "Fast",
+    animationClass: "game-emoji-target",
+  },
+  {
+    href: "/games/plinko",
+    name: "Plinko",
+    description: "Drop a ball through 16 rows of pegs. It bounces randomly to a multiplier slot — up to 1000× on high risk.",
+    emoji: "🔴",
+    houseEdge: "~2%",
+    tag: "Viral",
+    animationClass: "game-emoji-ball",
+  },
 ];
 
 export default async function GamesPage() {

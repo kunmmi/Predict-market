@@ -47,6 +47,18 @@ export function GameLobby({ games }: { games: Game[] }) {
           50%       { transform: scale(1.15) rotate(8deg); filter: brightness(1.4); }
         }
         .game-emoji-gem { animation: gem-pulse 2s ease-in-out infinite; display: inline-block; }
+        @keyframes target-throb {
+          0%, 100% { transform: scale(1); }
+          50%       { transform: scale(1.18); }
+        }
+        @keyframes ball-drop {
+          0%   { transform: translateY(0px); }
+          40%  { transform: translateY(6px); }
+          60%  { transform: translateY(-3px); }
+          100% { transform: translateY(0px); }
+        }
+        .game-emoji-target { animation: target-throb 1.6s ease-in-out infinite; display: inline-block; }
+        .game-emoji-ball   { animation: ball-drop 1.4s ease-in-out infinite; display: inline-block; }
       `}</style>
 
       <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
