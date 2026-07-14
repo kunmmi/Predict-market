@@ -131,6 +131,19 @@ async function globalSetup(_config: FullConfig) {
     return;
   }
 
+  // Safety guard: refuse to run against a non-local database unless explicitly opted in.
+  // This prevents accidentally targeting production when running tests locally.
+  const isLocal =
+    supabaseUrl.includes("localhost") ||
+    supabaseUrl.includes("127.0.0.1") ||
+    supabaseUrl.includes("0.0.0.0");
+  if (!isLocal && !process.env.ALLOW_PROD_TESTS) {
+    throw new Error(
+      `[global-setup] BLOCKED: Tests would run against a non-local Supabase URL (${supabaseUrl}).\n` +
+        `Set ALLOW_PROD_TESTS=1 only if you are intentionally targeting a staging instance.`,
+    );
+  }
+
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
