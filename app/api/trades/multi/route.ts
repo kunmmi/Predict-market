@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!rateLimit(`trades:${profileId}`, 10, 60_000)) {
+  if (!await rateLimit(`trades:${profileId}`, 10, 60_000)) {
     return rateLimitResponse("Too many trades. Please wait.");
   }
 

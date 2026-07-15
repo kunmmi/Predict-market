@@ -10,7 +10,7 @@ const USERNAME_EMAIL_DOMAIN = "elemental.local";
 export async function POST(request: Request) {
   // 5 login attempts per minute per IP
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!rateLimit(`login:${ip}`, 5, 60_000)) {
+  if (!await rateLimit(`login:${ip}`, 5, 60_000)) {
     return rateLimitResponse("Too many login attempts. Please wait a minute and try again.");
   }
 

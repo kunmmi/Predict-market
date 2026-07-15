@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: "Authentication required." }, { status: 401 });
   }
 
-  if (!rateLimit(`support-send:${me.id}`, 20, 60_000)) {
+  if (!await rateLimit(`support-send:${me.id}`, 20, 60_000)) {
     return rateLimitResponse("You're sending messages too quickly. Please wait a moment.");
   }
 

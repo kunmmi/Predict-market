@@ -85,7 +85,7 @@ export async function POST() {
   }
 
   // Allow brisk polling from the deposit page, but cap abuse.
-  if (!rateLimit(`check-deposits:${profile.id}`, 12, 60_000)) {
+  if (!await rateLimit(`check-deposits:${profile.id}`, 12, 60_000)) {
     return rateLimitResponse("Please wait a moment before checking again.");
   }
 

@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   }
 
   // 3 withdrawal requests per minute per user
-  if (!rateLimit(`withdrawals:${profileId}`, 3, 60_000)) {
+  if (!await rateLimit(`withdrawals:${profileId}`, 3, 60_000)) {
     return rateLimitResponse("Too many withdrawal requests. Please wait before submitting another.");
   }
 

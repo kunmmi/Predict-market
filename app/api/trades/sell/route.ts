@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!rateLimit(`trades:sell:${profileId}`, 10, 60_000)) {
+  if (!await rateLimit(`trades:sell:${profileId}`, 10, 60_000)) {
     return rateLimitResponse("Too many sell requests. Please wait before trying again.");
   }
 

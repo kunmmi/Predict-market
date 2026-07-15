@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   }
 
   // 5 verify attempts per minute per user
-  if (!rateLimit(`verify:${profileId}`, 5, 60_000)) {
+  if (!await rateLimit(`verify:${profileId}`, 5, 60_000)) {
     return rateLimitResponse("Too many verify attempts. Please wait before trying again.");
   }
 

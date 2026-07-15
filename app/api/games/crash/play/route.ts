@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, message: "Unauthorized." }, { status: 401 });
   }
 
-  if (!rateLimit(`crash:${profileId}`, 30, 60_000)) {
+  if (!await rateLimit(`crash:${profileId}`, 30, 60_000)) {
     return rateLimitResponse("Too many plays. Please slow down.");
   }
 

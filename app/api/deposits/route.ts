@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   // 5 deposit requests per minute per user
-  if (!rateLimit(`deposits:${profileId}`, 5, 60_000)) {
+  if (!await rateLimit(`deposits:${profileId}`, 5, 60_000)) {
     return rateLimitResponse("Too many deposit requests. Please wait before submitting another.");
   }
 

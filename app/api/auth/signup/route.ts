@@ -13,7 +13,7 @@ const USERNAME_EMAIL_DOMAIN = "elemental.local";
 export async function POST(request: Request) {
   // 3 signups per minute per IP
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  if (!rateLimit(`signup:${ip}`, 3, 60_000)) {
+  if (!await rateLimit(`signup:${ip}`, 3, 60_000)) {
     return rateLimitResponse("Too many signup attempts. Please wait a minute and try again.");
   }
 

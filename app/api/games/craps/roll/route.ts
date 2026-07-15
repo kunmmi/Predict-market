@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, message: "Unauthorized." }, { status: 401 });
   }
 
-  if (!rateLimit(`craps:${profileId}`, 30, 60_000)) {
+  if (!await rateLimit(`craps:${profileId}`, 30, 60_000)) {
     return rateLimitResponse("Too many rolls. Please slow down.");
   }
 
