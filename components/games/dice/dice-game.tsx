@@ -294,14 +294,6 @@ export function DiceGame({ initialBalance }: { initialBalance: string }) {
       >
         {rolling ? "Rolling…" : demoMode ? `Demo Roll — $${bet.toFixed(2)}` : `🎲 Roll — $${bet.toFixed(2)}`}
       </button>
-
-      <div style={{ padding: "11px 14px", borderRadius: 8, border: "1px solid var(--border-dim)", background: "var(--bg-surface)" }}>
-        <div style={{ fontSize: "0.6875rem", color: "var(--text-dim)", lineHeight: 1.65 }}>
-          <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>How to play</strong>
-          Set a target (2–98) and bet whether the roll will be over or under it. Drag the slider to adjust your risk.
-          Lower win chance = higher multiplier. 2% fee on profits only.
-        </div>
-      </div>
     </div>
   );
 }

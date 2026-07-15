@@ -342,7 +342,7 @@ export function CrashGame({ initialBalance }: Props) {
       </div>
 
       {/* Graph / multiplier display */}
-      <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "radial-gradient(ellipse at 30% 70%, #0a1628 0%, #050d1a 60%, #020710 100%)", border: "1px solid rgba(255,255,255,0.06)", aspectRatio: "16/9" }}>
+      <div style={{ position: "relative", borderRadius: 14, overflow: "hidden", background: "radial-gradient(ellipse at 30% 70%, #0a1628 0%, #050d1a 60%, #020710 100%)", border: "1px solid rgba(255,255,255,0.06)", height: 240 }}>
 
         {/* Stars */}
         <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
@@ -523,14 +523,6 @@ export function CrashGame({ initialBalance }: Props) {
             Play Again
           </button>
         )}
-      </div>
-
-      {/* Rules */}
-      <div style={{ padding: "11px 14px", borderRadius: 8, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-surface)" }}>
-        <div style={{ fontSize: "0.6875rem", color: "var(--text-dim)", lineHeight: 1.65 }}>
-          <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>How to play</strong>
-          Set your bet and a target multiplier. The rocket launches and the multiplier climbs — if it reaches your target before crashing, you win. 2% fee on profits.
-        </div>
       </div>
     </div>
   );

@@ -544,17 +544,6 @@ export function CrapsTable({ initialBalance }: Props) {
         </button>
       </div>
 
-      {/* Rules */}
-      <div style={{ padding: "11px 14px", borderRadius: 8, border: "1px solid var(--border-dim)", backgroundColor: "var(--bg-surface)" }}>
-        <div style={{ fontSize: "0.6875rem", color: "var(--text-dim)", lineHeight: 1.65 }}>
-          <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>How to play</strong>
-          Come-out: 7 or 11 wins (Pass) · 2 or 3 loses · 12 pushes · any other number sets the Point.
-          Point phase: roll the point to win · roll 7 to lose · anything else keeps going.
-          Field bets resolve on every single roll regardless of phase.
-          <span style={{ display: "block", marginTop: 4, color: "var(--text-dim)" }}>2% fee on net winnings only · Min $1 · Max $500 per bet type</span>
-        </div>
-      </div>
-
     </div>
   );
 }

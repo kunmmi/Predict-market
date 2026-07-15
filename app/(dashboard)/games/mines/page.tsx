@@ -10,14 +10,11 @@ export default async function MinesPage() {
   const balance = walletData?.wallet?.availableBalance ?? "0";
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 sm:px-6">
-      <div style={{ marginBottom: 28 }}>
+    <div className="mx-auto max-w-lg px-4 pt-3 pb-6 sm:px-6">
+      <div style={{ marginBottom: 8 }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em", marginBottom: 4 }}>
           Mines
         </h1>
-        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-          Reveal gems, avoid mines. Cash out before you hit one.
-        </p>
       </div>
       <MinesGame initialBalance={balance} />
     </div>

@@ -529,16 +529,6 @@ export function MinesGame({ initialBalance }: { initialBalance: string }) {
           Play Again
         </button>
       )}
-
-      {/* Rules */}
-      <div style={{ padding: "11px 14px", borderRadius: 8, border: "1px solid var(--border-dim)", background: "var(--bg-surface)" }}>
-        <div style={{ fontSize: "0.6875rem", color: "var(--text-dim)", lineHeight: 1.65 }}>
-          <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>How to play</strong>
-          Pick how many mines hide in the 5×5 grid, set your bet, then reveal tiles.
-          Each 💎 increases your multiplier. Hit a 💣 and you lose everything.
-          Cash out any time after your first gem. More mines = higher multipliers. 2% fee on profits only.
-        </div>
-      </div>
     </div>
   );
 }

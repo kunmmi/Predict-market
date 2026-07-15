@@ -592,15 +592,6 @@ export function RouletteGame({ initialBalance }: { initialBalance: string }) {
           ? `Demo Spin — $${totalBet.toFixed(2)}`
           : `🎰 Spin — $${totalBet.toFixed(2)}`}
       </button>
-
-      {/* Rules */}
-      <div style={{ padding: "11px 14px", borderRadius: 8, border: "1px solid var(--border-dim)", background: "var(--bg-surface)" }}>
-        <div style={{ fontSize: "0.6875rem", color: "var(--text-dim)", lineHeight: 1.65 }}>
-          <strong style={{ color: "var(--text-secondary)", display: "block", marginBottom: 3 }}>How to play</strong>
-          European single-zero wheel (0–36). Place outside bets (Red/Black, Odd/Even, 1–18/19–36, Dozens) or bet straight up on any number for 35:1.
-          Zero wins only for straight bets on 0. 2% fee on profits only.
-        </div>
-      </div>
     </div>
   );
 }

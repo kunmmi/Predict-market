@@ -10,14 +10,11 @@ export default async function PlinkoPage() {
   const balance = walletData?.wallet?.availableBalance ?? "0";
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 sm:px-6">
-      <div style={{ marginBottom: 28 }}>
+    <div className="mx-auto max-w-lg px-4 pt-3 pb-6 sm:px-6">
+      <div style={{ marginBottom: 8 }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em", marginBottom: 4 }}>
           Plinko
         </h1>
-        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-          Drop the ball, watch it bounce through 16 rows of pegs. Where it lands is your multiplier.
-        </p>
       </div>
       <PlinkoGame initialBalance={balance} />
     </div>

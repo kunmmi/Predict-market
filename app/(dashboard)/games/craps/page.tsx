@@ -11,8 +11,8 @@ export default async function CrapsPage() {
   const balance = walletData?.wallet?.availableBalance ?? "0";
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-      <div style={{ marginBottom: 28 }}>
+    <div className="mx-auto max-w-2xl px-4 pt-3 pb-6 sm:px-6">
+      <div style={{ marginBottom: 8 }}>
         <h1
           style={{
             fontFamily: "var(--font-display)",
@@ -25,9 +25,6 @@ export default async function CrapsPage() {
         >
           Craps
         </h1>
-        <p style={{ fontSize: "0.875rem", color: "var(--text-secondary)" }}>
-          Casino-style craps with real USDT. Pass, Don&apos;t Pass, and Field bets. 2% fee on winnings.
-        </p>
       </div>
 
       <CrapsTable initialBalance={balance} />
