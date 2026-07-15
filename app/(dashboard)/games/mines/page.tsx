@@ -10,13 +10,18 @@ export default async function MinesPage() {
   const balance = walletData?.wallet?.availableBalance ?? "0";
 
   return (
-    <div className="mx-auto max-w-lg px-4 pt-3 pb-6 sm:px-6">
-      <div style={{ marginBottom: 8 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em", marginBottom: 4 }}>
-          Mines
-        </h1>
+    <div
+      className="-mt-8 -mx-4 sm:-mx-6 -mb-20 md:-mb-8"
+      style={{ height: "calc(100dvh - 56px)", overflowY: "auto" }}
+    >
+      <div className="mx-auto max-w-lg px-4 pt-3 pb-6 sm:px-6">
+        <div style={{ marginBottom: 8 }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+            Mines
+          </h1>
+        </div>
+        <MinesGame initialBalance={balance} />
       </div>
-      <MinesGame initialBalance={balance} />
     </div>
   );
 }
