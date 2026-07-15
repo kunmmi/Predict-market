@@ -44,9 +44,16 @@ cloudflared.exe
 # Claude Code internal files
 .claude/
 .claire/
+
+# One-off scripts and personal files — not part of the deployable app
+/scripts/
+/portfolio/
+skills-lock.json
 .env.report
 *.next-dev.log
 .next-dev.log
 supabase/.temp/
 cookies-debug.txt
 signup-debug.json
+
+.env*
